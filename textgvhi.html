@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Business Idea Validator</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h2>AI Validator</h2>
+        </div>
+
+        <nav>
+
+            <ul>
+
+                <li class="active">Dashboard</li>
+
+                <li>Validate Idea</li>
+
+                <li>Market Trends</li>
+
+                <li>Competitors</li>
+
+                <li>Monetization</li>
+
+                <li>Settings</li>
+
+            </ul>
+
+        </nav>
+
+    </aside>
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div>
+
+                <h1>AI Business Idea Validator</h1>
+
+                <p>
+                    Validate your startup idea before investing months building it.
+                </p>
+
+            </div>
+
+            <button class="premium-btn">
+                Upgrade Pro
+            </button>
+
+        </header>
+
+        <!-- IDEA INPUT SECTION -->
+
+        <section class="idea-section">
+
+            <h2>Validate Your Business Idea</h2>
+
+            <div class="input-grid">
+
+                <input
+                    type="text"
+                    id="ideaInput"
+                    placeholder="Example: AI Fitness Coach for Busy Professionals">
+
+                <select id="industry">
+
+                    <option>Technology</option>
+
+                    <option>Healthcare</option>
+
+                    <option>Education</option>
+
+                    <option>Finance</option>
+
+                    <option>E-commerce</option>
+
+                </select>
+
+                <select id="budget">
+
+                    <option>Under $1,000</option>
+
+                    <option>$1,000 - $10,000</option>
+
+                    <option>$10,000 - $50,000</option>
+
+                    <option>$50,000+</option>
+
+                </select>
+
+                <button id="validateBtn">
+
+                    Validate Idea
+
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- METRIC CARDS -->
+
+        <section class="metrics-grid">
+
+            <div class="metric-card">
+
+                <h3>Demand Score</h3>
+
+                <h1 id="demandScore">--</h1>
+
+            </div>
+
+            <div class="metric-card">
+
+                <h3>Competition Score</h3>
+
+                <h1 id="competitionScore">--</h1>
+
+            </div>
+
+            <div class="metric-card">
+
+                <h3>Market Potential</h3>
+
+                <h1 id="marketPotential">--</h1>
+
+            </div>
+
+            <div class="metric-card">
+
+                <h3>Investor Readiness</h3>
+
+                <h1 id="investorScore">--</h1>
+
+            </div>
+
+        </section>
+
+        <!-- ANALYSIS SECTION -->
+
+        <section class="analysis-grid">
+
+            <!-- CUSTOMER ANALYSIS -->
+
+            <div class="dashboard-card">
+
+                <h2>Target Customers</h2>
+
+                <div id="customersOutput">
+
+                    Waiting for analysis...
+
+                </div>
+
+            </div>
+
+            <!-- COMPETITOR ANALYSIS -->
+
+            <div class="dashboard-card">
+
+                <h2>Competitor Analysis</h2>
+
+                <div id="competitorOutput">
+
+                    Waiting for analysis...
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- REVENUE SECTION -->
+
+        <section class="dashboard-card">
+
+            <h2>Revenue Models</h2>
+
+            <div id="revenueOutput">
+
+                Waiting for analysis...
+
+            </div>
+
+        </section>
+
+        <!-- MVP ROADMAP -->
+
+        <section class="dashboard-card">
+
+            <h2>MVP Roadmap</h2>
+
+            <div id="roadmapOutput">
+
+                Waiting for analysis...
+
+            </div>
+
+        </section>
+
+        <!-- RISKS -->
+
+        <section class="dashboard-card">
+
+            <h2>Risk Assessment</h2>
+
+            <div id="riskOutput">
+
+                Waiting for analysis...
+
+            </div>
+
+        </section>
+
+        <!-- INVESTOR REPORT -->
+
+        <section class="dashboard-card">
+
+            <h2>Investor Summary</h2>
+
+            <div id="investorOutput">
+
+                Waiting for analysis...
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

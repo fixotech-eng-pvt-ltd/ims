@@ -1,0 +1,9 @@
+{
+  "appId": "com.fixotech.ecosystem",
+  "appName": "Fixotech",
+  "webDir": ".",
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#0f172a" }
+  }
+}

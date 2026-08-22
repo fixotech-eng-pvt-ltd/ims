@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Local backend data (embedded MongoDB)
+server/.mongo-data/
+
+# Build / packaging output
+dist/
+build/
+
+# Editor & tool-local config
+.claude/
+
+# OS junk
+.DS_Store
+Thumbs.db
+*.log
+
+# Raw source data — contains real customer PII (GST, phone) & financials.
+# Keep these OUT of the repo; the app runs from the generated *-seed.js files.
+*.xlsx
+
+# Scratch / one-off inspection files
+inspect_excel*.py
+excel_structure_full.txt
+chat conversation.txt

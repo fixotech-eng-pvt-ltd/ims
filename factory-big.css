@@ -1,0 +1,196 @@
+/* ===== Factory: bigger, floor-friendly sizing + logo + specs + red dot ===== */
+
+/* Overall bigger base for the factory (easier for floor staff) */
+.factory-body { max-width: 1500px; margin: 0 auto; padding: 20px 26px 70px; font-size: 15px; }
+
+/* Hero: logo chip on the right */
+.fx-hero { padding: 22px 28px; }
+.fx-hero-ic { font-size: 42px; }
+.fx-hero-title h2 { font-size: 28px; }
+.fx-hero-title p { font-size: 14px; }
+.fx-hero-right { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.fx-stat { min-width: 86px; padding: 10px 18px; }
+.fx-stat b { font-size: 26px; }
+.fx-stat span { font-size: 12px; }
+.fx-logo-chip { background: #fff; border-radius: 14px; padding: 10px 16px; box-shadow: 0 6px 18px rgba(0,0,0,.18); display: flex; align-items: center; }
+.fx-logo-chip img { height: 44px; width: auto; display: block; }
+
+/* Bigger tabs */
+.fx-tab { font-size: 17px; padding: 13px 26px; border-radius: 14px; }
+
+/* Red notification dot on tabs (product-wise + customer-wise) */
+.fx-dot { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 8px;
+  background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; box-shadow: 0 0 0 0 rgba(239,68,68,.6); animation: fxpulse 1.6s infinite; }
+@keyframes fxpulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.55); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+.fx-tab.active .fx-dot { background: #fff; color: #dc2626; }
+
+/* Bigger sidebar */
+.fx-sidebar { flex: 0 0 300px; padding: 18px; }
+.fx-side-item { font-size: 15px; padding: 11px 12px; }
+.fx-side-thumb { height: 34px; width: 40px; }
+.fx-side-ic { font-size: 22px; width: 40px; }
+.fx-side-title { font-size: 12px; }
+
+/* Bigger main + Kanban */
+.fx-main-title { font-size: 24px; }
+.fx-vt { font-size: 15px; padding: 10px 18px; }
+.fx-kanban { gap: 16px; }
+.fx-kcol { padding: 14px; border-radius: 16px; min-height: 200px; }
+.fx-kcol-head { font-size: 15px; margin-bottom: 14px; }
+.fx-kdot { width: 13px; height: 13px; }
+.fx-kcount { font-size: 13px; padding: 2px 10px; }
+.fx-kcards { gap: 12px; }
+.fx-kcard { padding: 14px; border-left-width: 6px; border-radius: 12px; }
+.fx-kcard-desc { font-size: 16px; }
+.fx-kcard-qty { font-size: 14px; color: #334155; margin-top: 8px; }
+.fx-kcard-qty b { font-size: 15px; }
+.fx-kcard-rem { color: #b91c1c; font-weight: 800; }
+.fx-btn-sm { padding: 9px 16px; font-size: 14px; }
+.fx-btn { font-size: 15px; padding: 11px 18px; }
+
+/* Spec chips: the make-critical info (thickness / width / height / finish / customer) */
+.fx-specs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fx-spec { display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; color: #1e293b; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 3px 9px; font-size: 12.5px; font-weight: 700; }
+.fx-spec em { font-style: normal; font-weight: 600; color: #64748b; font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px; }
+.fx-spec-fin { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.fx-spec-cust { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+
+/* Bigger status pills + list rows */
+.fx-status { font-size: 12.5px; padding: 4px 12px; }
+.fx-track { padding: 15px; }
+.fx-track-desc b { font-size: 16px; }
+.fx-tbl td, .fx-tbl th { font-size: 14px; padding: 10px 12px; }
+
+/* Bigger camera / dispatch modals for the floor */
+.fx-modal { max-width: 600px; }
+.fx-modal h3 { font-size: 20px; }
+.fx-in { font-size: 18px; padding: 13px; }
+
+@media (max-width: 1100px) { .fx-kanban { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .fx-kanban { grid-template-columns: 1fr; } }
+
+/* Red notification badge on product / customer side items */
+.fx-side-new { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px;
+  background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; margin-left: 4px; animation: fxpulse 1.6s infinite; }
+.fx-side-item.new { border-color: #fecaca; background: #fef2f2; }
+.fx-side-item.new .fx-side-name { color: #b91c1c; }
+.fx-side-item.active.new { background: #eff6ff; }
+
+.fx-period { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fx-period .fx-side-sec { margin-bottom: 8px; }
+
+.fx-link { cursor: pointer; color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; font-weight: 700; }
+.fx-kcard-desc.fx-link { color: #1e293b; text-decoration: none; }
+.fx-kcard-desc.fx-link:hover { color: #1d4ed8; text-decoration: underline; }
+
+.fx-btn-undo { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.fx-btn-undo:hover { background: #fee2e2; }
+
+/* Order detail popup */
+.fx-det-modal { max-width: 620px; }
+.fx-det-head { display: flex; gap: 16px; align-items: center; border-bottom: 1px solid #eef2f7; padding-bottom: 14px; margin-bottom: 14px; }
+.fx-det-img { width: 92px; height: 92px; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; flex: 0 0 auto; }
+.fx-det-cust { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+.fx-det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+.fx-det-row { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed #eef2f7; padding: 6px 0; font-size: 14px; }
+.fx-det-row span { color: #64748b; } .fx-det-row b { color: #1e293b; }
+.fx-det-label { font-size: 12px; text-transform: uppercase; letter-spacing: .3px; color: #94a3b8; font-weight: 800; margin: 16px 0 8px; }
+.fx-det-full { font-size: 14px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 8px; padding: 10px; }
+
+.hm-notif.warn { background: #fff7ed; border-color: #fed7aa; }
+.hm-notif em { color: #475569; font-style: italic; }
+
+/* 6-stage colors */
+.fx-st-cutting { background: #f1f5f9; color: #475569; }
+.fx-st-punching { background: #dbeafe; color: #1d4ed8; }
+.fx-st-perforation { background: #ede9fe; color: #6d28d9; }
+.fx-st-bending { background: #fef3c7; color: #b45309; }
+.fx-st-finishing { background: #ccfbf1; color: #0f766e; }
+.fx-st-ready { background: #d1fae5; color: #047857; }
+.fx-kdot.fx-st-cutting { background: #94a3b8; }
+.fx-kdot.fx-st-punching { background: #3b82f6; }
+.fx-kdot.fx-st-perforation { background: #8b5cf6; }
+.fx-kdot.fx-st-bending { background: #f59e0b; }
+.fx-kdot.fx-st-finishing { background: #14b8a6; }
+.fx-kdot.fx-st-ready { background: #10b981; }
+.fx-kcard.fx-st-cutting { border-left-color: #94a3b8; }
+.fx-kcard.fx-st-punching { border-left-color: #3b82f6; }
+.fx-kcard.fx-st-perforation { border-left-color: #8b5cf6; }
+.fx-kcard.fx-st-bending { border-left-color: #f59e0b; }
+.fx-kcard.fx-st-finishing { border-left-color: #14b8a6; }
+.fx-kcard.fx-st-ready { border-left-color: #10b981; }
+
+/* Card front photo + clickable widget */
+.fx-kcard { cursor: pointer; transition: box-shadow .12s, transform .12s; }
+.fx-kcard:hover { box-shadow: 0 6px 18px rgba(15,23,42,.12); transform: translateY(-1px); }
+.fx-kcard-head { display: flex; align-items: center; gap: 10px; }
+.fx-kcard-head .fx-side-thumb { height: 40px; width: 48px; object-fit: contain; border: 1px solid #eef2f7; border-radius: 8px; background: #fff; flex: 0 0 auto; }
+.fx-kcard-head .fx-side-ic { font-size: 26px; }
+.fx-tap-hint { font-size: 11px; color: #94a3b8; }
+.fx-track { cursor: pointer; }
+.fx-track:hover { border-color: #bfdbfe; }
+.fx-track .fx-side-thumb { height: 42px; width: 50px; object-fit: contain; border: 1px solid #eef2f7; border-radius: 8px; background: #fff; flex: 0 0 auto; }
+.fx-track .fx-side-ic { font-size: 28px; flex: 0 0 auto; }
+
+/* Kanban drag-and-drop */
+.fx-kcard.fx-dragging { opacity: .5; }
+.fx-kcol.fx-drop { background: #eff6ff; outline: 2px dashed #60a5fa; outline-offset: -4px; }
+
+/* App switch button in topbar + Dispatch app */
+.app-switch { margin-left: auto; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.app-switch:hover { background: rgba(255,255,255,.26); }
+.dp-hero { background: linear-gradient(120deg,#065f46,#059669 60%,#10b981); box-shadow: 0 10px 30px rgba(5,150,105,.25); }
+.dp-bar { margin-bottom: 12px; }
+.dp-card .fx-cust { font-size: 18px; }
+.dp-size { font-size: 11.5px; color: #64748b; margin-top: 2px; }
+
+/* Factory home app tiles */
+.fh-app { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 8px; }
+.fh-app-ic { font-size: 56px; line-height: 1; }
+.fh-app-name { font-size: 16px; font-weight: 800; color: #1e293b; }
+.fh-app-badge { position: absolute; top: 10px; right: 10px; background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; padding: 2px 8px; }
+
+.fx-ed-body iframe { background: #fff; }
+
+.fx-foot-btns { display: inline-flex; gap: 6px; align-items: center; }
+
+/* Notification bell: always visible (gray) regardless of topbar colour */
+.home-bell { background: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; color: #475569 !important; }
+.home-bell:hover { background: #e2e8f0 !important; }
+/* Factory home tiles now icon-only (match office) */
+.fh-app-badge { position: absolute; top: 10px; right: 10px; background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; padding: 2px 8px; }
+
+/* Detail: production progress + material verify */
+.fx-prog { border: 1px solid #eef2f7; border-radius: 10px; padding: 12px; background: #f8fafc; }
+.fx-prog-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.fx-prog-done { color: #047857; } .fx-prog-left { color: #b45309; }
+.fx-prog-bar { height: 10px; background: #e2e8f0; border-radius: 20px; overflow: hidden; margin-bottom: 6px; }
+.fx-prog-fill { height: 100%; background: linear-gradient(90deg,#2563eb,#10b981); border-radius: 20px; transition: width .2s; }
+.fx-note-warn { color: #b91c1c; font-weight: 600; }
+/* Floor-sheet upload button */
+.fx-sheet-btn { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; border-radius: 12px; padding: 11px 20px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.fx-sheet-btn:hover { background: #fef3c7; }
+
+/* Slotting stage colour (per-product routes) */
+.fx-st-slotting { background: #fae8ff; color: #a21caf; }
+.fx-kdot.fx-st-slotting { background: #d946ef; }
+.fx-kcard.fx-st-slotting { border-left-color: #d946ef; }
+
+/* Priority / urgent indent */
+.fx-card.fx-priority { border: 2px solid #ef4444; box-shadow: 0 6px 18px rgba(239,68,68,.18); }
+.fx-prio-tag { display: inline-block; background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; border-radius: 6px; padding: 2px 8px; letter-spacing: .3px; animation: fxpulse 1.6s infinite; }
+.fx-inv-in { width: 90px; }
+
+/* Dispatch: side-by-side comparison */
+.dp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.dp-comp-col { border-right: 1px solid #eef2f7; }
+.dp-comp-col:last-child { border-right: none; }
+.dp-comp-h { font-size: 12px; font-weight: 800; text-align: center; padding: 8px; background: #f8fafc; color: #334155; }
+@media (max-width: 720px){ .dp-compare { grid-template-columns: 1fr; } }
+
+/* Sheet upload picker + proforma urgent toggle */
+.fx-sheet-pick { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.fx-sheet-pick .fx-btn { justify-content: flex-start; text-align: left; font-size: 15px; padding: 14px 16px; }
+.idt-urgent { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; color: #b91c1c; font-weight: 600; }
+.idt-urgent input { width: 18px; height: 18px; }

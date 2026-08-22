@@ -1,0 +1,78 @@
+/* ===================== Fixotech ChatIQ (ChatGPT-style) ===================== */
+#screen-chatiq { padding: 0; }
+#chatiq-app { height: 100vh; }
+.ciq { display: flex; height: 100vh; background: #ffffff; color: #0d0d0d; font-family: var(--font, "Segoe UI", system-ui, sans-serif); }
+
+/* Sidebar */
+.ciq-side { flex: 0 0 268px; background: #f9f9f9; border-right: 1px solid #ececec; display: flex; flex-direction: column; padding: 12px; gap: 6px; }
+.ciq-side-top { display: flex; align-items: center; gap: 10px; padding: 6px 4px 10px; }
+.ciq-back { border: none; background: transparent; font-size: 20px; cursor: pointer; color: #5d5d5d; width: 32px; height: 32px; border-radius: 8px; }
+.ciq-back:hover { background: #ececec; }
+.ciq-brand { font-size: 16px; font-weight: 600; color: #0d0d0d; }
+.ciq-brand b { font-weight: 800; }
+.ciq-new { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid #e3e3e3; background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: #0d0d0d; cursor: pointer; }
+.ciq-new:hover { background: #f0f0f0; }
+.ciq-nav { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.ciq-nav-item { display: flex; align-items: center; gap: 10px; border: none; background: transparent; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 500; color: #2d2d2d; cursor: pointer; text-align: left; }
+.ciq-nav-item span { font-size: 16px; }
+.ciq-nav-item:hover { background: #ececec; }
+.ciq-nav-item.active { background: #ececec; font-weight: 700; }
+.ciq-nav-item.locked { color: #9b9b9b; }
+.ciq-nav-item em { margin-left: auto; font-style: normal; font-size: 10px; background: #e5e7eb; color: #6b7280; border-radius: 10px; padding: 1px 7px; text-transform: uppercase; font-weight: 700; }
+.ciq-side-lab { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #9b9b9b; font-weight: 700; margin: 16px 4px 6px; }
+.ciq-examples { display: flex; flex-direction: column; gap: 4px; overflow: auto; }
+.ciq-eg { text-align: left; border: none; background: transparent; color: #4b4b4b; font-size: 13px; padding: 8px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ciq-eg:hover { background: #ececec; color: #0d0d0d; }
+
+/* Main */
+.ciq-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ciq-top { padding: 14px 20px; border-bottom: 1px solid #f0f0f0; }
+.ciq-model { font-size: 15px; font-weight: 700; color: #0d0d0d; border: 1px solid #ececec; border-radius: 10px; padding: 6px 12px; }
+.ciq-scroll { flex: 1; overflow: auto; padding: 24px 0; }
+.ciq-empty { max-width: 760px; margin: 8vh auto 0; text-align: center; padding: 0 20px; }
+.ciq-empty h1 { font-size: 30px; font-weight: 700; color: #0d0d0d; margin: 0 0 26px; }
+.ciq-empty-egs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.ciq-eg2 { border: 1px solid #e3e3e3; background: #fff; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #2d2d2d; cursor: pointer; font-weight: 500; }
+.ciq-eg2:hover { background: #f7f7f7; border-color: #d0d0d0; }
+
+.ciq-msg { max-width: 780px; margin: 0 auto 22px; padding: 0 20px; display: flex; gap: 14px; }
+.ciq-avatar { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.ciq-msg.user .ciq-avatar { background: #e5e7eb; }
+.ciq-msg.bot .ciq-avatar { background: #0d0d0d; color: #fff; font-size: 11px; font-weight: 800; }
+.ciq-bubble { font-size: 15px; line-height: 1.6; color: #1a1a1a; padding-top: 3px; overflow-x: auto; }
+.ciq-msg.user .ciq-bubble { background: #f4f4f4; border-radius: 14px; padding: 10px 14px; }
+.ciq-ul { margin: 8px 0; padding-left: 20px; } .ciq-ul li { margin: 3px 0; }
+.ciq-dim { color: #8a8a8a; font-size: 13px; }
+
+.ciq-order { border: 1px solid #ececec; border-radius: 12px; padding: 10px 12px; margin: 10px 0; background: #fafafa; }
+.ciq-order-h { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+.ciq-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ciq-tbl th { text-align: left; color: #8a8a8a; font-weight: 600; border-bottom: 1px solid #ececec; padding: 4px 6px; }
+.ciq-tbl td { padding: 4px 6px; border-bottom: 1px solid #f2f2f2; }
+.ciq-tbl .r { text-align: right; }
+
+/* Composer */
+.ciq-composer { padding: 10px 20px 18px; }
+.ciq-inputwrap { max-width: 780px; margin: 0 auto; display: flex; align-items: flex-end; gap: 8px; border: 1px solid #d9d9d9; border-radius: 26px; padding: 8px 8px 8px 18px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.ciq-inputwrap:focus-within { border-color: #b4b4b4; }
+#ciq-input { flex: 1; border: none; outline: none; resize: none; font-size: 15px; font-family: inherit; line-height: 1.5; max-height: 160px; background: transparent; color: #0d0d0d; }
+#ciq-send { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; border: none; background: #0d0d0d; color: #fff; font-size: 16px; cursor: pointer; }
+#ciq-send:hover { background: #333; }
+.ciq-foot { max-width: 780px; margin: 8px auto 0; text-align: center; font-size: 12px; color: #9b9b9b; }
+
+.ciq-typing { display: inline-flex; gap: 4px; }
+.ciq-typing i { width: 7px; height: 7px; border-radius: 50%; background: #b4b4b4; animation: ciqb 1s infinite; }
+.ciq-typing i:nth-child(2) { animation-delay: .15s; } .ciq-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes ciqb { 0%,60%,100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+.fh-app-img { width: 76px; height: 76px; object-fit: contain; }
+
+@media (max-width: 760px) { .ciq-side { display: none; } }
+
+/* Attach button + chip */
+#ciq-attach { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #e3e3e3; background: #fff; color: #444; font-size: 20px; cursor: pointer; line-height: 1; }
+#ciq-attach:hover { background: #f0f0f0; }
+.ciq-attach-chip { max-width: 780px; margin: 0 auto 8px; font-size: 13px; color: #444; background: #f4f4f4; border: 1px solid #e3e3e3; border-radius: 10px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; }
+.ciq-attach-chip .ciq-x { cursor: pointer; color: #9b9b9b; font-weight: 700; }
+.ciq-attach-chip .ciq-x:hover { color: #ef4444; }
+.ciq-side-empty2 { font-size: 12px; color: #b4b4b4; padding: 6px 10px; }

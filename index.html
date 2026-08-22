@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Fixotech - Smart Cable Tray Calculator</title>
+  <!-- PWA: installable on phone, offline shell, camera works when served over https -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fixotech">
+  <link rel="apple-touch-icon" href="assets/app-icons/app-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="factory.css">
+  <link rel="stylesheet" href="factory-big.css">
+  <link rel="stylesheet" href="chatiq.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ============ LANDING: OFFICE / FACTORY ============ -->
+  <div id="screen-landing" class="screen screen-center">
+    <div class="landing">
+      <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="landing-logo">
+      <h1 class="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
+      <p class="landing-sub">Select your workspace</p>
+      <div class="landing-cards">
+        <button class="side-card" id="btn-office">
+          <div class="side-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+          </div>
+          <span class="side-name">Office Side</span>
+          <span class="side-desc">Quoting, invoicing &amp; customer data</span>
+        </button>
+        <button class="side-card" id="btn-factory">
+          <div class="side-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M2 20h20M4 20V9l6 4V9l6 4V9l4 3v8"/><path d="M6 20v-3M10 20v-3M14 20v-3M18 20v-3"/></svg>
+          </div>
+          <span class="side-name">Factory Side</span>
+          <span class="side-desc">Indents · Production · Dispatch</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOME: APP LAUNCHER ============ -->
+  <div id="screen-home" class="screen">
+    <div class="home-wm" aria-hidden="true"></div>
+    <div class="home-topbar">
+      <div class="home-brand">
+        <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="home-logo">
+        <span>OFFICE&nbsp;WORKSPACE</span>
+      </div>
+      <div class="home-topbar-right">
+        <button class="home-bell" id="hm-bell" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="home-back" data-goto="screen-landing">↩ Switch workspace</button>
+      </div>
+    </div>
+
+    <div class="home-body-v2">
+      <div class="hm-profile">
+        <div class="hm-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+        </div>
+        <div class="hm-greet">
+          <h2>Hello, Fixotech!</h2>
+          <p>Welcome back</p>
+        </div>
+      </div>
+
+      <div class="hm-apps">
+        <button class="hm-app" data-open-app="screen-calculator" title="Smart Calculator">
+          <img src="assets/app-icons/smart-calculator.png" alt="Smart Calculator">
+        </button>
+        <button class="hm-app" data-open-app="screen-proforma" title="Proforma Invoice">
+          <img src="assets/app-icons/proforma-invoice.png" alt="Proforma Invoice">
+        </button>
+        <button class="hm-app" data-open-app="screen-chatiq" title="Fixotech ChatIQ">
+          <img src="assets/app-icons/smart-iq.png" alt="Fixotech ChatIQ" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'💬'}))">
+        </button>
+        <button class="hm-app fh-app" data-open-app="screen-dispatch-records" title="Dispatch Records">
+          <span class="fh-app-ic">📥</span>
+          <span class="fh-app-name">Dispatch Records</span>
+          <span class="fh-app-badge" id="dr-badge" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FACTORY HOME: APP LAUNCHER ============ -->
+  <div id="screen-factory-home" class="screen">
+    <div class="home-wm" aria-hidden="true"></div>
+    <div class="home-topbar">
+      <div class="home-brand">
+        <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="home-logo">
+        <span>FACTORY&nbsp;WORKSPACE</span>
+      </div>
+      <div class="home-topbar-right">
+        <button class="home-bell" id="fh-bell" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="home-back" data-goto="screen-landing">↩ Switch workspace</button>
+      </div>
+    </div>
+
+    <div class="home-body-v2">
+      <div class="hm-profile">
+        <div class="hm-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+        </div>
+        <div class="hm-greet">
+          <h2>Hello, Factory!</h2>
+          <p>Welcome back</p>
+        </div>
+      </div>
+
+      <div class="hm-apps">
+        <button class="hm-app" data-open-factory="floor" title="Fixotech Floor">
+          <img src="assets/app-icons/factory-floor.png" alt="Fixotech Floor" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🏭'}))">
+          <span class="fh-app-badge" id="fh-floor-badge" hidden></span>
+        </button>
+        <button class="hm-app" data-open-factory="dispatch" title="Fixotech Dispatch">
+          <img src="assets/app-icons/disptach.png" alt="Fixotech Dispatch" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🚚'}))">
+          <span class="fh-app-badge" id="fh-disp-badge" hidden></span>
+        </button>
+        <button class="hm-app fh-app" data-open-factory="inventory" title="Inventory Management">
+          <span class="fh-app-ic">📦</span>
+          <span class="fh-app-name">Inventory</span>
+          <span class="fh-app-badge" id="fh-inv-badge" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SMART CALCULATOR (APP) ============ -->
+  <div id="screen-calculator" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Smart Calculator</span>
+    </div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="main-header">
+    <div class="header-left">
+      <div class="logo-group">
+        <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech Logo" class="logo-img">
+      </div>
+      <div class="header-divider"></div>
+      <div class="header-title-group">
+        <h1 class="header-title">SMART<br><span class="header-title-bold">CALCULATOR</span></h1>
+        <p class="header-subtitle">Commercial Quoting Engine</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- STEP 1: Material / finish / GSM — drives the whole calculation -->
+      <div class="mat-bar" id="mat-bar"></div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN LAYOUT ============ -->
+  <main class="app-layout">
+
+    <!-- LEFT: Controls + Workspace -->
+    <div class="left-panel">
+
+      <!-- Customer order sessions (work on multiple customers at once) -->
+      <div class="session-bar" id="session-tabs"></div>
+
+      <!-- Controls Row -->
+      <div class="controls-row">
+        <div class="control-box client-box">
+          <div class="control-icon-wrap">
+            <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <input type="text" id="client-name" placeholder="Client / Project Name" autocomplete="off">
+        </div>
+        <div class="control-box component-box">
+          <div class="control-icon-wrap accent">
+            <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+          <input type="text" id="component-search" placeholder="Select a component to calculate..." autocomplete="off" readonly>
+          <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          <!-- Dropdown -->
+          <div class="component-dropdown" id="component-dropdown">
+            <input type="text" id="dropdown-search" placeholder="Search components..." autocomplete="off">
+            <div class="dropdown-list" id="dropdown-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workspace -->
+      <div class="workspace" id="workspace">
+        <div class="workspace-cards" id="workspace-cards"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Quote Panel -->
+    <aside class="quote-panel" id="quote-panel">
+      <div class="quote-header">
+        <div class="quote-header-left">
+          <div class="quote-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <span class="quote-label">CURRENT QUOTE</span>
+        </div>
+        <span class="quote-badge" id="quote-badge">0</span>
+      </div>
+
+      <div class="quote-items-list" id="quote-items-list"></div>
+
+      <div class="quote-footer">
+        <div class="valuation-block">
+          <p class="valuation-label">TOTAL VALUATION</p>
+          <p class="valuation-amount" id="valuation-amount">&#8377;0</p>
+        </div>
+
+        <div class="quote-extra-row">
+          <label for="quote-freight">Local Freight (₹) <em>optional</em></label>
+          <input type="number" id="quote-freight" min="0" step="1" placeholder="Blank = EXTRA / none">
+        </div>
+        <div class="quote-extra-row">
+          <label for="quote-deliver-addr">Delivery Address <em>→ loads to Proforma</em></label>
+          <textarea id="quote-deliver-addr" rows="2" placeholder="Customer's delivery / site address"></textarea>
+        </div>
+
+        <div class="paper-size-row">
+          <label for="paper-size">Paper Size</label>
+          <select id="paper-size" title="Sheet size for printing / PDF">
+            <option value="a4">A4</option>
+            <option value="a5">A5</option>
+            <option value="legal">Legal</option>
+            <option value="letter">Letter</option>
+          </select>
+        </div>
+
+        <div class="action-group">
+          <div class="action-group-title">1 &middot; Quotation for Approval</div>
+          <button class="btn-export btn-approval" id="btn-approval-pdf" title="Generate DRAFT copy for management / board approval">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+            Approval Copy (DRAFT)
+          </button>
+          <div class="quote-export-actions">
+            <button class="btn-export" id="btn-csv" title="Export CSV (for internal review)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+              CSV
+            </button>
+            <button class="btn-export" id="btn-download-txt" title="Download TXT">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              TXT
+            </button>
+          </div>
+          <div class="quote-actions">
+            <button class="btn-action btn-whatsapp" id="btn-whatsapp-appr" title="Send approval copy via WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp
+            </button>
+            <button class="btn-action btn-email" id="btn-email-appr" title="Send approval copy via Email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Email
+            </button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="action-group-title">2 &middot; Print &amp; Send (Approved)</div>
+          <div class="print-row">
+            <button class="btn-export btn-print" id="btn-download-pdf" title="Print / Save final client-ready PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Print / Save PDF
+            </button>
+            <button class="btn-export btn-print" id="btn-print-csv" title="Print / Save final client-ready CSV (same format)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+              Print / Save CSV
+            </button>
+          </div>
+          <div class="quote-actions">
+            <button class="btn-action btn-whatsapp" id="btn-whatsapp" title="Share via WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp
+            </button>
+            <button class="btn-action btn-email" id="btn-email" title="Send via Email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Email
+            </button>
+          </div>
+        </div>
+
+        <div class="quote-actions">
+          <button class="btn-action btn-save-order" id="btn-save-order" title="Save this order (with all edits) to reopen and re-edit later">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Save Order
+          </button>
+          <button class="btn-action btn-open-order" id="btn-open-order" title="Reopen a saved order to re-edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="16" height="16"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Saved Orders
+          </button>
+        </div>
+
+        <button class="btn-forward" id="btn-forward-proforma" title="Send this negotiated quote to the Proforma Invoice app">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Forward to Proforma Invoice
+        </button>
+      </div>
+    </aside>
+  </main>
+  </div><!-- /screen-calculator -->
+
+  <!-- ============ PROFORMA INVOICE (APP) ============ -->
+  <div id="screen-proforma" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Proforma Invoice</span>
+    </div>
+    <div class="proforma-body" id="pf-app"></div>
+  </div>
+
+  <div id="screen-chatiq" class="screen">
+    <div id="chatiq-app"></div>
+  </div>
+
+  <div id="screen-dispatch-records" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Dispatch Records</span>
+    </div>
+    <div class="factory-body" id="dispatch-records-app"></div>
+  </div>
+
+  <div id="screen-factory" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-factory-home">← Apps</button>
+      <span class="app-topbar-name">Fixotech Floor</span>
+    </div>
+    <div class="factory-body" id="factory-app"></div>
+  </div>
+
+  <div id="screen-dispatch" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-factory-home">← Apps</button>
+      <span class="app-topbar-name">Fixotech Dispatch</span>
+    </div>
+    <div class="factory-body" id="dispatch-app"></div>
+  </div>
+
+  <div id="screen-inventory" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-factory-home">← Apps</button>
+      <span class="app-topbar-name">Inventory Management</span>
+    </div>
+    <div class="factory-body" id="inventory-app"></div>
+  </div>
+
+  <!-- WhatsApp Modal -->
+  <div class="modal-overlay" id="whatsapp-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg viewBox="0 0 24 24" fill="#25d366" width="22" height="22"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <h3>Share via WhatsApp</h3>
+        </div>
+        <button class="modal-close-btn" id="wa-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="wa-phone">Phone Number (with country code)</label>
+          <input type="tel" id="wa-phone" placeholder="e.g. 919876543210">
+        </div>
+        <div class="form-group">
+          <label>Message Preview</label>
+          <textarea id="wa-preview" readonly rows="8"></textarea>
+        </div>
+        <div class="attach-row">
+          <span class="attach-lbl">Attach:</span>
+          <label><input type="checkbox" id="wa-attach-pdf" checked> PDF</label>
+          <label><input type="checkbox" id="wa-attach-csv"> CSV</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="wa-cancel">Cancel</button>
+          <button class="btn-send btn-send-wa" id="wa-send">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            Send via WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Modal -->
+  <div class="modal-overlay" id="email-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="1.5" width="22" height="22"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <h3>Send Quote via Email</h3>
+        </div>
+        <button class="modal-close-btn" id="email-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="email-to">Recipient Email Address</label>
+          <input type="email" id="email-to" placeholder="e.g. client@company.com">
+        </div>
+        <div class="form-group">
+          <label for="email-subject">Subject</label>
+          <input type="text" id="email-subject" placeholder="Fixotech - Cable Tray Quotation">
+        </div>
+        <div class="form-group">
+          <label>Email Body Preview</label>
+          <textarea id="email-preview" readonly rows="8"></textarea>
+        </div>
+        <div class="attach-row">
+          <span class="attach-lbl">Attach:</span>
+          <label><input type="checkbox" id="email-attach-pdf" checked> PDF</label>
+          <label><input type="checkbox" id="email-attach-csv"> CSV</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="email-cancel">Cancel</button>
+          <button class="btn-send btn-send-email" id="email-send">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            Send Email
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jsPDF for PDF generation (vendored locally so it works offline in the EXE) -->
+  <script src="jspdf.umd.min.js"></script>
+
+  <script src="images.js"></script>
+  <script src="product-images-data.js"></script>
+  <script src="product-images.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/exceljs.min.js"></script>
+  <script src="db.js"></script>
+  <script src="customers-seed.js"></script>
+  <script src="app.js"></script>
+  <script src="clients.js"></script>
+  <script src="shell.js"></script>
+  <script src="testing-mode.js"></script>
+  <script src="verify.js"></script>
+  <script src="proforma.js"></script>
+  <script src="factory.js"></script>
+  <script src="chatiq.js"></script>
+  <script src="dispatch.js"></script>
+  <script src="dispatch-records.js"></script>
+  <script src="inventory-seed.js"></script>
+  <script src="inventory.js"></script>
+  <script>
+    // Register the PWA service worker (makes the app installable + offline).
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW register failed', e)));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "name": "fixotech-smart-calculator",
+  "version": "1.0.0",
+  "description": "Fixotech Smart Cable Tray Calculator",
+  "main": "main.js",
+  "author": "Fixotech",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable",
+    "build-installer": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.fixotech.smartcalculator",
+    "productName": "Fixotech Smart Calculator",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "styles.css",
+      "app.js",
+      "db.js",
+      "customers-seed.js",
+      "clients.js",
+      "shell.js",
+      "verify.js",
+      "proforma.js",
+      "assets/**/*",
+      "images.js",
+      "jspdf.umd.min.js",
+      "vendor/pdf.min.js",
+      "vendor/pdf.worker.min.js",
+      "vendor/exceljs.min.js",
+      "icon.ico"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico"
+    },
+    "portable": {
+      "artifactName": "Fixotech_Smart_Calculator.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "artifactName": "Fixotech_Setup.exe"
+    }
+  }
+}

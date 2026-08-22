@@ -1,0 +1,16 @@
+{
+  "name": "Fixotech Ecosystem",
+  "short_name": "Fixotech",
+  "description": "Fixotech — Smart Calculator, Proforma, Factory Floor, Dispatch & ChatIQ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "assets/app-icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/app-icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/app-icons/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
