@@ -8,6 +8,9 @@ server/.mongo-data/
 # Build / packaging output
 dist/
 build/
+public/
+netlify/functions/node_modules/
+.netlify/
 
 # Editor & tool-local config
 .claude/

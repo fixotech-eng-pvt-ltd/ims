@@ -16,12 +16,17 @@
 
   function getCfg() { try { return JSON.parse(localStorage.getItem(LS.cfg) || '{}') || {}; } catch (e) { return {}; } }
   function setCfg(c) { localStorage.setItem(LS.cfg, JSON.stringify(c || {})); }
-  function mode() { const c = getCfg(); if (c.apiUrl) return 'api'; if (c.url && c.key) return 'supabase'; return 'local'; }
+  // A deployed Netlify site can reach its function at its own origin. This
+  // avoids making every team member enter the same site URL in Settings.
+  function sameOriginNetlify() {
+    try { return window.location.hostname.endsWith('.netlify.app'); } catch (e) { return false; }
+  }
+  function mode() { const c = getCfg(); if (c.apiUrl || sameOriginNetlify()) return 'api'; if (c.url && c.key) return 'supabase'; return 'local'; }
   function backendLabel() { return mode() === 'api' ? 'MongoDB' : mode() === 'supabase' ? 'Supabase' : 'Local'; }
 
   // ---- MongoDB backend (Express API) ----
   async function api(pathAndQuery, opts) {
-    const base = (getCfg().apiUrl || '').replace(/\/$/, '');
+    const base = (getCfg().apiUrl || (sameOriginNetlify() ? window.location.origin : '')).replace(/\/$/, '');
     const res = await fetch(base + '/api' + pathAndQuery, Object.assign(
       { headers: { 'Content-Type': 'application/json' } }, opts || {}));
     if (!res.ok) throw new Error('API ' + res.status + ': ' + (await res.text()));

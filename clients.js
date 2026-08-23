@@ -718,9 +718,9 @@ create policy "anon all orders"  on orders  for all using (true) with check (tru
             <button class="modal-close-btn" id="cloud-x">&times;</button>
           </div>
           <div class="modal-body">
-            <p class="cloud-note">Choose where clients &amp; orders are stored. <b>MongoDB backend</b> is the primary store (run the local server, then paste its URL). <b>Supabase</b> is an optional cloud alternative. Leave both blank to keep data on this device only.</p>
+            <p class="cloud-note">Choose where clients &amp; orders are stored. On a Netlify URL with MongoDB enabled, shared storage is used automatically. <b>MongoDB backend</b> is also available for a separate server; <b>Supabase</b> is an optional cloud alternative. Leave both blank to keep data on this device only.</p>
 
-            <label class="cf-lbl">🗄 MongoDB backend URL (local server)</label>
+            <label class="cf-lbl">🗄 MongoDB backend URL (optional)</label>
             <input type="text" id="be-api" placeholder="http://localhost:4000" value="${esc(cfg.apiUrl || '')}">
             <p class="cloud-hint">Start it with: <code>cd server &amp;&amp; npm install &amp;&amp; npm start</code> — runs an embedded MongoDB (no install needed). Set <code>MONGODB_URI</code> to use your own local Mongo or Atlas cloud later.</p>
 
