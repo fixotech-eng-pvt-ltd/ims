@@ -24,21 +24,20 @@
     "files": [
       "main.js",
       "index.html",
-      "styles.css",
-      "app.js",
-      "db.js",
-      "customers-seed.js",
-      "clients.js",
-      "shell.js",
-      "verify.js",
-      "proforma.js",
+      "manifest.webmanifest",
+      "sw.js",
+      "*.css",
+      "*.js",
       "assets/**/*",
-      "images.js",
-      "jspdf.umd.min.js",
-      "vendor/pdf.min.js",
-      "vendor/pdf.worker.min.js",
-      "vendor/exceljs.min.js",
-      "icon.ico"
+      "vendor/**/*",
+      "!build-web.mjs",
+      "!server/**",
+      "!netlify/**",
+      "!supabase/**",
+      "!public/**",
+      "!dist/**",
+      "!**/*.xlsx",
+      "!**/*.py"
     ],
     "win": {
       "target": [
@@ -49,7 +48,7 @@
           ]
         }
       ],
-      "icon": "icon.ico"
+      "icon": "assets/app-icons/app-512.png"
     },
     "portable": {
       "artifactName": "Fixotech_Smart_Calculator.exe"

@@ -18,15 +18,11 @@
   window.showScreen = showScreen;
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Restore the screen the user was on before a reload (Ctrl+R safety).
-    // Only restore app screens; landing/home are cheap to re-enter and avoid
-    // stranding a user who cleared their work.
-    let start = 'screen-landing';
-    try {
-      const saved = localStorage.getItem('fixo_screen');
-      if (saved && document.getElementById(saved)) start = saved;
-    } catch (e) {}
-    showScreen(start);
+    // Always boot to a safe screen (the landing / workspace picker). Deep-
+    // restoring into an app or admin screen could show a blank body if that
+    // screen didn't re-render on reopen — booting to landing is bulletproof.
+    // auth.js (loaded earlier) redirects to the login screen if not signed in.
+    (window.showScreen || showScreen)('screen-landing');
 
     const office = document.getElementById('btn-office');
     if (office) office.addEventListener('click', () => showScreen('screen-home'));
@@ -61,6 +57,10 @@
     }));
     const fhBell = document.getElementById('fh-bell');
     if (fhBell) fhBell.addEventListener('click', showNotifications);
+
+    // Admin panel (admin accounts only; tile is hidden otherwise by auth.js)
+    const adminBtn = document.getElementById('btn-admin');
+    if (adminBtn) adminBtn.addEventListener('click', () => { showScreen('screen-admin'); if (window.FIXO_ADMIN) FIXO_ADMIN.render(); });
   });
 
   // ---------- Office notifications (factory approvals reflect here) ----------

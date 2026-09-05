@@ -93,12 +93,18 @@
           localStorage.removeItem('fixo_orders_seed_v2');
         }
         let n = 0;
+        const slug = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         for (const s of seed) {
           if (!Array.isArray(s.orders) || !s.orders.length) continue;
           const client = byName.get(norm(s.company_name));
           if (!client) continue;
-          for (const o of s.orders) {
+          for (let oi = 0; oi < s.orders.length; oi++) {
+            const o = s.orders[oi];
+            // Stable id from the voucher (unique per invoice) so re-seeding or a
+            // second device UPSERTS the same row instead of creating duplicates.
+            const stableId = 'histord-' + (o.voucher_no ? slug(o.voucher_no) : slug(s.company_name) + '-' + oi);
             await DB.addOrder({
+              id: stableId,
               client_id: client.id,
               order_date: o.order_date || '',
               quote_no: o.voucher_no || '',
@@ -718,19 +724,15 @@ create policy "anon all orders"  on orders  for all using (true) with check (tru
             <button class="modal-close-btn" id="cloud-x">&times;</button>
           </div>
           <div class="modal-body">
-            <p class="cloud-note">Choose where clients &amp; orders are stored. On a Netlify URL with MongoDB enabled, shared storage is used automatically. <b>MongoDB backend</b> is also available for a separate server; <b>Supabase</b> is an optional cloud alternative. Leave both blank to keep data on this device only.</p>
+            <p class="cloud-note"><b>Supabase</b> is the cloud database — clients, orders and all platform data are shared across every device that logs in, and it works offline &amp; syncs when back online. It's pre-configured; you normally don't need to change this. Leave both blank to keep data on this device only.</p>
 
-            <label class="cf-lbl">🗄 MongoDB backend URL (optional)</label>
-            <input type="text" id="be-api" placeholder="http://localhost:4000" value="${esc(cfg.apiUrl || '')}">
-            <p class="cloud-hint">Start it with: <code>cd server &amp;&amp; npm install &amp;&amp; npm start</code> — runs an embedded MongoDB (no install needed). Set <code>MONGODB_URI</code> to use your own local Mongo or Atlas cloud later.</p>
+            <label class="cf-lbl">Supabase Project URL</label>
+            <input type="text" id="cloud-url" placeholder="https://xxxx.supabase.co" value="${esc(cfg.url || '')}">
+            <label class="cf-lbl">Supabase publishable (anon) key</label>
+            <input type="text" id="cloud-key" placeholder="sb_publishable_..." value="${esc(cfg.key || '')}">
 
             <details class="cloud-sql">
-              <summary>Supabase (optional cloud alternative)</summary>
-              <label class="cf-lbl">Supabase Project URL</label>
-              <input type="text" id="cloud-url" placeholder="https://xxxx.supabase.co" value="${esc(cfg.url || '')}">
-              <label class="cf-lbl">Supabase anon public key</label>
-              <input type="text" id="cloud-key" placeholder="eyJhbGci..." value="${esc(cfg.key || '')}">
-              <label class="cf-lbl" style="margin-top:10px">One-time Supabase setup (SQL)</label>
+              <summary>One-time Supabase setup (SQL) — already applied to this project</summary>
               <textarea readonly rows="8">${esc(sql)}</textarea>
             </details>
 
@@ -751,7 +753,6 @@ create policy "anon all orders"  on orders  for all using (true) with check (tru
     document.body.appendChild(modal);
 
     const collectCfg = () => ({
-      apiUrl: document.getElementById('be-api').value.trim(),
       url: document.getElementById('cloud-url').value.trim(),
       key: document.getElementById('cloud-key').value.trim()
     });
@@ -765,7 +766,6 @@ create policy "anon all orders"  on orders  for all using (true) with check (tru
     });
     modal.querySelector('#cloud-clear').addEventListener('click', () => {
       DB.setCfg({}); refreshCloudBadge(); setStatus('cloud-status', 'Using this device only', false);
-      document.getElementById('be-api').value = '';
       document.getElementById('cloud-url').value = '';
       document.getElementById('cloud-key').value = '';
     });
@@ -791,7 +791,7 @@ create policy "anon all orders"  on orders  for all using (true) with check (tru
     const b = document.getElementById('cp-cloud');
     if (!b) return;
     const label = DB.backendLabel();
-    if (DB.cloudEnabled()) { b.textContent = (label === 'MongoDB' ? '🗄 ' : '☁ ') + label; b.classList.add('on'); }
+    if (DB.cloudEnabled()) { b.textContent = '☁ ' + label; b.classList.add('on'); }
     else { b.textContent = '◌ Local'; b.classList.remove('on'); }
   }
 

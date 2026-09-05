@@ -36,8 +36,8 @@ open. This repo is already Netlify-ready.
      **`MONGODB_URI`** = that connection string, then redeploy.
   3. Redeploy. On the `*.netlify.app` URL, the app automatically uses the
      same site's API, so clients and order history are shared for everyone who
-     opens that URL. No per-person setup is needed. (For a custom domain, enter
-     that URL once in **Customer panel → ⚙ settings → backend URL**.)
+     opens that URL. No per-person setup is needed. (For a custom domain, each
+     user can enter that URL in **Customer panel → ⚙ settings → backend URL**.)
   - Note: today the shared backend covers **customers + quotes/orders**. Factory
     floor, inventory, dispatch and notification data are still per-device until
     those stores are migrated (planned next).

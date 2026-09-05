@@ -4,11 +4,11 @@
 const CACHE = 'fixo-v3';
 const SHELL = [
   './', './index.html',
-  './styles.css', './factory.css', './factory-big.css', './chatiq.css',
+  './styles.css', './factory.css', './factory-big.css', './chatiq.css', './mobile.css',
   './images.js', './product-images-data.js', './product-images.js',
   './vendor/pdf.min.js', './vendor/exceljs.min.js',
-  './db.js', './customers-seed.js', './inventory-seed.js', './app.js', './clients.js',
-  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js',
+  './db.js', './auth.js', './customers-seed.js', './inventory-seed.js', './app.js', './clients.js',
+  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js', './admin.js', './sync.js',
   './jspdf.umd.min.js',
   './assets/app-icons/app-192.png', './assets/app-icons/app-512.png'
 ];

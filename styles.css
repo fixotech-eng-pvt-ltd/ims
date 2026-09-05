@@ -1981,3 +1981,35 @@ body.testing-on .fx-locked::after { content: '🔒'; position: absolute; top: 6p
 .tm-banner { display: none; }
 body.testing-on .tm-banner { display: block; background: #fef9c3; border: 1px solid #fde047; color: #713f12;
   border-radius: 10px; padding: 10px 14px; font-size: 13px; margin: 0 auto 16px; max-width: 760px; }
+
+/* ===================== Login screen ===================== */
+#screen-login { background: linear-gradient(135deg, #0f172a, #1e293b 60%, #334155); }
+#login-app { width: 100%; display: flex; justify-content: center; align-items: center; padding: 20px; }
+.lg-card { width: 100%; max-width: 380px; background: #fff; border-radius: 18px; padding: 30px 28px; box-shadow: 0 20px 60px rgba(0,0,0,.4); text-align: center; }
+.lg-logo { height: 54px; object-fit: contain; margin-bottom: 10px; }
+.lg-title { font-size: 22px; font-weight: 800; margin: 0 0 2px; color: #0f172a; letter-spacing: .5px; }
+.lg-title span { color: #2563eb; }
+.lg-sub { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+.lg-lab { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #475569; margin: 12px 0 4px; }
+.lg-in { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; }
+.lg-in:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+.lg-btn { width: 100%; margin-top: 18px; padding: 13px; border: none; border-radius: 10px; background: #2563eb; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.lg-btn:hover { background: #1d4ed8; }
+.lg-err { margin-top: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 9px; font-size: 13px; }
+.lg-foot { margin-top: 18px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+/* Landing user bar + admin card */
+.landing-userbar { display: flex; align-items: center; justify-content: center; gap: 12px; margin: -6px 0 14px; font-size: 14px; color: #475569; flex-wrap: wrap; }
+.landing-userbar .ub-who em { color: #2563eb; font-style: normal; font-weight: 700; }
+.ub-logout { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: #334155; }
+.ub-logout:hover { background: #f1f5f9; }
+.side-card-admin .side-ic { font-size: 40px; }
+
+/* ===================== Admin panel ===================== */
+.adm-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.adm-users td { vertical-align: top; }
+.adm-acc { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; margin: 2px 10px 2px 0; white-space: nowrap; }
+.adm-addrow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.adm-addrow .fx-in { flex: 1; min-width: 150px; }
+.adm-stack { font-size: 10.5px; background: #0f172a; color: #e2e8f0; padding: 8px; border-radius: 6px; overflow: auto; max-height: 160px; }
+.adm-res { opacity: .6; }

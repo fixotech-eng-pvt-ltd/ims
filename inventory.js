@@ -31,10 +31,13 @@
     const seed = window.FIXO_INVENTORY_SEED;
     if (Array.isArray(seed) && seed.length && !load().length) {
       save(seed.map(s => ({
-        id: uid(), name: s.name, sheet: s.sheet || s.name, unit: s.unit || 'Nos',
+        // Stable id from the material name → same id on every device, so the
+        // seeded catalogue de-duplicates when synced through Supabase.
+        id: 'inv-' + String(s.sheet || s.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        name: s.name, sheet: s.sheet || s.name, unit: s.unit || 'Nos',
         type: s.type || 'production', opening: num(s.opening), minQty: 0,
-        txns: (s.txns || []).map(t => ({
-          id: uid(), date: t.date || '', particulars: t.particulars || '', bill: t.bill || '',
+        txns: (s.txns || []).map((t, ti) => ({
+          id: 'invx-' + String(s.sheet || s.name).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + ti, date: t.date || '', particulars: t.particulars || '', bill: t.bill || '',
           receipt: t.receipt != null ? num(t.receipt) : null, issue: t.issue != null ? num(t.issue) : null,
           remarks: t.remarks || ''
         }))

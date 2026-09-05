@@ -16,18 +16,39 @@
   <link rel="stylesheet" href="factory.css">
   <link rel="stylesheet" href="factory-big.css">
   <link rel="stylesheet" href="chatiq.css">
+  <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
+  <!-- ============ BOOT FAIL-SAFE ============ -->
+  <!-- Visible immediately so the very first paint is never a blank white
+       window. A watchdog at the end of this file hides it once the app has
+       rendered a screen, or turns it into a readable error if boot fails. -->
+  <div id="fixo-boot" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0f1830;color:#eaf0f8;font-family:Inter,Segoe UI,Arial,sans-serif;text-align:center;padding:24px">
+    <div style="font-size:22px;font-weight:800;letter-spacing:.5px">FIXOTECH</div>
+    <div id="fixo-boot-msg" style="margin-top:10px;font-size:14px;color:#9fb2cc">Loading…</div>
+  </div>
+
   <!-- ============ LANDING: OFFICE / FACTORY ============ -->
+  <!-- ============ LOGIN ============ -->
+  <div id="screen-login" class="screen screen-center">
+    <div id="login-app"></div>
+  </div>
+
   <div id="screen-landing" class="screen screen-center">
     <div class="landing">
       <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="landing-logo">
       <h1 class="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
+      <div class="landing-userbar" id="landing-userbar"></div>
       <p class="landing-sub">Select your workspace</p>
       <div class="landing-cards">
+        <button class="side-card side-card-admin" id="btn-admin" data-goto="screen-admin" hidden>
+          <div class="side-ic">🛡️</div>
+          <span class="side-name">Admin Panel</span>
+          <span class="side-desc">Testing · access · monitoring · FixTech Help</span>
+        </button>
         <button class="side-card" id="btn-office">
           <div class="side-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
@@ -355,6 +376,14 @@
     <div class="factory-body" id="inventory-app"></div>
   </div>
 
+  <div id="screen-admin" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-landing">← Back</button>
+      <span class="app-topbar-name">Admin Panel</span>
+    </div>
+    <div class="factory-body" id="admin-app"></div>
+  </div>
+
   <!-- WhatsApp Modal -->
   <div class="modal-overlay" id="whatsapp-modal">
     <div class="modal-dialog">
@@ -438,6 +467,7 @@
   <script src="vendor/pdf.min.js"></script>
   <script src="vendor/exceljs.min.js"></script>
   <script src="db.js"></script>
+  <script src="auth.js"></script>
   <script src="customers-seed.js"></script>
   <script src="app.js"></script>
   <script src="clients.js"></script>
@@ -451,11 +481,71 @@
   <script src="dispatch-records.js"></script>
   <script src="inventory-seed.js"></script>
   <script src="inventory.js"></script>
+  <script src="admin.js"></script>
+  <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).
-    if ('serviceWorker' in navigator) {
+    // Only over http/https — under file:// (the packaged desktop app) service
+    // workers are unsupported and throw a noisy error, so we skip it there.
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW register failed', e)));
     }
+  </script>
+
+  <script>
+    // ============ BOOT WATCHDOG — never show a blank white screen ============
+    // Guarantees the window always shows *something* readable: the app if it
+    // booted, or a plain-English error if a script failed to load (e.g. a
+    // broken/incomplete install). This is the safety net that makes a silent
+    // white screen impossible.
+    (function () {
+      var boot = document.getElementById('fixo-boot');
+      var msg = document.getElementById('fixo-boot-msg');
+      var firstError = '';
+      window.addEventListener('error', function (e) {
+        if (!firstError && e && (e.message || e.filename)) {
+          firstError = (e.message || 'Script error') + (e.filename ? ' — ' + String(e.filename).split('/').pop() : '');
+        }
+      }, true);
+
+      function hasScreen() { return !!document.querySelector('.screen.active'); }
+      function hideBoot() { if (boot) { boot.style.display = 'none'; } }
+
+      function poll(triesLeft) {
+        if (hasScreen()) { hideBoot(); return; }
+        if (triesLeft <= 0) { recover(); return; }
+        setTimeout(function () { poll(triesLeft - 1); }, 250);
+      }
+
+      function recover() {
+        // 1) Try the app's own router.
+        try { if (typeof window.showScreen === 'function') { window.showScreen('screen-login'); } } catch (e) {}
+        if (hasScreen()) { hideBoot(); return; }
+        // 2) Force-activate the login (or first) screen directly.
+        try {
+          var s = document.getElementById('screen-login') || document.querySelector('.screen');
+          if (s) { s.classList.add('active'); document.body.dataset.screen = s.id; }
+        } catch (e) {}
+        // 3) If a login host is present but empty and auth.js exists, render it.
+        try {
+          var host = document.getElementById('login-app');
+          if (host && !host.innerHTML.trim() && window.FIXO_AUTH && FIXO_AUTH.applyGate) FIXO_AUTH.applyGate();
+        } catch (e) {}
+        if (hasScreen() && (document.querySelector('.screen.active').textContent || '').trim()) { hideBoot(); return; }
+        // 4) Nothing rendered — the install is broken. Show a readable message.
+        if (msg) {
+          msg.innerHTML = 'The app could not finish loading.' +
+            (firstError ? '<br><span style="color:#ff9aa6">' + String(firstError).replace(/</g, '&lt;') + '</span>' : '') +
+            '<br><br><span style="color:#c7d3e6">Please reinstall from the latest “Fixotech-Package” folder, ' +
+            'or run the web version. If it keeps happening, share the file ' +
+            '<b>fixotech-diag.log</b> from your app-data folder.</span>';
+        }
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { poll(16); });
+      else poll(16);
+      window.addEventListener('load', function () { if (!hasScreen()) poll(12); });
+    })();
   </script>
 </body>
 </html>

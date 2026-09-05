@@ -63,23 +63,9 @@
       : 'Testing mode OFF — full ecosystem unlocked');
   }
 
-  // ---- Inject the switch + banner into the landing page ----
+  // ---- Banner only. The ON/OFF switch now lives in the Admin Panel (admin-only);
+  // the public landing switch was removed so normal users can't change testing. ----
   function injectUI() {
-    const landing = document.querySelector('.landing');
-    if (landing && !landing.querySelector('.tm-panel')) {
-      const panel = document.createElement('div');
-      panel.className = 'tm-panel';
-      panel.innerHTML = `
-        <button class="tm-switch" id="tm-switch" title="Turn Phase 1 testing on/off" aria-label="Phase 1 testing switch">
-          <span class="tm-knob"></span>
-        </button>
-        <div class="tm-text">
-          <b>🧪 Phase&nbsp;1 Testing Mode — <span class="tm-state">OFF</span></b>
-          <span>Scope: <b>Smart&nbsp;Calculator → Quotation → Proforma&nbsp;Invoice → Indent</b>, and the indent showing on the <b>Factory&nbsp;Floor</b> &amp; <b>Dispatch</b> (with urgent) for direct printing. Production/dispatch actions &amp; the other apps stay hidden until you switch it off.</span>
-        </div>`;
-      landing.appendChild(panel);
-      panel.querySelector('#tm-switch').addEventListener('click', toggle);
-    }
     // A small always-visible banner on the office home while testing is on.
     document.querySelectorAll('#screen-home .home-body-v2, #screen-factory-home .home-body-v2').forEach(body => {
       if (body.querySelector('.tm-banner')) return;

@@ -1,17 +1,8 @@
 # Netlify configuration for the Fixotech IMS web app.
+# The app talks directly to Supabase (see db.js) — no serverless backend needed.
 [build]
   command = "node build-web.mjs"
   publish = "public"
-  functions = "netlify/functions"
-
-# Route the app's API calls (db.js hits <site>/api/...) to the serverless
-# function. Harmless if you don't enable the backend — the app then just uses
-# on-device storage.
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
 
 # Always fetch the freshest service worker so app updates roll out immediately.
 [[headers]]

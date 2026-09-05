@@ -1,11 +1,8 @@
 // ============================================================
-// Fixotech data layer
-// One local cache + pluggable backend:
-//   - MongoDB backend  (Node/Express API)  ... cfg.apiUrl
-//   - Supabase (Postgres REST)             ... cfg.url + cfg.key
-//   - On-device only   (localStorage)      ... neither configured
-// The UI always reads/writes through DB.* ; the active backend is
-// chosen from config. localStorage is kept as an offline cache/fallback.
+// Fixotech data layer — Supabase (primary) + localStorage (offline cache)
+// The UI always reads/writes through DB.* ; Supabase is the cloud backend and
+// localStorage is the offline cache/fallback. (MongoDB/Render support removed —
+// Supabase fully replaces it.)
 // ============================================================
 (function (global) {
   const LS = { clients: 'fixo_clients', orders: 'fixo_orders', cfg: 'fixo_backend_cfg' };
@@ -14,25 +11,24 @@
   const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-  function getCfg() { try { return JSON.parse(localStorage.getItem(LS.cfg) || '{}') || {}; } catch (e) { return {}; } }
+  // Supabase ships as the default so a fresh install connects automatically.
+  // The publishable (anon) key is safe to embed — protected by Row Level
+  // Security, never a secret/service key.
+  const DEFAULT_CFG = {
+    url: 'https://bbktbjqejjvfqehfoovw.supabase.co',
+    key: 'sb_publishable_h8R3oSZYAPfIInOhTpHVDw_OndKKwes'
+  };
+  function getCfg() {
+    try {
+      const raw = localStorage.getItem(LS.cfg);
+      if (raw == null) return Object.assign({}, DEFAULT_CFG);   // fresh install → Supabase
+      return JSON.parse(raw) || {};
+    } catch (e) { return Object.assign({}, DEFAULT_CFG); }
+  }
   function setCfg(c) { localStorage.setItem(LS.cfg, JSON.stringify(c || {})); }
-  // A deployed Netlify site can reach its function at its own origin. This
-  // avoids making every team member enter the same site URL in Settings.
-  function sameOriginNetlify() {
-    try { return window.location.hostname.endsWith('.netlify.app'); } catch (e) { return false; }
-  }
-  function mode() { const c = getCfg(); if (c.apiUrl || sameOriginNetlify()) return 'api'; if (c.url && c.key) return 'supabase'; return 'local'; }
-  function backendLabel() { return mode() === 'api' ? 'MongoDB' : mode() === 'supabase' ? 'Supabase' : 'Local'; }
-
-  // ---- MongoDB backend (Express API) ----
-  async function api(pathAndQuery, opts) {
-    const base = (getCfg().apiUrl || (sameOriginNetlify() ? window.location.origin : '')).replace(/\/$/, '');
-    const res = await fetch(base + '/api' + pathAndQuery, Object.assign(
-      { headers: { 'Content-Type': 'application/json' } }, opts || {}));
-    if (!res.ok) throw new Error('API ' + res.status + ': ' + (await res.text()));
-    const t = await res.text();
-    return t ? JSON.parse(t) : null;
-  }
+  function mode() { const c = getCfg(); return (c.url && c.key) ? 'supabase' : 'local'; }
+  function backendLabel() { return mode() === 'supabase' ? 'Supabase' : 'Local'; }
+  global.FIXO_SUPA_DEFAULT = DEFAULT_CFG;
 
   // ---- Supabase REST ----
   async function sb(pathAndQuery, opts) {
@@ -52,7 +48,6 @@
     cloudEnabled() { return mode() !== 'local'; },
 
     async test() {
-      if (mode() === 'api') { const h = await api('/health', { method: 'GET' }); if (!h || !h.ok) throw new Error('backend not healthy'); return true; }
       if (mode() === 'supabase') { await sb('clients?select=id&limit=1', { method: 'GET' }); return true; }
       return true;
     },
@@ -60,7 +55,6 @@
     // ---------------- Clients ----------------
     async listClients() {
       try {
-        if (mode() === 'api') { const rows = await api('/clients', { method: 'GET' }); writeLS(LS.clients, rows || []); return rows || []; }
         if (mode() === 'supabase') { const rows = await sb('clients?select=*&order=company_name.asc', { method: 'GET' }); writeLS(LS.clients, rows || []); return rows || []; }
       } catch (e) { console.warn('listClients backend failed, using local cache', e); }
       return readLS(LS.clients);
@@ -79,29 +73,25 @@
     async addClient(data) {
       let rec = Object.assign({ id: uid(), created_at: new Date().toISOString() }, data);
       try {
-        if (mode() === 'api') { rec = (await api('/clients', { method: 'POST', body: JSON.stringify(data) })) || rec; }
-        else if (mode() === 'supabase') { const out = await sb('clients', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(rec) }); if (out && out[0]) rec = out[0]; }
+        if (mode() === 'supabase') { const out = await sb('clients', { method: 'POST', headers: { Prefer: 'return=representation,resolution=merge-duplicates' }, body: JSON.stringify(rec) }); if (out && out[0]) rec = out[0]; }
       } catch (e) { console.warn('addClient backend failed (saved locally)', e); }
       const list = readLS(LS.clients); list.push(rec); writeLS(LS.clients, list);
       return rec;
     },
 
     async updateClient(id, data) {
-      let updated = null;
       try {
-        if (mode() === 'api') { updated = await api('/clients/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(data) }); }
-        else if (mode() === 'supabase') { await sb('clients?id=eq.' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(data) }); }
+        if (mode() === 'supabase') { await sb('clients?id=eq.' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(data) }); }
       } catch (e) { console.warn('updateClient backend failed (saved locally)', e); }
       const list = readLS(LS.clients);
       const i = list.findIndex(c => c.id === id);
-      if (i >= 0) { list[i] = updated || Object.assign({}, list[i], data); writeLS(LS.clients, list); return list[i]; }
-      return updated;
+      if (i >= 0) { list[i] = Object.assign({}, list[i], data); writeLS(LS.clients, list); return list[i]; }
+      return null;
     },
 
     async removeClient(id) {
       try {
-        if (mode() === 'api') { await api('/clients/' + encodeURIComponent(id), { method: 'DELETE' }); }
-        else if (mode() === 'supabase') { await sb('orders?client_id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); await sb('clients?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); }
+        if (mode() === 'supabase') { await sb('orders?client_id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); await sb('clients?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); }
       } catch (e) { console.warn('removeClient backend failed (removed locally)', e); }
       writeLS(LS.clients, readLS(LS.clients).filter(c => c.id !== id));
       writeLS(LS.orders, readLS(LS.orders).filter(o => o.client_id !== id));
@@ -116,11 +106,6 @@
     // ---------------- Orders ----------------
     async listOrders(clientId) {
       try {
-        if (mode() === 'api') {
-          const rows = await api('/orders?clientId=' + encodeURIComponent(clientId), { method: 'GET' });
-          const others = readLS(LS.orders).filter(o => o.client_id !== clientId);
-          writeLS(LS.orders, others.concat(rows || [])); return rows || [];
-        }
         if (mode() === 'supabase') {
           const rows = await sb('orders?client_id=eq.' + encodeURIComponent(clientId) + '&select=*&order=order_date.desc', { method: 'GET' });
           const others = readLS(LS.orders).filter(o => o.client_id !== clientId);
@@ -134,8 +119,7 @@
     async addOrder(order) {
       let rec = Object.assign({ id: uid(), created_at: new Date().toISOString() }, order);
       try {
-        if (mode() === 'api') { rec = (await api('/orders', { method: 'POST', body: JSON.stringify(order) })) || rec; }
-        else if (mode() === 'supabase') { const out = await sb('orders', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(rec) }); if (out && out[0]) rec = out[0]; }
+        if (mode() === 'supabase') { const out = await sb('orders', { method: 'POST', headers: { Prefer: 'return=representation,resolution=merge-duplicates' }, body: JSON.stringify(rec) }); if (out && out[0]) rec = out[0]; }
       } catch (e) { console.warn('addOrder backend failed (saved locally)', e); }
       const list = readLS(LS.orders); list.push(rec); writeLS(LS.orders, list);
       return rec;
@@ -143,8 +127,7 @@
 
     async removeOrder(id) {
       try {
-        if (mode() === 'api') { await api('/orders/' + encodeURIComponent(id), { method: 'DELETE' }); }
-        else if (mode() === 'supabase') { await sb('orders?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); }
+        if (mode() === 'supabase') { await sb('orders?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }); }
       } catch (e) { console.warn('removeOrder backend failed (removed locally)', e); }
       writeLS(LS.orders, readLS(LS.orders).filter(o => o.id !== id));
     }

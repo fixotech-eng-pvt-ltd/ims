@@ -28,3 +28,12 @@ Thumbs.db
 inspect_excel*.py
 excel_structure_full.txt
 chat conversation.txt
+
+# Pen-drive distribution package (build output)
+Fixotech-Package/
+
+# Stray build artifacts
+app.asar
+pack_asar.mjs
+Fixotech-App-Build/
+Fixotech-App/

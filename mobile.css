@@ -1,0 +1,93 @@
+/* ============================================================
+   Fixotech — phone / small-screen layout (loaded LAST so it wins).
+   Fixes content overflowing the screen on phones and in the APK:
+   stacks side-by-side panels, lets wide tables scroll inside their card
+   instead of pushing the page sideways, wraps toolbars, and sizes modals
+   to the screen. Targets phones (<=640px); a lighter pass at <=820px.
+   ============================================================ */
+
+/* ---- never let the page scroll sideways ---- */
+@media (max-width: 820px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  img, video, canvas, table { max-width: 100%; }
+  * { min-width: 0; }                      /* flex children shrink, not overflow */
+  .app-layout { flex-direction: column; }
+  .fx-layout { flex-direction: column; }
+  .fx-sidebar { position: static; width: 100%; flex: none; max-height: none; }
+  .fx-kanban { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  /* ---- top bars / headers ---- */
+  .app-topbar, .home-topbar, .home-topbar-right, .main-header,
+  .header-left, .header-right { flex-wrap: wrap; gap: 8px; }
+  .app-topbar { padding: 8px 10px; }
+  .app-topbar-name { font-size: 15px; }
+  .main-header { flex-direction: column; align-items: stretch; }
+  .header-divider { display: none; }
+  .header-right, .mat-bar { width: 100%; }
+  .mat-bar { flex-wrap: wrap; }
+  .mat-bar select { flex: 1 1 45%; }
+  .home-topbar { padding: 10px 12px; }
+  .home-body-v2, .factory-body { padding: 12px !important; }
+
+  /* ---- landing / login / home launcher ---- */
+  .landing { padding: 16px; }
+  .landing-cards { grid-template-columns: 1fr; }
+  .side-card { width: 100%; }
+  .landing-title { font-size: 22px; }
+  .lg-card { max-width: 94vw; padding: 24px 18px; }
+  .hm-apps { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .hm-app img, .fh-app-img { max-width: 100%; height: auto; }
+
+  /* ---- calculator ---- */
+  .app-layout { padding: 8px; gap: 10px; }
+  .left-panel, .quote-panel, .workspace { width: 100%; min-width: 0; }
+  .quote-panel { width: 100%; }
+  .workspace-cards { grid-template-columns: 1fr !important; }
+  .controls-row { flex-direction: column; align-items: stretch; }
+  .controls-row > * { width: 100%; }
+  .quote-actions, .quote-export-actions, .quote-extra-row, .action-group,
+  .print-row, .paper-size-row, .session-bar { flex-wrap: wrap; }
+  .quote-actions .btn-action, .quote-export-actions .btn-export { flex: 1 1 auto; }
+
+  /* ---- factory / dispatch / inventory / admin shared ---- */
+  .fx-hero { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+  .fx-hero-right { width: 100%; justify-content: space-between; }
+  .fx-hero-title h2 { font-size: 18px; }
+  .fx-stats { flex-wrap: wrap; gap: 8px; }
+  .fx-stat { min-width: 64px; flex: 1 1 auto; padding: 6px 10px; }
+  .fx-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .fx-tab { white-space: nowrap; padding: 9px 14px; font-size: 14px; }
+  .fx-kanban { grid-template-columns: 1fr; }
+  .fx-main-head, .fx-card-top, .fx-card-btns, .fx-head-actions,
+  .fx-view-toggle, .inv-toolbar, .inv-actions, .adm-addrow,
+  .adm-toggle-row, .cpo-head, .cpo-head-btns, .cp-actions { flex-wrap: wrap; }
+  .inv-toolbar, .adm-addrow { flex-direction: column; align-items: stretch; }
+  .inv-toolbar > *, .adm-addrow > * { width: 100%; }
+  .adm-acc { margin: 2px 8px 2px 0; }
+
+  /* wide tables scroll INSIDE their card, never push the page sideways */
+  .fx-card, .cpo-detail, .cpo-list, .ciq-order { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fx-tbl, .cmp-tbl, .ciq-tbl { min-width: 480px; }
+  .inv-tbl, .adm-users { min-width: 560px; }
+
+  /* ---- modals full-width ---- */
+  .fx-modal-overlay, .modal-overlay { padding: 8px; }
+  .fx-modal, .modal-dialog { width: 96vw !important; max-width: 96vw !important; max-height: 92vh; overflow: auto; }
+  .fx-det-modal .fx-modal, .fx-extract-modal .fx-modal, .inv-ledger-modal .fx-modal,
+  .fx-ed-modal .fx-modal, .cloud-modal, .compare-modal { width: 96vw !important; max-width: 96vw !important; }
+  .fx-extract { grid-template-columns: 1fr; }
+  #dr-frame, #dp-frame, #ciq-frame { height: 52vh; }
+  .inv-form-row { grid-template-columns: 1fr; }
+
+  /* ---- ChatIQ ---- */
+  .ciq-side { display: none; }
+  .ciq-main, .ciq-inputwrap, .ciq-msg, .ciq-empty { max-width: 100%; }
+  .ciq-msg { padding: 0 12px; }
+
+  /* ---- client panel / proforma grids ---- */
+  .cp-grid { grid-template-columns: 1fr; }
+  .pf-fields { grid-template-columns: 1fr; }
+  .pf-start-grid { grid-template-columns: 1fr; }
+}
