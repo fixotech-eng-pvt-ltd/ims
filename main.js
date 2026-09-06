@@ -1,16 +1,10 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// --- White-screen guard #1 ------------------------------------------------
-// On many Windows machines/GPUs an Electron window paints as a blank page
-// (white, or just the background colour) because the GPU compositor never
-// pushes the first frame to the visible surface — even though the page has
-// rendered. Disabling hardware acceleration AND GPU compositing is the
-// reliable, well-known cure and costs nothing for a forms/PDF business app.
-// This is the #1 cause of "works on one PC, blank on another".
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu-compositing');
+// NOTE: hardware acceleration is left ON for smooth, fast rendering. (It was
+// previously disabled as a white-screen workaround, which made the UI sluggish;
+// the real blank-screen cause was fixed in the app itself, so GPU accel is back.)
 
 let mainWindow;
 let reloadTries = 0;
@@ -21,14 +15,6 @@ let reloadTries = 0;
 function forceRepaint() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   try { mainWindow.webContents.invalidate(); } catch (e) {}
-  try {
-    // A 1px resize nudge reliably kicks the compositor. Works whether the
-    // window is normal or maximized (we briefly unmaximize+remaximize).
-    const wasMax = mainWindow.isMaximized();
-    if (wasMax) { mainWindow.unmaximize(); mainWindow.maximize(); }
-    else { const b = mainWindow.getBounds(); mainWindow.setBounds({ x: b.x, y: b.y, width: b.width, height: b.height - 1 }); mainWindow.setBounds(b); }
-    mainWindow.webContents.invalidate();
-  } catch (e) {}
 }
 
 function diagLog(msg) {
@@ -114,6 +100,15 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Allow the camera (and mic) so the Factory Floor photo capture works inside
+  // the EXE. Electron denies media by default; grant it for our own app.
+  try {
+    const allow = new Set(['media', 'camera', 'microphone', 'fullscreen', 'clipboard-read', 'clipboard-sanitized-write']);
+    session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => cb(allow.has(permission)));
+    session.defaultSession.setPermissionCheckHandler((wc, permission) => allow.has(permission));
+  } catch (e) { diagLog('permission handler failed: ' + e.message); }
+  createWindow();
+});
 app.on('window-all-closed', () => { app.quit(); });
 app.on('activate', () => { if (mainWindow === null) createWindow(); });

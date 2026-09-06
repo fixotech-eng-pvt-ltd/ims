@@ -52,11 +52,11 @@
       arr.forEach(o => { if (o && !o.id) { o.id = uid(); changed = true; } });   // ensure ids (e.g. notifications)
       if (changed) { suppress = true; write(cfg.key, arr); suppress = false; }
       const rows = arr.filter(o => o && o.id).map(cfg.toRow);
+      // Upsert-only. We deliberately DO NOT delete remote rows that are absent
+      // locally: in a shared multi-device DB each device only holds a partial /
+      // stale view, so a "delete what I don't have" sweep could wipe another
+      // device's data. Explicit deletions go through deleteRow() instead.
       if (rows.length) await rq(cfg.table, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(rows) });
-      const ids = new Set(rows.map(r => r.id));
-      const remote = await rq(cfg.table + '?select=id');
-      const gone = (remote || []).map(r => r.id).filter(id => !ids.has(id));
-      for (const id of gone) await rq(cfg.table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
     } else if (cfg.type === 'map') {
       const obj = read(cfg.key) || {};
       const rows = Object.keys(obj).map(k => { const r = { data: obj[k] }; r[cfg.pk] = k; return r; });
@@ -136,7 +136,19 @@
   async function start() { if (started) return; started = true; await pullAll(); }
   document.addEventListener('DOMContentLoaded', () => { setTimeout(start, 1500); });   // after seeds settle
   window.addEventListener('online', () => { pullAll(); flush(); });
-  setInterval(() => { if (supa()) { pullAll(); flush(); } }, 30000);
+  // Pull fresh data when the app regains focus (cheap, only when needed) instead
+  // of hammering the network on a timer.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && supa()) { pullAll(); flush(); } });
+  // Light periodic tick: only PUSH pending local changes (no full pull), and
+  // only while the window is visible — keeps the app smooth.
+  setInterval(() => { if (supa() && !document.hidden) flush(); }, 45000);
 
-  window.FIXO_SYNC = { pullAll, flush, pushStore: (k) => pushStore(byKey[k]), pullStore: (k) => pullStore(byKey[k]), pushSetting, pullSettings, STORES };
+  // Explicit, safe deletion (use this when the user actually removes a row).
+  async function deleteRow(storeKey, id) {
+    const cfg = byKey[storeKey]; if (!cfg || !supa()) return;
+    const pk = cfg.type === 'array' ? 'id' : (cfg.pk || 'id');
+    try { await rq(cfg.table + '?' + pk + '=eq.' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) {}
+  }
+
+  window.FIXO_SYNC = { pullAll, flush, pushStore: (k) => pushStore(byKey[k]), pullStore: (k) => pullStore(byKey[k]), pushSetting, pullSettings, deleteRow, STORES };
 })();

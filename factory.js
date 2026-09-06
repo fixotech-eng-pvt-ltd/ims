@@ -808,9 +808,11 @@
         <label class="fx-btn" style="cursor:pointer">📁 Upload<input type="file" accept="image/*" capture="environment" id="fx-cam-file" hidden></label>
         <button class="fx-btn fx-btn-go" id="fx-cam-snap">📸 Capture</button></div>`);
     const v = m.querySelector('#fx-video'); let stream = null;
+    const uploadLabel = m.querySelector('#fx-cam-file').closest('label');
+    const noCam = () => { v.hidden = true; m.querySelector('#fx-camfb').hidden = false; const snap = m.querySelector('#fx-cam-snap'); if (snap) snap.style.display = 'none'; if (uploadLabel) uploadLabel.classList.add('fx-btn-go'); };
     (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
-      ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(s => { stream = s; v.srcObject = s; }).catch(() => { v.hidden = true; m.querySelector('#fx-camfb').hidden = false; })
-      : (v.hidden = true, m.querySelector('#fx-camfb').hidden = false);
+      ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(s => { stream = s; v.srcObject = s; }).catch(noCam)
+      : noCam();
     const stop = () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
     const fin = d => { stop(); closeModal(m); onDone(d); };
     m.querySelector('#fx-cam-cancel').onclick = () => { stop(); closeModal(m); };
