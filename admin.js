@@ -33,6 +33,7 @@
   // ---- Testing Mode (global; only admin controls it) ----
   function renderTesting(body) {
     const on = !!(window.FIXO_TESTING && FIXO_TESTING.isOn());
+    const amOn = !!(window.FIXO_AUTOMATE && FIXO_AUTOMATE.isOn());
     body.innerHTML = `
       <div class="fx-card" style="padding:22px">
         <div class="adm-toggle-row">
@@ -42,11 +43,26 @@
           </div>
           <button class="tm-switch ${on ? 'on' : ''}" id="adm-tm"><span class="tm-knob"></span></button>
         </div>
+      </div>
+      <div class="fx-card" style="padding:22px;margin-top:12px">
+        <div class="adm-toggle-row">
+          <div>
+            <h3 style="margin:0 0 4px">🤖 Automate Me (AI Quotation) is <b style="color:${amOn ? '#16a34a' : '#64748b'}">${amOn ? 'ON' : 'OFF'}</b></h3>
+            <p class="fx-meta" style="max-width:560px">When ON, an <b>Automate Me</b> tile appears on the Office home for everyone — build quotations by chatting. When OFF, it's hidden for all users (including admin).</p>
+          </div>
+          <button class="tm-switch ${amOn ? 'on' : ''}" id="adm-am"><span class="tm-knob"></span></button>
+        </div>
       </div>`;
     const sw = body.querySelector('#adm-tm');
     sw.onclick = () => {
       if (window.FIXO_TESTING && FIXO_TESTING.toggle) FIXO_TESTING.toggle();
       L().activity('admin', 'testing_mode', { on: !!(window.FIXO_TESTING && FIXO_TESTING.isOn()) });
+      renderTesting(body);
+    };
+    const am = body.querySelector('#adm-am');
+    if (am) am.onclick = () => {
+      if (window.FIXO_AUTOMATE && FIXO_AUTOMATE.setOn) FIXO_AUTOMATE.setOn(!FIXO_AUTOMATE.isOn());
+      L().activity('admin', 'automate_me', { on: !!(window.FIXO_AUTOMATE && FIXO_AUTOMATE.isOn()) });
       renderTesting(body);
     };
   }

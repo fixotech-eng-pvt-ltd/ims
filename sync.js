@@ -35,6 +35,7 @@
   // app_settings scalar keys (global): testing mode + shared sequence counters.
   const SETTINGS = [
     { ls: 'fixo_testing_mode', skey: 'testing_mode', to: v => v === '1' || v === true, from: v => v ? '1' : '0', onPull: () => { try { window.FIXO_TESTING && FIXO_TESTING.apply(); } catch (e) {} } },
+    { ls: 'fixo_automate_me', skey: 'automate_me', to: v => v === '1' || v === true, from: v => v ? '1' : '0', onPull: () => { try { window.FIXO_AUTOMATE && FIXO_AUTOMATE.applyGate(); } catch (e) {} } },
     { ls: 'fixo_qtn_seq', skey: 'qtn_seq', to: v => +v || 0, from: v => v },
     { ls: 'fixo_pi_seq', skey: 'pi_seq', to: v => +v || 0, from: v => v },
     { ls: 'fixo_dispatch_seq', skey: 'dispatch_seq', to: v => +v || 0, from: v => v }

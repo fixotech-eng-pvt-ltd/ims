@@ -8,11 +8,11 @@
 const CACHE = 'fixo-v4';
 const SHELL = [
   './', './index.html',
-  './styles.css', './factory.css', './factory-big.css', './chatiq.css', './mobile.css',
+  './styles.css', './factory.css', './factory-big.css', './chatiq.css', './automate.css', './mobile.css',
   './images.js', './product-images-data.js', './product-images.js',
   './vendor/pdf.min.js', './vendor/exceljs.min.js',
   './db.js', './auth.js', './customers-seed.js', './inventory-seed.js', './app.js', './clients.js',
-  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js', './admin.js', './sync.js',
+  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js', './admin.js', './automate.js', './sync.js',
   './jspdf.umd.min.js',
   './assets/app-icons/app-192.png', './assets/app-icons/app-512.png'
 ];

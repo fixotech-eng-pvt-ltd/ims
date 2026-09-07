@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="factory.css">
   <link rel="stylesheet" href="factory-big.css">
   <link rel="stylesheet" href="chatiq.css">
+  <link rel="stylesheet" href="automate.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -106,6 +107,11 @@
           <span class="fh-app-ic">📥</span>
           <span class="fh-app-name">Dispatch Records</span>
           <span class="fh-app-badge" id="dr-badge" hidden></span>
+        </button>
+        <button class="hm-app fh-app" id="tile-automate" data-open-app="screen-automate" title="Automate Me" hidden>
+          <span class="fh-app-ic">🤖</span>
+          <span class="fh-app-name">Automate Me</span>
+          <span class="fh-app-badge" style="background:#7c3aed">AI</span>
         </button>
       </div>
     </div>
@@ -342,6 +348,10 @@
     <div id="chatiq-app"></div>
   </div>
 
+  <div id="screen-automate" class="screen">
+    <div id="automate-app"></div>
+  </div>
+
   <div id="screen-dispatch-records" class="screen">
     <div class="app-topbar">
       <button class="app-back" data-goto="screen-home">← Home</button>
@@ -480,6 +490,7 @@
   <script src="inventory-seed.js"></script>
   <script src="inventory.js"></script>
   <script src="admin.js"></script>
+  <script src="automate.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).

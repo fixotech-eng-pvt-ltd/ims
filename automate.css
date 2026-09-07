@@ -1,0 +1,51 @@
+/* ===== Automate Me (reuses the ChatIQ .ciq layout) ===== */
+#screen-automate { padding: 0; }
+#automate-app { height: 100vh; }
+
+/* composer buttons/'@'/input (own ids) */
+.ciq-inputwrap #am-at { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #e3e3e3; background: #fff; color: #7c3aed; font-size: 18px; font-weight: 800; cursor: pointer; }
+.ciq-inputwrap #am-at:hover { background: #f3e8ff; }
+#am-input { flex: 1; border: none; outline: none; resize: none; font-size: 15px; font-family: inherit; line-height: 1.5; max-height: 140px; background: transparent; color: #0d0d0d; }
+#am-send { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; border: none; background: #7c3aed; color: #fff; font-size: 16px; cursor: pointer; }
+#am-send:hover { background: #6d28d9; }
+.ciq-model { border-color: #e9d5ff; }
+
+/* @ customer dropdown */
+.am-at-dd { max-width: 780px; margin: 0 auto 6px; background: #fff; border: 1px solid #e3e3e3; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14); overflow: hidden; max-height: 260px; overflow-y: auto; }
+.am-at-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: none; background: #fff; text-align: left; padding: 10px 14px; font-size: 14px; cursor: pointer; color: #1a1a1a; border-bottom: 1px solid #f2f2f2; }
+.am-at-item:hover { background: #f6f0ff; }
+.am-at-item span { font-size: 11px; color: #8a8a8a; }
+.am-at-new { color: #7c3aed; font-weight: 700; }
+
+/* prep animation */
+.am-prep { color: #6d28d9; font-weight: 600; }
+.am-dots i { animation: amb 1s infinite; } .am-dots i:nth-child(2){animation-delay:.15s} .am-dots i:nth-child(3){animation-delay:.3s}
+@keyframes amb { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
+.am-dim { color: #8a8a8a; font-size: 13px; }
+
+/* approval / quotation doc cards */
+.am-doc { border: 1px solid #e9d5ff; border-radius: 12px; padding: 12px; margin: 6px 0; background: #faf5ff; }
+.am-doc-h { font-weight: 800; font-size: 14px; color: #5b21b6; margin-bottom: 2px; }
+.am-doc-sub { font-size: 12px; color: #7c6f8a; margin-bottom: 8px; }
+.am-doc-tbl { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+.am-doc-tbl th { background: #f3e8ff; text-align: left; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #6b21a8; border: 1px solid #eaddf7; }
+.am-doc-tbl td { padding: 6px 8px; border: 1px solid #eee; }
+.am-doc-tbl td[contenteditable="true"] { background: #fffef5; cursor: text; }
+.am-doc-tbl .am-num { text-align: right; } .am-doc-tbl .am-amt { font-weight: 700; }
+.am-doc-tbl tfoot td { background: #f8fafc; font-weight: 600; }
+.am-doc-tbl tr.am-total td { background: #ecfdf5; }
+.am-doc-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.am-quote-body { overflow-x: auto; }
+
+@media (max-width: 640px) {
+  /* Keep chat access on phones: sidebar becomes a horizontal scroll strip on top. */
+  #automate-app .ciq { flex-direction: column; }
+  #automate-app .ciq-side { display: flex !important; flex-direction: row; align-items: center; width: 100%; flex: 0 0 auto; overflow-x: auto; gap: 8px; padding: 8px 10px; border-right: none; border-bottom: 1px solid #ececec; }
+  #automate-app .ciq-side-top, #automate-app .ciq-side-lab { display: none; }
+  #automate-app .ciq-new { width: auto; flex: 0 0 auto; white-space: nowrap; padding: 8px 12px; }
+  #automate-app .ciq-examples { flex-direction: row; gap: 6px; overflow: visible; }
+  #automate-app .ciq-eg { white-space: nowrap; border: 1px solid #eee; border-radius: 8px; }
+  #automate-app .ciq-main { flex: 1; min-height: 0; }
+  .am-doc-tbl { min-width: 440px; }
+  .am-doc { overflow-x: auto; }
+}
