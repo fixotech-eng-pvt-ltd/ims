@@ -395,4 +395,5 @@
     availableOf: balanceOf, loadStock: load, balanceOf, statusOf,
     printSummary, printLedger
   };
+  window.addEventListener('fixo:sync', () => { try { refreshBadge(); } catch (e) {} if (document.body.dataset.screen === 'screen-inventory') try { render(); } catch (e) {} });
 })();

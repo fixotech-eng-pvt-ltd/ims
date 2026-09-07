@@ -109,6 +109,13 @@
   }
   window.FIXO_OFFICE = { refreshBell };
 
+  // Live updates: when the sync layer pulls changes, refresh the office bell (and
+  // the dispatch-records badge) so new activity shows without a manual refresh.
+  window.addEventListener('fixo:sync', () => {
+    try { refreshBell(); } catch (e) {}
+    try { if (window.FIXO_DISPATCH_RECORDS && FIXO_DISPATCH_RECORDS.refreshBadge) FIXO_DISPATCH_RECORDS.refreshBadge(); } catch (e) {}
+  });
+
   // ---------- Smart Calculator → Proforma hand-off ----------
   function forwardToProforma() {
     if (!window.FIXO || !FIXO.hasQuoteItems || !FIXO.hasQuoteItems()) { toast('Add items to the quote first'); return; }

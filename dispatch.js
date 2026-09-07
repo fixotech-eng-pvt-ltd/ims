@@ -242,4 +242,6 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
     if (document.body.dataset.screen === 'screen-dispatch' || (function () { try { return localStorage.getItem('fixo_screen') === 'screen-dispatch'; } catch (e) { return false; } })()) render();
   });
   window.FIXO_DISPATCH = { render, buildNote: buildNoteHtml, accessories, isMtr };
+  // Live refresh when new indents/dispatch data arrive from the cloud.
+  window.addEventListener('fixo:sync', () => { if (document.body.dataset.screen === 'screen-dispatch') try { render(); } catch (e) {} });
 })();

@@ -89,4 +89,5 @@
     if (localStorage.getItem('fixo_screen') === 'screen-dispatch-records') render();
   });
   window.FIXO_DISPATCH_RECORDS = { render, refreshBadge };
+  window.addEventListener('fixo:sync', () => { try { refreshBadge(); } catch (e) {} if (document.body.dataset.screen === 'screen-dispatch-records') try { render(); } catch (e) {} });
 })();

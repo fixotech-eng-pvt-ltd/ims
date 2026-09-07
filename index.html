@@ -38,17 +38,15 @@
   </div>
 
   <div id="screen-landing" class="screen screen-center">
+    <!-- Admin lives in a small corner widget (admins only), so the workspace
+         choice stays clean and centered. -->
+    <button class="admin-corner" id="btn-admin" data-goto="screen-admin" hidden title="Admin Panel">🛡️ Admin</button>
     <div class="landing">
       <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="landing-logo">
       <h1 class="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
       <div class="landing-userbar" id="landing-userbar"></div>
       <p class="landing-sub">Select your workspace</p>
       <div class="landing-cards">
-        <button class="side-card side-card-admin" id="btn-admin" data-goto="screen-admin" hidden>
-          <div class="side-ic">🛡️</div>
-          <span class="side-name">Admin Panel</span>
-          <span class="side-desc">Testing · access · monitoring · FixTech Help</span>
-        </button>
         <button class="side-card" id="btn-office">
           <div class="side-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>

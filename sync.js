@@ -68,9 +68,11 @@
     }
   }
 
-  // ---- PULL one store (merge remote into local; keep local-only, then push them) ----
+  // ---- PULL one store (merge remote into local; keep local-only, then push them).
+  // Returns true if the local copy actually changed (used to fire live updates). ----
   async function pullStore(cfg) {
-    if (!supa()) return;
+    if (!supa()) return false;
+    const before = localStorage.getItem(cfg.key);
     if (cfg.type === 'array') {
       const remote = await rq(cfg.table + '?select=*');
       const remObjs = (remote || []).map(cfg.fromRow);
@@ -93,6 +95,7 @@
       Object.keys(local).forEach(k => { if (!(k in out)) out[k] = local[k]; });
       suppress = true; write(cfg.key, out); suppress = false;
     }
+    return localStorage.getItem(cfg.key) !== before;
   }
 
   // ---- Settings (global scalars) ----
@@ -113,9 +116,23 @@
     await rq('app_settings', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify([{ key: s.skey, value: s.to(localStorage.getItem(ls)) }]) });
   }
 
+  // Fire a live-update event so open screens re-render without a manual refresh.
+  function announce(keys) { if (keys && keys.length) { try { window.dispatchEvent(new CustomEvent('fixo:sync', { detail: { keys } })); } catch (e) {} } }
+
   // ---- Full pull + flush ----
-  async function pullAll() { for (const s of STORES) { try { await pullStore(s); } catch (e) {} } try { await pullSettings(); } catch (e) {} }
+  async function pullAll() { const changed = []; for (const s of STORES) { try { if (await pullStore(s)) changed.push(s.key); } catch (e) {} } try { await pullSettings(); } catch (e) {} announce(changed); }
   async function flush() { for (const s of STORES) { if (dirty.has(s.key)) { try { await pushStore(s); dirty.delete(s.key); } catch (e) {} } } }
+
+  // ---- Light LIVE pull: just the fast-moving operational stores, often. This is
+  // what makes a new indent / notification / dispatch appear on its own. ----
+  const LIVE = ['fixo_factory_indents', 'fixo_office_notifications', 'fixo_dispatch_log', 'fixo_dispatch_approvals'];
+  async function pullLive() {
+    if (!supa() || document.hidden) return;
+    const changed = [];
+    for (const key of LIVE) { try { if (await pullStore(byKey[key])) changed.push(key); } catch (e) {} }
+    try { await pullSettings(); } catch (e) {}
+    announce(changed);
+  }
 
   function schedulePush(key) {
     dirty.add(key);
@@ -139,9 +156,10 @@
   // Pull fresh data when the app regains focus (cheap, only when needed) instead
   // of hammering the network on a timer.
   document.addEventListener('visibilitychange', () => { if (!document.hidden && supa()) { pullAll(); flush(); } });
-  // Light periodic tick: only PUSH pending local changes (no full pull), and
-  // only while the window is visible — keeps the app smooth.
-  setInterval(() => { if (supa() && !document.hidden) flush(); }, 45000);
+  // Live tick: pull the fast-moving stores + push pending, every 12s while
+  // visible — so new indents/notifications/dispatch appear without a manual
+  // refresh. Lightweight (only 4 small tables).
+  setInterval(() => { if (supa() && !document.hidden) { pullLive(); flush(); } }, 12000);
 
   // Explicit, safe deletion (use this when the user actually removes a row).
   async function deleteRow(storeKey, id) {
@@ -150,5 +168,5 @@
     try { await rq(cfg.table + '?' + pk + '=eq.' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) {}
   }
 
-  window.FIXO_SYNC = { pullAll, flush, pushStore: (k) => pushStore(byKey[k]), pullStore: (k) => pullStore(byKey[k]), pushSetting, pullSettings, deleteRow, STORES };
+  window.FIXO_SYNC = { pullAll, pullLive, flush, pushStore: (k) => pushStore(byKey[k]), pullStore: (k) => pullStore(byKey[k]), pushSetting, pullSettings, deleteRow, STORES };
 })();

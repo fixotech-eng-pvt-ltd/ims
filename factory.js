@@ -25,6 +25,11 @@
 
   function save() { try { localStorage.setItem(LS, JSON.stringify(indents)); } catch (e) { console.warn('Factory store full'); } }
 
+  // Live refresh: when the sync layer pulls new/changed indents from Supabase,
+  // re-read them into memory and re-render the board (no manual refresh needed).
+  function reload() { try { indents = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) {} if (document.body.dataset.screen === 'screen-factory') render(); }
+  window.addEventListener('fixo:sync', (e) => { if (e.detail && e.detail.keys && e.detail.keys.indexOf(LS) >= 0) reload(); });
+
   // Production pipeline (6 stages). First 4 confirmed by the factory; "Finishing"
   // is a placeholder for stage 5 (pending clarity); last is dispatch-ready.
   // Canonical order (used to lay out Kanban columns) and labels.
@@ -744,8 +749,10 @@
     const ci = seq.indexOf(it.status), ti = seq.indexOf(target);
     if (ti < 0) { toast('That stage does not apply to this product'); return; }
     if (ti < ci) { toast('To move a card back, use ↩ Undo'); return; }
-    capturePhoto('Move to “' + STAGES[target] + '” — take or upload a photo to verify', d => {
-      it.photos[STAGES[it.status] + ' → ' + STAGES[target]] = d;
+    capturePhoto('Move to “' + STAGES[target] + '” — take or upload a photo to verify', (d, meta) => {
+      const key = STAGES[it.status] + ' → ' + STAGES[target];
+      it.photos[key] = d;
+      if (meta) { it.photoMeta = it.photoMeta || {}; it.photoMeta[key] = meta; }
       it.seen = true;
       if (target === 'ready') {
         askDispatchDetails(it, () => { it.status = 'ready'; updateItem(id, it); toast('Moved to Ready to Dispatch'); });
@@ -814,17 +821,69 @@
       ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(s => { stream = s; v.srcObject = s; }).catch(noCam)
       : noCam();
     const stop = () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
-    const fin = d => { stop(); closeModal(m); onDone(d); };
+    const busy = (on) => { const s = m.querySelector('#fx-cam-snap'); if (s) s.textContent = on ? '⏳ Saving…' : '📸 Capture'; };
+    const fin = (raw) => { stop(); busy(true); stampPhoto(raw, (d, meta) => { closeModal(m); onDone(d, meta); }); };
     m.querySelector('#fx-cam-cancel').onclick = () => { stop(); closeModal(m); };
     m.querySelector('#fx-cam-snap').onclick = () => {
       if (v.hidden || !v.videoWidth) { toast('No camera — use Upload'); return; }
-      const cv = document.createElement('canvas'), s = Math.min(1, 900 / v.videoWidth);
-      cv.width = v.videoWidth * s; cv.height = v.videoHeight * s; cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
-      fin(cv.toDataURL('image/jpeg', 0.7));
+      const cv = document.createElement('canvas');
+      cv.width = v.videoWidth; cv.height = v.videoHeight; cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
+      fin(cv.toDataURL('image/jpeg', 0.85));
     };
-    m.querySelector('#fx-cam-file').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => downscale(r.result, 900, fin); r.readAsDataURL(f); };
+    m.querySelector('#fx-cam-file').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => fin(r.result);
+      r.onerror = () => toast('Could not read that photo — try again');
+      r.readAsDataURL(f);
+    };
   }
-  function downscale(dataUrl, max, cb) { const img = new Image(); img.onload = () => { const s = Math.min(1, max / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = img.width * s; cv.height = img.height * s; cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', 0.7)); }; img.onerror = () => cb(dataUrl); img.src = dataUrl; }
+
+  // Downscale + GEO-TAG a photo: stamps date/time + GPS onto the image (proof of
+  // when/where it was taken) and returns { dataUrl, meta }. Works for both the
+  // live camera and uploaded files; if GPS is unavailable it still stamps time.
+  function stampPhoto(dataUrl, cb) {
+    let done = false;
+    const finish = (u, m) => { if (done) return; done = true; try { cb(u, m); } catch (e) {} };
+    // Hard fail-safe: no matter what stalls, always return within 9s.
+    const hard = setTimeout(() => finish(dataUrl, { at: new Date().toISOString(), lat: null, lng: null }), 9000);
+    const img = new Image();
+    img.onerror = () => { clearTimeout(hard); finish(dataUrl, { at: new Date().toISOString(), lat: null, lng: null }); };
+    img.onload = () => {
+      try {
+        const max = 1100, s = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * s)), h = Math.max(1, Math.round(img.height * s));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+        const draw = (loc) => {
+          clearTimeout(hard);
+          try {
+            const now = new Date();
+            const lines = [
+              '🏭 FIXOTECH · ' + now.toLocaleString('en-IN'),
+              loc ? ('📍 ' + loc.lat.toFixed(5) + ', ' + loc.lng.toFixed(5) + (loc.acc ? '  ±' + Math.round(loc.acc) + 'm' : '')) : '📍 Location not available'
+            ];
+            const fs = Math.max(13, Math.round(w * 0.026)), lh = fs + 7, pad = 10;
+            const barH = lh * lines.length + pad;
+            ctx.fillStyle = 'rgba(0,0,0,0.58)'; ctx.fillRect(0, h - barH, w, barH);
+            ctx.fillStyle = '#fff'; ctx.textBaseline = 'top';
+            lines.forEach((t, i) => { ctx.font = (i === 0 ? 'bold ' : '') + fs + 'px Arial, sans-serif'; ctx.fillText(t, pad, h - barH + (pad / 2) + i * lh); });
+            finish(cv.toDataURL('image/jpeg', 0.75), { at: now.toISOString(), lat: loc ? loc.lat : null, lng: loc ? loc.lng : null, acc: loc ? loc.acc : null });
+          } catch (e) { finish(dataUrl, { at: new Date().toISOString(), lat: null, lng: null }); }
+        };
+        let gdone = false; const go = (loc) => { if (!gdone) { gdone = true; draw(loc); } };
+        try {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              p => go({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+              () => go(null), { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 });
+            setTimeout(() => go(null), 5500);   // never hang if the GPS prompt stalls
+          } else go(null);
+        } catch (e) { go(null); }
+      } catch (e) { clearTimeout(hard); finish(dataUrl, { at: new Date().toISOString(), lat: null, lng: null }); }
+    };
+    img.src = dataUrl;
+  }
   function viewPhotos(id) { const f = findItem(id); if (!f) return; const ph = f.it.photos; modal(`<h3>Photos — ${esc(f.it.desc)}</h3><div class="fx-photo-grid">${Object.keys(ph).map(k => `<figure><img src="${ph[k]}"><figcaption>${esc(k)}</figcaption></figure>`).join('') || '<p>No photos.</p>'}</div><div class="fx-modal-actions"><button class="fx-btn fx-btn-go" onclick="this.closest('.fx-modal-overlay').remove()">Close</button></div>`); }
 
   // ---- Approval → office notification ----

@@ -104,7 +104,7 @@ app.whenReady().then(() => {
   // Allow the camera (and mic) so the Factory Floor photo capture works inside
   // the EXE. Electron denies media by default; grant it for our own app.
   try {
-    const allow = new Set(['media', 'camera', 'microphone', 'fullscreen', 'clipboard-read', 'clipboard-sanitized-write']);
+    const allow = new Set(['media', 'camera', 'microphone', 'geolocation', 'fullscreen', 'clipboard-read', 'clipboard-sanitized-write']);
     session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => cb(allow.has(permission)));
     session.defaultSession.setPermissionCheckHandler((wc, permission) => allow.has(permission));
   } catch (e) { diagLog('permission handler failed: ' + e.message); }
