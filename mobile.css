@@ -15,6 +15,15 @@
   .fx-layout { flex-direction: column; }
   .fx-sidebar { position: static; width: 100%; flex: none; max-height: none; }
   .fx-kanban { grid-template-columns: 1fr 1fr; }
+
+  /* Hard clamp: factory / dispatch / inventory shells must never grow wider
+     than the screen. Wide tables scroll inside their own card instead. */
+  #factory-app, #dispatch-app, #inventory-app,
+  .factory-body, .fx-hero, .fx-hero-right, .fx-tabs, .fx-layout,
+  .fx-main, .fx-cards, .fx-card { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .fx-main, .fx-cards { width: 100%; }
+  .fx-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fx-hero-right { flex-wrap: wrap; }
 }
 
 @media (max-width: 640px) {
@@ -115,4 +124,48 @@
   /* list view rows: stack neatly */
   .fx-track { flex-wrap: wrap; }
   .fx-track-actions { width: 100%; justify-content: space-between; margin-top: 6px; }
+}
+
+/* ============================================================
+   Phone polish — Factory Floor · Dispatch · Inventory
+   Cleaner cards, finger-friendly buttons, tables that scroll neatly
+   inside their card with a scroll hint, and a compact filter bar.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* factory floor: filters compact, hint hidden to cut clutter */
+  .fx-sidebar { padding: 10px 12px; margin-bottom: 12px; background: #fff; border-radius: 12px; }
+  .fx-side-title { font-size: 13px; margin-bottom: 8px; }
+  .fx-period { display: flex; gap: 8px; }
+  .fx-period .fx-side-sec { flex: 1; }
+  .fx-side-sec select { width: 100%; }
+  .fx-side-hint { display: none; }
+
+  /* indent / dispatch cards */
+  .fx-card { padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+  .fx-card-top { flex-direction: column; align-items: stretch; gap: 10px; }
+  .fx-cust { font-size: 15px; }
+  .fx-card-top .fx-meta { display: block; margin-top: 2px; }
+  /* action buttons: even 2-column grid, big tap targets */
+  .fx-card-btns { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fx-card-btns .fx-btn { width: 100%; min-height: 42px; font-size: 13px; padding: 8px 6px; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .fx-card-btns .fx-approved { grid-column: 1 / -1; text-align: center; }
+
+  /* item tables inside cards: readable, scroll with a hint edge */
+  .fx-card > .fx-tbl, .fx-card table.fx-tbl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fx-tbl th, .fx-tbl td { padding: 7px 8px; font-size: 12.5px; }
+  .fx-tbl .fx-disp { width: 20px; height: 20px; }
+  .fx-tbl .fx-wt { width: 54px; }
+
+  /* inventory: toolbar stacks (search full width), per-row actions in a row */
+  .inv-search { width: 100%; }
+  .inv-tbl th, .inv-tbl td { padding: 7px 8px; font-size: 12.5px; }
+  .inv-name { font-size: 13.5px; }
+  .inv-tbl .fx-btn-sm { padding: 6px 9px; font-size: 12px; min-height: 36px; }
+  td .fx-btn-sm { margin: 2px 3px 2px 0; }
+
+  /* dispatch comparison table scrolls in card */
+  .cmp-tbl { min-width: 520px; }
+
+  /* a soft "more →" cue so users know a table scrolls sideways */
+  .fx-card { position: relative; }
 }

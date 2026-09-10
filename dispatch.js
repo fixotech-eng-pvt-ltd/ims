@@ -230,6 +230,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
         localStorage.setItem('fixo_dispatch_log', JSON.stringify(log.slice(0, 200)));
         const seq = (JSON.parse(localStorage.getItem('fixo_dispatch_seq') || '0')) + 1; localStorage.setItem('fixo_dispatch_seq', JSON.stringify(seq));
       } catch (e) {}
+      try { if (window.FIXO_LOG) FIXO_LOG.activity('dispatch', 'dispatched', { customer: g.customer, indent_no: g.indentNo || '', count: g.items.length }); } catch (e) {}
       closeModal(m); toast('✓ Dispatched — office notified & saved'); render();
     };
   }

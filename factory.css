@@ -182,3 +182,31 @@
 .inv-ledger td, .inv-ledger th { font-size: 12px; padding: 5px 8px; }
 .inv-ledger .inv-open td { background: #f8fafc; }
 .inv-ledger-modal .fx-modal { max-width: 860px; width: 95vw; }
+
+/* ===== Admin Monitoring dashboard ===== */
+.mon-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.mon-metric { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e6eaf0; border-left: 4px solid #94a3b8; border-radius: 12px; padding: 12px 14px; }
+.mon-metric-ic { font-size: 24px; }
+.mon-metric b { display: block; font-size: 24px; line-height: 1; color: #111827; }
+.mon-metric span { font-size: 12px; color: #64748b; }
+.mon-metric.blue { border-left-color: #3b82f6; } .mon-metric.indigo { border-left-color: #6366f1; }
+.mon-metric.teal { border-left-color: #14b8a6; } .mon-metric.green { border-left-color: #22c55e; }
+.mon-metric.amber { border-left-color: #f59e0b; }
+.mon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.mon-panel { padding: 14px 16px; }
+.mon-h { margin: 0 0 12px; font-size: 14px; color: #334155; }
+.mon-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
+.mon-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; }
+.mon-col-bar { width: 70%; max-width: 26px; background: linear-gradient(180deg, #38bdf8, #2563eb); border-radius: 4px 4px 0 0; }
+.mon-col-n { font-size: 10px; font-weight: 700; color: #334155; }
+.mon-col-lab { font-size: 9px; color: #94a3b8; transform: rotate(-40deg); white-space: nowrap; margin-top: 4px; }
+.mon-bar-row, .mon-fn-row { display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: 10px; padding: 4px 0; font-size: 12.5px; }
+.mon-bar-lab, .mon-fn-lab { color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mon-bar-track, .mon-fn-track { background: #eef2f7; border-radius: 6px; height: 12px; overflow: hidden; }
+.mon-bar-fill { display: block; height: 100%; background: #6366f1; border-radius: 6px; }
+.mon-fn-fill { display: block; height: 100%; border-radius: 6px; }
+@media (max-width: 640px) {
+  .mon-metrics { grid-template-columns: 1fr 1fr; }
+  .mon-grid { grid-template-columns: 1fr; }
+  .mon-toolbar { gap: 8px; }
+}

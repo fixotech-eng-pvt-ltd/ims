@@ -891,6 +891,7 @@
     const ind = indents.find(i => i.id === id); if (!ind) return;
     ind.factoryApproved = true; ind.factoryApprovedAt = new Date().toISOString(); save();
     notifyOffice({ type: 'factory_approved', indentNo: ind.indentNo, customer: ind.customer, at: ind.factoryApprovedAt });
+    try { if (window.FIXO_LOG) FIXO_LOG.activity('factory', 'approved', { no: ind.indentNo, customer: ind.customer }); } catch (e) {}
     toast('Approved — office notified'); render();
   }
 

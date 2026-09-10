@@ -2107,6 +2107,10 @@ function recordExport(kind) {
     if (window.FIXO && typeof window.FIXO.onExport === 'function' && quoteItems.length) {
       window.FIXO.onExport({ kind, qtnNo: getQtnNo(), client: window.FIXO.getClientName(), snapshot: window.FIXO.getQuoteSnapshot() });
     }
+    if (window.FIXO_LOG && quoteItems.length) {
+      const snap = window.FIXO.getQuoteSnapshot ? window.FIXO.getQuoteSnapshot() : null;
+      FIXO_LOG.activity('calculator', 'quotation', { kind, client: window.FIXO.getClientName(), lines: quoteItems.length, value: snap && snap.grandTotal });
+    }
   } catch (e) { /* non-fatal */ }
 }
 

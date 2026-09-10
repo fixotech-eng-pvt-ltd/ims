@@ -108,20 +108,90 @@
     };
   }
 
-  // ---- Monitoring (activity feed) ----
+  // ---- Monitoring (analytical dashboard) ----
+  let monRange = 7;   // days
   function renderMonitor(body) {
     const acts = L().loadActivity();
-    const rows = acts.length ? acts.slice(0, 300).map(a => `<tr>
+    const now = Date.now(), since = now - monRange * 864e5;
+    const inRange = acts.filter(a => new Date(a.at).getTime() >= since);
+    const is = (app, action) => (a) => a.app === app && (!action || a.action === action);
+    const count = (fn) => inRange.filter(fn).length;
+
+    // headline metrics
+    const nCalcQ = count(is('calculator', 'quotation'));
+    const nAutoQ = count(is('automate', 'quotation'));
+    const nQuotes = nCalcQ + nAutoQ;
+    const nProf = count(is('proforma', 'saved'));
+    const nApprYes = inRange.filter(a => a.app === 'proforma' && a.action === 'approval' && a.detail && a.detail.result === 'approved').length;
+    const nApprNo = inRange.filter(a => a.app === 'proforma' && a.action === 'approval' && a.detail && a.detail.result !== 'approved').length;
+    const nIndentSent = count(is('indent', 'sent'));
+    const nIndentDraft = count(is('indent', 'saved_draft'));
+    const nFactAppr = count(is('factory', 'approved'));
+    const nDispatch = count(is('dispatch', 'dispatched'));
+    // "sent vs not sent": quotations/proformas that did vs didn't turn into an indent
+    const notSent = Math.max(0, nProf - nIndentSent);
+
+    const metric = (n, label, ic, cls) => `<div class="mon-metric ${cls || ''}"><div class="mon-metric-ic">${ic}</div><div><b>${n}</b><span>${esc(label)}</span></div></div>`;
+    const metrics = [
+      metric(nQuotes, 'Quotations made', '📄', 'blue'),
+      metric(nProf, 'Proformas', '🧾', 'indigo'),
+      metric(nIndentSent, 'Indents → factory', '🗂️', 'teal'),
+      metric(nFactAppr, 'Factory approved', '🏭', 'green'),
+      metric(nDispatch, 'Dispatched', '🚚', 'amber'),
+      metric(nApprYes, 'Client approvals', '✅', 'green'),
+    ].join('');
+
+    // per-app / per-action breakdown
+    const byKey = {};
+    inRange.forEach(a => { const k = (a.app || '?') + ' · ' + (a.action || ''); byKey[k] = (byKey[k] || 0) + 1; });
+    const brk = Object.entries(byKey).sort((x, y) => y[1] - x[1]);
+    const maxB = Math.max(1, ...brk.map(x => x[1]));
+    const brkRows = brk.length ? brk.map(([k, v]) => `<div class="mon-bar-row"><span class="mon-bar-lab">${esc(k)}</span><span class="mon-bar-track"><span class="mon-bar-fill" style="width:${Math.round(v / maxB * 100)}%"></span></span><b>${v}</b></div>`).join('') : '<div class="fx-meta" style="padding:12px">No activity in this window.</div>';
+
+    // activity by day (mini column chart)
+    const days = []; for (let i = monRange - 1; i >= 0; i--) { const d = new Date(now - i * 864e5); days.push({ key: d.toISOString().slice(0, 10), lab: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), n: 0 }); }
+    inRange.forEach(a => { const k = new Date(a.at).toISOString().slice(0, 10); const d = days.find(x => x.key === k); if (d) d.n++; });
+    const maxD = Math.max(1, ...days.map(d => d.n));
+    const chart = days.map(d => `<div class="mon-col"><span class="mon-col-bar" style="height:${Math.max(4, Math.round(d.n / maxD * 90))}px" title="${d.n} event(s)"></span><span class="mon-col-n">${d.n || ''}</span><span class="mon-col-lab">${d.lab}</span></div>`).join('');
+
+    // funnel: quotes → proforma → indent → dispatch
+    const funnel = [['Quotations', nQuotes, '#3b82f6'], ['Proformas', nProf, '#6366f1'], ['Indents sent', nIndentSent, '#14b8a6'], ['Dispatched', nDispatch, '#f59e0b']];
+    const maxF = Math.max(1, ...funnel.map(f => f[1]));
+    const funnelRows = funnel.map(([l, v, c]) => `<div class="mon-fn-row"><span class="mon-fn-lab">${l}</span><span class="mon-fn-track"><span class="mon-fn-fill" style="width:${Math.round(v / maxF * 100)}%;background:${c}"></span></span><b>${v}</b></div>`).join('');
+
+    // recent feed
+    const feed = inRange.slice(0, 120).map(a => `<tr>
       <td class="c fx-meta">${new Date(a.at).toLocaleString('en-IN')}</td>
       <td>${esc(a.user_email || '—')}</td>
       <td><span class="fx-fin">${esc(a.app || '')}</span> ${esc(a.action || '')}</td>
-      <td class="fx-meta">${esc(shortDetail(a.detail))}</td></tr>`).join('') : `<tr><td colspan="4" class="c fx-meta" style="padding:22px">No activity recorded yet.</td></tr>`;
+      <td class="fx-meta">${esc(shortDetail(a.detail))}</td></tr>`).join('') || `<tr><td colspan="4" class="c fx-meta" style="padding:22px">No activity in this window.</td></tr>`;
+
+    const rangeBtn = (d, l) => `<button class="fx-vt ${monRange === d ? 'active' : ''}" data-range="${d}">${l}</button>`;
     body.innerHTML = `
-      <div class="inv-toolbar"><span class="fx-meta">${acts.length} event(s) · newest first</span>
-        <button class="fx-btn" id="mon-refresh">↻ Refresh</button><button class="fx-btn" id="mon-clear">Clear</button></div>
-      <div class="fx-card"><table class="fx-tbl"><thead><tr><th>When</th><th>User</th><th>Activity</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="inv-toolbar mon-toolbar">
+        <div class="fx-view-toggle">${rangeBtn(1, 'Today')}${rangeBtn(7, '7 days')}${rangeBtn(30, '30 days')}${rangeBtn(3650, 'All')}</div>
+        <span class="fx-meta" style="flex:1">${inRange.length} event(s) · ${acts.length} stored (auto-capped at 800)</span>
+        <button class="fx-btn" id="mon-refresh">↻ Refresh now</button>
+        <button class="fx-btn" id="mon-clear">🧹 Clear records</button>
+      </div>
+      <div class="mon-metrics">${metrics}</div>
+      <div class="mon-grid">
+        <div class="fx-card mon-panel"><h4 class="mon-h">📈 Activity per day</h4><div class="mon-chart">${chart}</div></div>
+        <div class="fx-card mon-panel"><h4 class="mon-h">🔻 Sales → production funnel</h4>${funnelRows}
+          <p class="fx-meta" style="margin-top:8px">${notSent} proforma(s) not yet turned into an indent.</p></div>
+      </div>
+      <div class="fx-card mon-panel"><h4 class="mon-h">🧩 What's being used</h4>${brkRows}</div>
+      <div class="fx-card"><h4 class="mon-h" style="padding:12px 12px 0">🕑 Recent activity</h4>
+        <table class="fx-tbl"><thead><tr><th>When</th><th>User</th><th>Activity</th><th>Detail</th></tr></thead><tbody>${feed}</tbody></table></div>`;
+
+    body.querySelectorAll('[data-range]').forEach(b => b.onclick = () => { monRange = +b.dataset.range; renderMonitor(body); });
     body.querySelector('#mon-refresh').onclick = () => renderMonitor(body);
-    body.querySelector('#mon-clear').onclick = () => { if (confirm('Clear the local activity feed?')) { localStorage.setItem('fixo_activity_log', '[]'); renderMonitor(body); } };
+    body.querySelector('#mon-clear').onclick = () => {
+      if (!confirm('Clear ALL stored monitoring records?\n\nThis wipes the local activity log to free up storage. Live data will start collecting again immediately. This cannot be undone.')) return;
+      try { localStorage.setItem('fixo_activity_log', '[]'); } catch (e) {}
+      L().activity('admin', 'monitoring_cleared', { by: 'admin' });
+      renderMonitor(body);
+    };
   }
   function shortDetail(d) { if (!d || typeof d !== 'object') return ''; return Object.entries(d).map(([k, v]) => k + ': ' + (typeof v === 'object' ? JSON.stringify(v) : v)).join(' · ').slice(0, 80); }
 

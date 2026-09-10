@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="factory-big.css">
   <link rel="stylesheet" href="chatiq.css">
   <link rel="stylesheet" href="automate.css">
+  <link rel="stylesheet" href="indent.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -100,6 +101,10 @@
         <button class="hm-app" data-open-app="screen-proforma" title="Proforma Invoice">
           <img src="assets/app-icons/proforma-invoice.png" alt="Proforma Invoice">
         </button>
+        <button class="hm-app fh-app" data-open-app="screen-indent" title="FixoTech Indent Prep">
+          <img src="assets/app-icons/indent-prep.png" alt="FixoTech Indent Prep" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🗂️'}))">
+          <span class="fh-app-name">Indent Prep</span>
+        </button>
         <button class="hm-app" data-open-app="screen-chatiq" title="Fixotech ChatIQ">
           <img src="assets/app-icons/smart-iq.png" alt="Fixotech ChatIQ" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'💬'}))">
         </button>
@@ -107,11 +112,6 @@
           <span class="fh-app-ic">📥</span>
           <span class="fh-app-name">Dispatch Records</span>
           <span class="fh-app-badge" id="dr-badge" hidden></span>
-        </button>
-        <button class="hm-app fh-app" id="tile-automate" data-open-app="screen-automate" title="Automate Me" hidden>
-          <span class="fh-app-ic">🤖</span>
-          <span class="fh-app-name">Automate Me</span>
-          <span class="fh-app-badge" style="background:#7c3aed">AI</span>
         </button>
       </div>
     </div>
@@ -344,12 +344,16 @@
     <div class="proforma-body" id="pf-app"></div>
   </div>
 
-  <div id="screen-chatiq" class="screen">
-    <div id="chatiq-app"></div>
+  <div id="screen-indent" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">FixoTech Indent Prep</span>
+    </div>
+    <div id="indent-app"></div>
   </div>
 
-  <div id="screen-automate" class="screen">
-    <div id="automate-app"></div>
+  <div id="screen-chatiq" class="screen">
+    <div id="chatiq-app"></div>
   </div>
 
   <div id="screen-dispatch-records" class="screen">
@@ -491,6 +495,7 @@
   <script src="inventory.js"></script>
   <script src="admin.js"></script>
   <script src="automate.js"></script>
+  <script src="indent.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).

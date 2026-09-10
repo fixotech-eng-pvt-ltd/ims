@@ -18,6 +18,7 @@
 
   const STORES = [
     blob('fixo_factory_indents', 'factory_indents', o => ({ indent_no: o.indentNo, customer: o.customer, priority: !!o.priority, factory_approved: !!o.factoryApproved })),
+    blob('fixo_indent_drafts', 'indent_drafts', o => ({ indent_no: o.indentNo, customer: o.indentCustomer || o.customer || '', status: o.status || 'draft' })),
     { key: 'fixo_inv_items', table: 'inventory_items', type: 'array',
       toRow: o => ({ id: o.id, name: o.name, sheet: o.sheet, type: o.type, unit: o.unit, opening: o.opening, min_qty: o.minQty, txns: o.txns || [] }),
       fromRow: r => ({ id: r.id, name: r.name, sheet: r.sheet, type: r.type, unit: r.unit, opening: r.opening, minQty: r.min_qty, txns: r.txns || [] }) },
@@ -38,7 +39,8 @@
     { ls: 'fixo_automate_me', skey: 'automate_me', to: v => v === '1' || v === true, from: v => v ? '1' : '0', onPull: () => { try { window.FIXO_AUTOMATE && FIXO_AUTOMATE.applyGate(); } catch (e) {} } },
     { ls: 'fixo_qtn_seq', skey: 'qtn_seq', to: v => +v || 0, from: v => v },
     { ls: 'fixo_pi_seq', skey: 'pi_seq', to: v => +v || 0, from: v => v },
-    { ls: 'fixo_dispatch_seq', skey: 'dispatch_seq', to: v => +v || 0, from: v => v }
+    { ls: 'fixo_dispatch_seq', skey: 'dispatch_seq', to: v => +v || 0, from: v => v },
+    { ls: 'fixo_indent_seq', skey: 'indent_seq', to: v => +v || 0, from: v => v }
   ];
 
   let suppress = false;                 // don't re-trigger push during our own writes

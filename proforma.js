@@ -296,6 +296,7 @@
     const list = loadSavedPf();
     list.unshift({ id: 'pf-' + Date.now(), savedAt: new Date().toLocaleString('en-IN'), customer: model.customer || 'Unnamed', refNo: model.refNo || '', model: JSON.parse(JSON.stringify(model)) });
     storeSavedPf(list.slice(0, 40));
+    try { if (window.FIXO_LOG) FIXO_LOG.activity('proforma', 'saved', { ref: model.refNo, customer: model.customer, value: totals(model).totalValue }); } catch (e) {}
     toast('Proforma saved — reopen it anytime from “Saved Proformas”');
   }
   function openSavedProformas() {
@@ -373,6 +374,7 @@
         }
       }
     } catch (e) { /* non-fatal */ }
+    try { if (window.FIXO_LOG) FIXO_LOG.activity('proforma', 'approval', { result: kind, ref: model.refNo, customer: model.customer, reason: model.declineReason || '' }); } catch (e) {}
     toast(kind === 'approved' ? 'Client approved — Indent unlocked' : kind === 'declined' ? 'Marked declined' : 'Re-edit requested');
   }
 
@@ -587,6 +589,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
       }))
     };
     if (window.FIXO_FACTORY && FIXO_FACTORY.receiveIndent) FIXO_FACTORY.receiveIndent(rec);
+    try { if (window.FIXO_LOG) FIXO_LOG.activity('indent', 'sent', { no: rec.indentNo, customer: rec.customer, urgent: !!rec.priority, lines: rec.items.length, via: 'proforma' }); } catch (e) {}
     const msg = document.getElementById('idt-factory-msg');
     if (msg) msg.innerHTML = `<div class="pf-factory-ok">✓ Indent sent to Factory${rec.priority ? ' as <b>🚩 URGENT</b> — the floor is alerted' : ''} — it's now in the Factory app (Indents tab).</div>`;
     toast(rec.priority ? 'Sent to Factory as URGENT 🚩' : 'Sent to Factory');

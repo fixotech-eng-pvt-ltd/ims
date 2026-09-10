@@ -60,7 +60,7 @@
           <button class="ciq-new" id="ciq-new">✎ New chat</button>
           <div class="ciq-nav">
             <button class="ciq-nav-item active" data-mode="ask"><span>💬</span> Question asking</button>
-            <button class="ciq-nav-item locked" data-mode="automate"><span>⚡</span> Automate me <em>soon</em></button>
+            <button class="ciq-nav-item" data-mode="automate"><span>⚡</span> Automate me</button>
           </div>
           <div class="ciq-side-lab">Recent chats</div>
           <div class="ciq-examples" id="ciq-chats"></div>
@@ -100,7 +100,7 @@
     fileInp.onchange = () => { const f = fileInp.files[0]; if (f) ingestFile(f); fileInp.value = ''; };
     renderChatList(); updateAttachChip();
     host.querySelectorAll('.ciq-nav-item').forEach(b => b.onclick = () => {
-      if (b.dataset.mode === 'automate') { pushBot("<b>Automate me</b> is coming soon — it'll let you set up automatic reports and follow-ups. For now, use <b>Question asking</b>."); return; }
+      if (b.dataset.mode === 'automate') { if (window.FIXO_AUTOMATE && FIXO_AUTOMATE.open) FIXO_AUTOMATE.open(); return; }
     });
     host.querySelector('.ciq-back').onclick = () => window.showScreen && showScreen('screen-home');
     renderMessages();
@@ -422,5 +422,7 @@
     document.querySelectorAll('[data-open-app="screen-chatiq"]').forEach(b => b.addEventListener('click', () => setTimeout(render, 0)));
     if (localStorage.getItem('fixo_screen') === 'screen-chatiq') render();
   });
-  window.FIXO_CHATIQ = { render };
+  // Rebuild the ChatIQ "Question asking" view (used by Automate Me's back/✕).
+  function showAsk() { const host = document.getElementById('chatiq-app'); if (host) host.dataset.built = ''; render(); }
+  window.FIXO_CHATIQ = { render, showAsk };
 })();
