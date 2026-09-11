@@ -91,10 +91,10 @@
   function renderBuilder(host) {
     host.innerHTML = `
       <div class="pf-wrap">
-        <div class="pf-hero">
-          <div class="pf-hero-title"><span class="pf-hero-ic">🧾</span>
-            <div><h2>Proforma Invoice</h2>
-            <p class="pf-sub">Forwarded from the Smart Calculator or uploaded — finalise details, then verify &amp; print.</p></div>
+        <div class="pf-head">
+          <div>
+            <h2>Proforma Invoice</h2>
+            <p class="pf-sub">Forwarded from the Smart Calculator or uploaded — finalise details, then verify &amp; print.</p>
           </div>
           <div class="pf-src" id="pf-src">Manual entry</div>
         </div>
@@ -115,7 +115,7 @@
         <div id="pf-tab-pi" class="pf-tabpane active">
 
         <div class="pf-card">
-          <div class="pf-card-head"><span class="pf-card-ic">📋</span><h3>Invoice details</h3>
+          <div class="pf-card-head"><h3>Invoice details</h3>
             <div class="pf-card-tools">
               <div class="pf-typetoggle">
                 <button class="pf-tab active" data-type="state">State (CGST + SGST)</button>
@@ -140,7 +140,7 @@
         </div>
 
         <div class="pf-card">
-          <div class="pf-card-head"><span class="pf-card-ic">🧱</span><h3>Line items</h3>
+          <div class="pf-card-head"><h3>Line items</h3>
             <div class="pf-card-tools"><button class="cp-btn small" id="pf-add">+ Add row</button></div>
           </div>
           <div class="pf-items-wrap">
@@ -160,7 +160,7 @@
         </div>
 
         <div class="pf-approval">
-          <div class="pf-appr-head"><span class="pf-card-ic">🤝</span>Client approval <span id="pf-appr-state" class="pf-appr-state"></span></div>
+          <div class="pf-appr-head">Client approval <span id="pf-appr-state" class="pf-appr-state"></span></div>
           <div class="pf-appr-btns">
             <button class="cp-btn primary" id="pf-appr-yes">✓ Client Approved</button>
             <button class="cp-btn danger" id="pf-appr-no">✕ Declined</button>

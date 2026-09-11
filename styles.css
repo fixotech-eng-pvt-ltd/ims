@@ -2037,92 +2037,45 @@ body.testing-on .tm-banner { display: block; background: #fef9c3; border: 1px so
 .admin-corner:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
 @media (max-width: 640px) { .admin-corner { top: 10px; right: 10px; padding: 6px 11px; font-size: 12px; } }
 
-/* ===== Proforma Invoice — visual polish (no behaviour change) ===== */
-.pf-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  background: linear-gradient(120deg, #4338ca, #6366f1 62%, #818cf8); color: #fff;
-  border-radius: 16px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(79,70,229,.22); }
-.pf-hero-title { display: flex; align-items: center; gap: 13px; }
-.pf-hero-ic { font-size: 30px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
-.pf-hero h2 { color: #fff; font-size: 21px; margin: 0; }
-.pf-hero .pf-sub { color: rgba(255,255,255,.9); margin-top: 3px; }
-.pf-hero .pf-src { background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; }
-.pf-topbtns .cp-btn { border-radius: 10px; transition: .12s; }
-.pf-topbtns .cp-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
-.pf-apptabs { border-bottom: 2px solid #eef1f6; }
-.pf-apptab.active { border-bottom-color: #6366f1; color: #4338ca; }
-.pf-sec-head { font-weight: 800; color: #3730a3; }
-.pf-fields label { font-weight: 600; }
-.pf-actions .cp-btn, .pf-appr-btns .cp-btn { border-radius: 10px; }
 
 /* ============================================================
-   PROFORMA INVOICE — visual redesign (v2). Structure/flow unchanged;
-   sections are now proper cards with headers, a connected stepper, a
-   segmented tab bar, richer inputs, a gradient totals box and CTAs.
+   PROFORMA INVOICE — clean, systematic polish on the original blue.
+   Keeps the app's dark-blue identity (--accent) and simple look; just
+   organises the sections into tidy cards with clear section headers.
+   No gradients, no emoji chrome.
    ============================================================ */
-#pf-app { background: linear-gradient(180deg,#f6f7fb 0%, #eef1f8 100%); }
-.pf-wrap { padding: 8px 8px 48px; }
-
-/* hero — refined */
-.pf-hero { position: relative; overflow: hidden; }
-.pf-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); }
-.pf-hero-ic { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; border-radius: 14px; background: rgba(255,255,255,.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-
-/* connected status stepper */
-.pf-status { gap: 0; background: #fff; border: 1px solid #e8ecf5; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
-.pf-stg { background: transparent; padding: 0 6px; color: #98a2b3; position: relative; z-index: 1; }
-.pf-stg-dot { width: 24px; height: 24px; background: #eaecf2; color: #98a2b3; font-weight: 800; box-shadow: 0 0 0 4px #fff; }
-.pf-stg.done, .pf-stg.now { background: transparent; }
-.pf-stg.done { color: #059669; } .pf-stg.done .pf-stg-dot { background: #10b981; color: #fff; }
-.pf-stg.now { color: #4338ca; } .pf-stg.now .pf-stg-dot { background: #6366f1; color: #fff; box-shadow: 0 0 0 4px #eef2ff; }
-.pf-stg-sep { flex: 1; height: 3px; min-width: 16px; background: #eaecf2; border-radius: 2px; }
-
-/* top buttons + segmented app tabs */
-.pf-topbtns { margin: 14px 0; }
-.pf-topbtns .cp-btn { background: #fff; border: 1px solid #e4e8f1; border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
-.pf-apptabs { background: #eef1f8; border: 1px solid #e4e8f1; border-radius: 12px; padding: 4px; gap: 4px; border-bottom: 1px solid #e4e8f1; display: inline-flex; }
-.pf-apptab { border-radius: 9px; padding: 9px 20px; border-bottom: none !important; margin: 0; color: #667085; }
-.pf-apptab.active { background: #fff; color: #4338ca; box-shadow: 0 1px 3px rgba(16,24,40,.10); }
+.pf-head { align-items: center; padding-bottom: 14px; border-bottom: 2px solid var(--border-light); margin-bottom: 16px; }
+.pf-head h2 { font-size: 21px; letter-spacing: -.2px; }
+.pf-head h2::before { content: ""; display: inline-block; width: 4px; height: 20px; background: var(--accent); border-radius: 3px; margin-right: 10px; vertical-align: -3px; }
+.pf-head .pf-sub { margin-left: 14px; }
 
 /* section cards */
-.pf-card { background: #fff; border: 1px solid #e8ecf5; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
+.pf-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
 .pf-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.pf-card-head h3 { font-size: 15px; font-weight: 800; color: #1d2939; margin: 0; }
-.pf-card-ic { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg,#eef2ff,#e0e7ff); font-size: 16px; }
+.pf-card-head h3 { font-size: 13px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: var(--text-secondary); margin: 0; display: flex; align-items: center; }
+.pf-card-head h3::before { content: ""; width: 4px; height: 15px; background: var(--accent); border-radius: 3px; margin-right: 9px; }
 .pf-card-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pf-card-tools .pf-typetoggle { margin: 0; }
+.pf-card .pf-fields { margin-bottom: 0; }
+.pf-card .pf-items-wrap { margin-top: 0; }
 
-/* fields */
-.pf-fields { margin-bottom: 0; }
-.pf-fields input, .pf-fields textarea { padding: 10px 12px; border-radius: 10px; border-color: #dfe4ee; font-size: 13.5px; background: #fbfcfe; }
-.pf-fields input:focus, .pf-fields textarea:focus { background: #fff; }
+/* status stepper — same style, sit it on a clean white strip */
+.pf-status { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; box-shadow: var(--shadow-sm); }
 
-/* line items table */
-.pf-items-wrap { border: 1px solid #eaecf2; border-radius: 12px; }
-.pf-items-tbl thead th { background: #f4f6fb; color: #475467; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+/* top buttons — tidy, on-brand */
+.pf-topbtns .cp-btn { background: var(--white); border: 1px solid var(--border); }
 
-/* totals */
-.pf-totals { margin-top: 16px; }
-.pf-tot-box { width: 360px; border: 1px solid #e8ecf5; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
-.pf-tot-box .pf-grand { background: linear-gradient(120deg,#4338ca,#6366f1); }
-.pf-tot-box .pf-grand span, .pf-tot-box .pf-grand b { color: #fff; font-size: 15px; }
+/* keep the grand-total in the calm accent tint (no gradient) */
+.pf-tot-box { border-radius: var(--radius-sm); }
+.pf-tot-box .pf-grand { background: var(--accent-bg); }
+.pf-tot-box .pf-grand span, .pf-tot-box .pf-grand b { color: var(--accent); }
 
-/* action buttons */
-.pf-actions .btn-print { background: linear-gradient(120deg,#4338ca,#6366f1); color: #fff; border: none; border-radius: 11px; font-weight: 700; box-shadow: 0 4px 12px rgba(79,70,229,.25); }
-.pf-actions .btn-print:hover { filter: brightness(1.06); }
-.pf-actions #pf-excel { background: linear-gradient(120deg,#0f766e,#14b8a6); box-shadow: 0 4px 12px rgba(15,118,110,.22); }
-
-/* approval card */
-.pf-approval { border-radius: 16px; border-color: #e8ecf5; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
-.pf-appr-head { display: flex; align-items: center; gap: 8px; }
-.pf-appr-btns .cp-btn.primary { background: #10b981; border-color: #10b981; }
-.pf-appr-btns .cp-btn.danger { background: #fff; color: #dc2626; border-color: #fecaca; }
+/* approval card — clean */
+.pf-approval { border-radius: var(--radius-sm); }
 
 @media (max-width: 640px) {
-  .pf-card { padding: 14px; border-radius: 14px; }
+  .pf-card { padding: 14px; }
   .pf-card-head { flex-wrap: wrap; }
   .pf-card-tools { margin-left: 0; width: 100%; }
-  .pf-apptabs { display: flex; width: 100%; }
-  .pf-apptab { flex: 1; text-align: center; padding: 9px 8px; }
-  .pf-tot-box { width: 100%; }
-  .pf-status { overflow-x: auto; }
+  .pf-head .pf-sub { margin-left: 0; }
 }
