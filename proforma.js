@@ -113,38 +113,44 @@
         </div>
 
         <div id="pf-tab-pi" class="pf-tabpane active">
-        <div class="pf-toolbar">
-          <div class="pf-typetoggle">
-            <button class="pf-tab active" data-type="state">State (CGST + SGST)</button>
-            <button class="pf-tab" data-type="interstate">Inter-state (IGST)</button>
+
+        <div class="pf-card">
+          <div class="pf-card-head"><span class="pf-card-ic">📋</span><h3>Invoice details</h3>
+            <div class="pf-card-tools">
+              <div class="pf-typetoggle">
+                <button class="pf-tab active" data-type="state">State (CGST + SGST)</button>
+                <button class="pf-tab" data-type="interstate">Inter-state (IGST)</button>
+              </div>
+              <label class="pf-gst">GST %<input type="number" id="pf-gst" value="18" min="0" step="0.5"></label>
+              <button class="cp-btn small" id="pf-upload-btn">⬆ Upload quote</button>
+              <input type="file" id="pf-upload" accept=".csv,.pdf" hidden>
+            </div>
           </div>
-          <label class="pf-gst">GST %<input type="number" id="pf-gst" value="18" min="0" step="0.5"></label>
-          <span class="pf-spacer"></span>
-          <button class="cp-btn" id="pf-upload-btn">⬆ Upload quote (PDF/CSV)</button>
-          <input type="file" id="pf-upload" accept=".csv,.pdf" hidden>
+          <div class="pf-fields">
+            <label>Ref No<input type="text" id="pf-ref"></label>
+            <label>Date<input type="text" id="pf-date"></label>
+            <label>PO No<input type="text" id="pf-pono"></label>
+            <label>PO Date<input type="text" id="pf-podate"></label>
+            <label class="wide">Customer (M/s) — To<input type="text" id="pf-cust" placeholder="Customer company name"></label>
+            <label>Customer GST No<input type="text" id="pf-custgst"></label>
+            <label class="wide2">Customer Address<textarea id="pf-custaddr" rows="2"></textarea></label>
+            <label class="wide">Delivery to (M/s)<input type="text" id="pf-delto" placeholder="If different"></label>
+            <label class="wide">Delivery Address<textarea id="pf-deladdr" rows="2"></textarea></label>
+          </div>
         </div>
 
-        <div class="pf-fields">
-          <label>Ref No<input type="text" id="pf-ref"></label>
-          <label>Date<input type="text" id="pf-date"></label>
-          <label>PO No<input type="text" id="pf-pono"></label>
-          <label>PO Date<input type="text" id="pf-podate"></label>
-          <label class="wide">Customer (M/s) — To<input type="text" id="pf-cust" placeholder="Customer company name"></label>
-          <label>Customer GST No<input type="text" id="pf-custgst"></label>
-          <label class="wide2">Customer Address<textarea id="pf-custaddr" rows="2"></textarea></label>
-          <label class="wide">Delivery to (M/s)<input type="text" id="pf-delto" placeholder="If different"></label>
-          <label class="wide">Delivery Address<textarea id="pf-deladdr" rows="2"></textarea></label>
+        <div class="pf-card">
+          <div class="pf-card-head"><span class="pf-card-ic">🧱</span><h3>Line items</h3>
+            <div class="pf-card-tools"><button class="cp-btn small" id="pf-add">+ Add row</button></div>
+          </div>
+          <div class="pf-items-wrap">
+            <table class="vf-items pf-items-tbl">
+              <thead><tr><th>#</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+              <tbody id="pf-items-body"></tbody>
+            </table>
+          </div>
+          <div class="pf-totals" id="pf-totals"></div>
         </div>
-
-        <div class="pf-sec-head"><span>Line items</span><button class="cp-btn small" id="pf-add">+ Add row</button></div>
-        <div class="pf-items-wrap">
-          <table class="vf-items pf-items-tbl">
-            <thead><tr><th>#</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
-            <tbody id="pf-items-body"></tbody>
-          </table>
-        </div>
-
-        <div class="pf-totals" id="pf-totals"></div>
 
         <div class="pf-actions">
           <button class="btn-export btn-print" id="pf-print">🖨 Verify &amp; Print PDF</button>
@@ -154,7 +160,7 @@
         </div>
 
         <div class="pf-approval">
-          <div class="pf-appr-head">Client approval <span id="pf-appr-state" class="pf-appr-state"></span></div>
+          <div class="pf-appr-head"><span class="pf-card-ic">🤝</span>Client approval <span id="pf-appr-state" class="pf-appr-state"></span></div>
           <div class="pf-appr-btns">
             <button class="cp-btn primary" id="pf-appr-yes">✓ Client Approved</button>
             <button class="cp-btn danger" id="pf-appr-no">✕ Declined</button>
