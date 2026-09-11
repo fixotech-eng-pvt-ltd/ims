@@ -32,6 +32,22 @@
   }
   function blankItem() { return { sl: '', desc: '', qty: '', unit: 'Nos', dealtBy: '', deliveryDate: '' }; }
 
+  // Product picker (material variance + product) — sets the line description so the
+  // matching product photo is auto-chosen on the printed indent.
+  const MATERIALS = [
+    { key: 'gi', label: 'GI (Pre-Galvanised)', prefix: 'GI', ic: '🧲' },
+    { key: 'hotdip', label: 'Hot Dip Galvanised', prefix: 'Hot Dip', ic: '🔥' },
+    { key: 'powder', label: 'Powder Coated', prefix: 'Powder Coated', ic: '🎨' },
+    { key: 'ms', label: 'MS (Mild Steel)', prefix: 'MS', ic: '⚙️' },
+    { key: 'ss', label: 'Stainless Steel', prefix: 'SS', ic: '✨' }
+  ];
+  const BASE_PRODUCTS = [
+    'Perforated Cable Tray', 'Ladder Type Cable Tray', 'Raceway With Cover', 'Slotted Channel',
+    'Horizontal Bend', 'Vertical Bend', 'Cross Bend', 'Tee Bend', 'Reducer',
+    'Junction Box', 'Coupler Plate', 'Threaded Rod', 'Anchor Fastener', 'Bolt, Nut & Washer Set'
+  ];
+  const imgUrl = (name) => { try { return (window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.guessUrl) ? FIXO_PRODUCT_IMG.guessUrl(name) : ''; } catch (e) { return ''; } };
+
   // ---------- data sources ----------
   function clients() { return (window.FixoDB ? window.FixoDB.listClients() : Promise.resolve([])).then(a => (clientsCache = a || [])); }
   function itemsFromOrder(o) {
@@ -119,9 +135,16 @@
   }
   function itemRow(it, i) {
     const uoms = ['Nos', 'Mtrs', 'Kgs']; const cur = uoms.find(o => o.toLowerCase().slice(0, 3) === String(it.unit || 'Nos').toLowerCase().slice(0, 3)) || (it.unit || 'Nos');
+    const thumb = (it.desc && (it.desc || '').trim()) ? imgUrl(it.desc) : '';
     return `<tr data-i="${i}">
       <td><input class="idp-sl" value="${esc(it.sl || '')}" placeholder="—"></td>
-      <td><textarea class="idp-desc" rows="2" placeholder="Product heading + sizes">${esc(it.desc || '')}</textarea></td>
+      <td>
+        <div class="idp-desc-cell">
+          ${thumb ? `<img class="idp-desc-thumb" src="${thumb}" onerror="this.style.display='none'">` : ''}
+          <textarea class="idp-desc" rows="2" placeholder="Tap “Pick product”, or type the heading + sizes">${esc(it.desc || '')}</textarea>
+        </div>
+        <button class="idp-pick-prod" data-pick="${i}">🔍 Pick product &amp; material</button>
+      </td>
       <td><input class="idp-qty" value="${it.qty === 0 || it.qty == null ? '' : esc(it.qty)}"></td>
       <td><select class="idp-uom">${[...new Set([cur, ...uoms])].map(o => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></td>
       <td><input class="idp-dealt" value="${esc(it.dealtBy || '')}"></td>
@@ -134,7 +157,36 @@
       const i = +tr.dataset.i;
       const sync = () => { const it = model.items[i]; if (!it) return; it.sl = tr.querySelector('.idp-sl').value; it.desc = tr.querySelector('.idp-desc').value; it.qty = tr.querySelector('.idp-qty').value; it.unit = tr.querySelector('.idp-uom').value; it.dealtBy = tr.querySelector('.idp-dealt').value; it.deliveryDate = tr.querySelector('.idp-deliv').value; };
       tr.querySelectorAll('input,textarea,select').forEach(inp => { inp.oninput = sync; inp.onchange = sync; });
+      const pick = tr.querySelector('.idp-pick-prod'); if (pick) pick.onclick = () => pickProductForRow(i);
       tr.querySelector('.idp-del').onclick = () => { model.items.splice(i, 1); if (!model.items.length) model.items.push(blankItem()); renderPrepare(); };
+    });
+  }
+
+  // Per-line product picker: choose material (GI/MS/SS…) then the product (photos).
+  // Sets the line's description to "<material> <product>" so the print auto-shows
+  // the matching product image. Any sizes the user typed are preserved below it.
+  function pickProductForRow(i) {
+    const it = model.items[i]; if (!it) return;
+    const matBtns = MATERIALS.map(mm => `<button class="idp-mat-opt" data-mat="${mm.key}"><span>${mm.ic}</span>${esc(mm.label)}</button>`).join('');
+    const m = modal(`<h3>Choose product for line ${i + 1}</h3>
+      <div class="idp-pick-step"><div class="idp-pick-lab">1 · Material / finish</div><div class="idp-mat-opts">${matBtns}</div></div>
+      <div class="idp-pick-step" id="idp-prod-step" hidden><div class="idp-pick-lab">2 · Product</div><div class="idp-prod-grid" id="idp-prod-grid"></div></div>
+      <div class="idp-modal-act"><button class="idp-btn" data-x>Cancel</button></div>`);
+    m.querySelector('[data-x]').onclick = () => m.remove();
+    let chosenMat = null;
+    m.querySelectorAll('[data-mat]').forEach(b => b.onclick = () => {
+      chosenMat = MATERIALS.find(x => x.key === b.dataset.mat);
+      m.querySelectorAll('[data-mat]').forEach(x => x.classList.toggle('active', x === b));
+      const grid = m.querySelector('#idp-prod-grid');
+      grid.innerHTML = BASE_PRODUCTS.map(p => { const u = imgUrl((chosenMat.prefix ? chosenMat.prefix + ' ' : '') + p); return `<button class="idp-prod-card" data-prod="${esc(p)}">${u ? `<img src="${u}" onerror="this.style.display='none'">` : '<span class="idp-prod-ic">📦</span>'}<span>${esc(p)}</span></button>`; }).join('');
+      m.querySelector('#idp-prod-step').hidden = false;
+      grid.querySelectorAll('[data-prod]').forEach(pb => pb.onclick = () => {
+        const name = (chosenMat.prefix ? chosenMat.prefix + ' ' : '') + pb.dataset.prod;
+        // keep any extra size lines the user already typed (lines after the first)
+        const extra = (it.desc || '').split('\n').slice(1).join('\n').trim();
+        it.desc = extra ? name + '\n' + extra : name;
+        m.remove(); renderPrepare();
+      });
     });
   }
 
