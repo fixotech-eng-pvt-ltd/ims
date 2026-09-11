@@ -1559,6 +1559,16 @@ body {
 .app-back { border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: #fff; border-radius: var(--radius-xs); padding: 6px 12px; font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; }
 .app-back:hover { background: rgba(255,255,255,.24); }
 .app-topbar-name { font-weight: 800; letter-spacing: .5px; font-size: 13px; }
+.app-topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.topbar-mini { border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.14); color: #fff; border-radius: var(--radius-xs); padding: 6px 12px; font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.topbar-mini:hover { background: rgba(255,255,255,.26); }
+.app-topbar-actions .fxp-launch { margin-left: 0; }
+.btn-clear-order { color: #b91c1c; }
+.btn-clear-order:hover { background: #fef2f2; border-color: #fecaca; }
+@media (max-width: 640px) {
+  .app-topbar { flex-wrap: wrap; }
+  .app-topbar-actions { width: 100%; margin-left: 0; overflow-x: auto; }
+}
 
 /* Forward-to-proforma button */
 .btn-forward {
@@ -2026,3 +2036,20 @@ body.testing-on .tm-banner { display: block; background: #fef9c3; border: 1px so
 }
 .admin-corner:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
 @media (max-width: 640px) { .admin-corner { top: 10px; right: 10px; padding: 6px 11px; font-size: 12px; } }
+
+/* ===== Proforma Invoice — visual polish (no behaviour change) ===== */
+.pf-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: linear-gradient(120deg, #4338ca, #6366f1 62%, #818cf8); color: #fff;
+  border-radius: 16px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(79,70,229,.22); }
+.pf-hero-title { display: flex; align-items: center; gap: 13px; }
+.pf-hero-ic { font-size: 30px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
+.pf-hero h2 { color: #fff; font-size: 21px; margin: 0; }
+.pf-hero .pf-sub { color: rgba(255,255,255,.9); margin-top: 3px; }
+.pf-hero .pf-src { background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; }
+.pf-topbtns .cp-btn { border-radius: 10px; transition: .12s; }
+.pf-topbtns .cp-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+.pf-apptabs { border-bottom: 2px solid #eef1f6; }
+.pf-apptab.active { border-bottom-color: #6366f1; color: #4338ca; }
+.pf-sec-head { font-weight: 800; color: #3730a3; }
+.pf-fields label { font-weight: 600; }
+.pf-actions .cp-btn, .pf-appr-btns .cp-btn { border-radius: 10px; }

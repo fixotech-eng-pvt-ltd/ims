@@ -1323,6 +1323,7 @@ function persistSessions() {
 function loadSessionData(i) {
   restoring = true;
   activeIdx = i;
+  _lastSaveSig = null; _lastSaveId = null;   // switching orders resets save-dedupe tracking
   const s = sessions[i] || { ws: [], q: [], nid: 1, client: '' };
   workspaceItems = JSON.parse(JSON.stringify(s.ws || []));
   quoteItems = JSON.parse(JSON.stringify(s.q || []));
@@ -1413,23 +1414,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('btn-whatsapp').addEventListener('click', openWhatsAppModal);
-  document.getElementById('btn-email').addEventListener('click', openEmailModal);
-  document.getElementById('btn-whatsapp-appr').addEventListener('click', openWhatsAppModal);
-  document.getElementById('btn-email-appr').addEventListener('click', openEmailModal);
-  document.getElementById('btn-csv').addEventListener('click', exportCSV);
-  document.getElementById('btn-print-csv').addEventListener('click', exportCSV);
-  document.getElementById('btn-approval-pdf').addEventListener('click', () => downloadPDF('approval'));
-  document.getElementById('btn-download-pdf').addEventListener('click', () => downloadPDF('final'));
-  document.getElementById('btn-download-txt').addEventListener('click', downloadTXT);
-
-  document.getElementById('wa-modal-close').addEventListener('click', closeWAModal);
-  document.getElementById('wa-cancel').addEventListener('click', closeWAModal);
-  document.getElementById('wa-send').addEventListener('click', sendWhatsApp);
-
-  document.getElementById('email-modal-close').addEventListener('click', closeEmailModal);
-  document.getElementById('email-cancel').addEventListener('click', closeEmailModal);
-  document.getElementById('email-send').addEventListener('click', sendEmail);
+  // WhatsApp / Email share buttons were removed from the calculator UI; bind any
+  // remaining controls null-safely so nothing throws if an element is absent.
+  const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  bind('btn-csv', 'click', exportCSV);
+  bind('btn-print-csv', 'click', exportCSV);
+  bind('btn-approval-pdf', 'click', () => downloadPDF('approval'));
+  bind('btn-download-pdf', 'click', () => downloadPDF('final'));
+  bind('btn-download-txt', 'click', downloadTXT);
+  bind('wa-modal-close', 'click', closeWAModal);
+  bind('wa-cancel', 'click', closeWAModal);
+  bind('wa-send', 'click', sendWhatsApp);
+  bind('email-modal-close', 'click', closeEmailModal);
+  bind('email-cancel', 'click', closeEmailModal);
+  bind('email-send', 'click', sendEmail);
 
   setupQuoteDragDrop();
   renderMatBar();
@@ -1441,10 +1439,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', () => { if (!restoring) persistSessions(); });
   });
-  const svBtn = document.getElementById('btn-save-order');
-  if (svBtn) svBtn.addEventListener('click', saveCurrentOrder);
-  const opBtn = document.getElementById('btn-open-order');
-  if (opBtn) opBtn.addEventListener('click', openSavedOrders);
+  ['btn-save-order', 'btn-save-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', saveCurrentOrder); });
+  ['btn-open-order', 'btn-open-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', openSavedOrders); });
+  ['btn-clear-order', 'btn-clear-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', clearCurrentOrder); });
   window.addEventListener('beforeunload', persistSessions);
   setInterval(() => { if (!restoring) persistSessions(); }, 1500); // autosave (reload-safe)
 });
@@ -1454,19 +1451,71 @@ document.addEventListener('DOMContentLoaded', () => {
 // ----------------------------------------------------------------
 function loadSavedOrders() { try { return JSON.parse(localStorage.getItem('fixo_saved_orders') || '[]'); } catch (e) { return []; } }
 function storeSavedOrders(a) { try { localStorage.setItem('fixo_saved_orders', JSON.stringify(a)); } catch (e) {} }
-function saveCurrentOrder() {
-  if (!quoteItems.length) { toast('Add items to the quote first'); return; }
+
+// Track the last save for the CURRENT working order so we never write a duplicate
+// when nothing changed, and can offer "update vs new" when it does change.
+// (in-memory; reset whenever the working order changes — see loadSessionData/clear)
+var _lastSaveSig = null, _lastSaveId = null;
+function orderSignature() {
+  const client = ((document.getElementById('client-name') || {}).value || '').trim();
+  const fr = (document.getElementById('quote-freight') || {}).value || '';
+  const da = (document.getElementById('quote-deliver-addr') || {}).value || '';
+  const items = quoteItems.map(i => ({ k: i.productKey, q: i.qty, r: i.quoteRate, inp: i.inputs, ov: i.overrides || null }));
+  const edited = (window.FIXO && FIXO.getEditedQuote) ? FIXO.getEditedQuote() : null;
+  return JSON.stringify({ client, fr, da, items, edited });
+}
+function buildOrderRec(sig, id) {
   const client = ((document.getElementById('client-name') || {}).value || '').trim() || 'Unnamed';
   const fr = document.getElementById('quote-freight'), da = document.getElementById('quote-deliver-addr');
-  const orders = loadSavedOrders();
-  const rec = {
-    id: 'so-' + Date.now(), client, savedAt: new Date().toLocaleString('en-IN'),
+  return {
+    id: id || ('so-' + Date.now()), client, savedAt: new Date().toLocaleString('en-IN'),
     q: JSON.parse(JSON.stringify(quoteItems)),
     freight: fr ? fr.value : '', deliverAddr: da ? da.value : '',
-    editedQuote: (window.FIXO && FIXO.getEditedQuote) ? FIXO.getEditedQuote() : null
+    editedQuote: (window.FIXO && FIXO.getEditedQuote) ? FIXO.getEditedQuote() : null,
+    sig: sig
   };
+}
+function saveCurrentOrder() {
+  if (!quoteItems.length) { toast('Add items to the quote first'); return; }
+  const sig = orderSignature();
+  const orders = loadSavedOrders();
+
+  // 1) Already saved this exact order in this session and nothing changed → skip.
+  if (_lastSaveId) {
+    const prev = orders.find(o => o.id === _lastSaveId);
+    if (prev) {
+      if (prev.sig === sig) { toast('No changes since your last save'); return; }
+      // 2) Changed since last save → let the user choose update vs new.
+      const update = confirm('You have changes since the last save.\n\nOK  →  update the saved order\nCancel  →  save as a NEW order');
+      if (update) {
+        Object.assign(prev, buildOrderRec(sig, prev.id));
+        storeSavedOrders(orders); _lastSaveSig = sig;
+        toast('Saved order updated — ' + prev.client);
+        return;
+      }
+      // fall through → save as new
+    }
+  } else {
+    // 3) No session-linked save yet, but an identical order may already exist.
+    const dup = orders.find(o => o.sig === sig);
+    if (dup) { _lastSaveId = dup.id; _lastSaveSig = sig; toast('Already saved — no changes to save'); return; }
+  }
+
+  const rec = buildOrderRec(sig);
   orders.unshift(rec); storeSavedOrders(orders);
-  toast('Order saved — ' + client + ' (reopen from “Saved Orders”)');
+  _lastSaveId = rec.id; _lastSaveSig = sig;
+  toast('Order saved — ' + rec.client + ' (reopen from “Saved Orders”)');
+}
+function clearCurrentOrder() {
+  const hasWs = (typeof workspaceItems !== 'undefined' && workspaceItems && workspaceItems.length);
+  if (!quoteItems.length && !hasWs) { toast('Nothing to clear'); return; }
+  if (!confirm('Clear the current order?\n\nThis empties the quote and workspace so you can start fresh. Your Saved Orders are NOT affected.')) return;
+  if (sessions[activeIdx]) sessions[activeIdx] = { id: Date.now(), ws: [], q: [], nid: 1, client: '' };
+  _lastSaveSig = null; _lastSaveId = null;
+  try { if (window.FIXO && FIXO.setEditedQuote) FIXO.setEditedQuote(null); } catch (e) {}
+  loadSessionData(activeIdx);
+  persistSessions();
+  toast('Cleared — ready for a fresh order');
 }
 function reopenSavedOrder(id) {
   const rec = loadSavedOrders().find(o => o.id === id); if (!rec) return;
@@ -1477,6 +1526,8 @@ function reopenSavedOrder(id) {
   const da = document.getElementById('quote-deliver-addr'); if (da) da.value = rec.deliverAddr || '';
   if (rec.editedQuote && window.FIXO && FIXO.setEditedQuote) FIXO.setEditedQuote(rec.editedQuote);
   renderQuotePanel();
+  // Link this reopened order so a later Save updates it (offering update-vs-new) instead of duplicating.
+  _lastSaveId = rec.id; _lastSaveSig = rec.sig || orderSignature();
   if (typeof persistSessions === 'function') persistSessions();
   toast('Reopened ' + (rec.client || 'order') + ' — edit and re-print');
 }

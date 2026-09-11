@@ -100,3 +100,15 @@
   .idp-track-row { grid-template-columns: 1fr; align-items: flex-start; gap: 8px; }
   .idp-track-status, .idp-track-act { width: 100%; }
 }
+
+/* extra polish — a touch more "happening" */
+.idp-hero { box-shadow: 0 8px 24px rgba(15,118,110,.22); }
+.idp-card { transition: box-shadow .15s; }
+.idp-card:hover { box-shadow: 0 4px 18px rgba(15,118,110,.10); }
+.idp-src-btn { transition: .12s; }
+.idp-src-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(20,184,166,.16); }
+.idp-tab { transition: .12s; }
+.idp-tab:not(.active):hover { background: #f0fdfa; }
+.idp-track-row { transition: box-shadow .12s, transform .12s; }
+.idp-track-row:hover { box-shadow: 0 4px 14px rgba(15,118,110,.10); transform: translateY(-1px); }
+.idp-btn-go { box-shadow: 0 2px 8px rgba(15,118,110,.25); }

@@ -91,10 +91,10 @@
   function renderBuilder(host) {
     host.innerHTML = `
       <div class="pf-wrap">
-        <div class="pf-head">
-          <div>
-            <h2>Proforma Invoice</h2>
-            <p class="pf-sub">Forwarded from the Smart Calculator or uploaded — finalise details, then verify &amp; print or email.</p>
+        <div class="pf-hero">
+          <div class="pf-hero-title"><span class="pf-hero-ic">🧾</span>
+            <div><h2>Proforma Invoice</h2>
+            <p class="pf-sub">Forwarded from the Smart Calculator or uploaded — finalise details, then verify &amp; print.</p></div>
           </div>
           <div class="pf-src" id="pf-src">Manual entry</div>
         </div>

@@ -256,6 +256,9 @@
     const sent = loadSent().map(s => ({ kind: s.factoryApproved ? 'approved' : 'sent', d: s }));
     let all = [...drafts, ...sent];
     if (trackFilter !== 'all') all = all.filter(x => x.kind === trackFilter);
+    // Newest first — today's indents on top (by sent time / id timestamp).
+    const trkTs = (x) => Date.parse(x.d.sentAt || '') || (parseInt(String(x.d.id).replace(/\D/g, '').slice(0, 13), 10) || 0);
+    all.sort((a, b) => trkTs(b) - trkTs(a));
     const chip = (k) => k === 'draft' ? '<span class="idp-chip draft">📝 Draft (not sent)</span>' : k === 'approved' ? '<span class="idp-chip ok">✓ Approved by factory</span>' : '<span class="idp-chip wait">⏳ At factory — awaiting approval</span>';
     const rows = all.length ? all.map(({ kind, d }) => {
       const lines = (d.items || []).length;

@@ -82,25 +82,17 @@
   // device or pulled from the cloud on another device), and (b) the factory app
   // is opened while an urgent order is still pending (not yet approved).
   const pendingUrgent = () => indents.filter(i => i.priority && !i.factoryApproved);
-  let knownUrgentIds = null;           // set once we've seen the current urgent set
-  let alertedThisOpen = false;         // one open-alert per visit to the factory screen
-  function seedKnownUrgent() { knownUrgentIds = new Set(pendingUrgent().map(i => i.id)); }
+  // Sound is a true NOTIFICATION: it plays ONCE for each newly-arrived urgent
+  // order, never again on re-opening the floor. Which urgent ids we've already
+  // chimed for is remembered across reloads so re-entering the app stays silent.
+  const ALERTED = 'fixo_factory_urgent_alerted';
+  function loadAlerted() { try { return new Set(JSON.parse(localStorage.getItem(ALERTED) || '[]')); } catch (e) { return new Set(); } }
+  function saveAlerted(set) { try { localStorage.setItem(ALERTED, JSON.stringify([...set].slice(-200))); } catch (e) {} }
   function alertNewUrgent() {
-    // called after a sync/reload — chime for urgent indents we hadn't seen before
-    if (knownUrgentIds == null) { seedKnownUrgent(); return; }
-    const now = pendingUrgent();
-    const fresh = now.filter(i => !knownUrgentIds.has(i.id));
-    now.forEach(i => knownUrgentIds.add(i.id));
-    if (fresh.length) { playAlert(3); toast('🚩 URGENT order received — ' + (fresh[0].customer || '') + (fresh.length > 1 ? ' +' + (fresh.length - 1) + ' more' : '')); }
+    const alerted = loadAlerted();
+    const fresh = pendingUrgent().filter(i => !alerted.has(i.id));
+    if (fresh.length) { playAlert(3); toast('🚩 URGENT order received — ' + (fresh[0].customer || '') + (fresh.length > 1 ? ' +' + (fresh.length - 1) + ' more' : '')); fresh.forEach(i => alerted.add(i.id)); saveAlerted(alerted); }
   }
-  function alertOnOpen() {
-    if (alertedThisOpen) return;
-    const p = pendingUrgent();
-    if (p.length) { alertedThisOpen = true; playAlert(3); toast('🚩 ' + p.length + ' URGENT order(s) pending on the floor'); }
-    seedKnownUrgent();
-  }
-  // reset the open-alert when we leave the factory screen so it fires again next visit
-  document.addEventListener('click', () => { if (document.body.dataset.screen !== 'screen-factory') alertedThisOpen = false; }, true);
 
   // ---- Receive from office ----
   function receiveIndent(rec) {
@@ -123,7 +115,7 @@
       }))
     });
     save();
-    if (rec.priority) { playAlert(3); toast('🚩 URGENT order received — ' + (rec.indentCustomer || rec.customer || '') + ' (top priority)'); if (knownUrgentIds) knownUrgentIds.add(rec.id || indents[0].id); }
+    if (rec.priority) { playAlert(3); toast('🚩 URGENT order received — ' + (rec.indentCustomer || rec.customer || '') + ' (top priority)'); const al = loadAlerted(); al.add(indents[0].id); saveAlerted(al); }
     else toast('New indent received — ' + (rec.indentCustomer || rec.customer || ''));
     if (document.body.dataset.screen === 'screen-factory') render();
     bumpLauncherBadge();
@@ -185,6 +177,7 @@
           <div class="fx-logo-chip"><img src="${logo}" alt="Fixotech" onerror="this.style.display='none'"></div>
         </div>
       </div>
+      ${(() => { const p = pendingUrgent(); return p.length ? `<div class="fx-urgent-banner" id="fx-urgent-banner">🚩 <b>${p.length} urgent order${p.length > 1 ? 's' : ''}</b> pending — please action &amp; approve to notify the office. <button class="fx-ub-x" id="fx-ub-x" title="Dismiss">✕</button></div>` : ''; })()}
       <div class="fx-tabs">
         <button class="fx-tab ${activeTab === 'indent' ? 'active' : ''}" data-tab="indent">📋 Indents</button>
         ${testingScope ? '' : `<button class="fx-tab ${activeTab === 'product' ? 'active' : ''}" data-tab="product">📦 Product-wise ${dot}</button>
@@ -196,13 +189,12 @@
     host.querySelectorAll('.fx-tab').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
     const sheetBtn = host.querySelector('#fx-upload-sheet');
     if (sheetBtn) sheetBtn.onclick = uploadFloorSheet;
+    const ubx = host.querySelector('#fx-ub-x'); if (ubx) ubx.onclick = () => { const b = document.getElementById('fx-urgent-banner'); if (b) b.remove(); };
     const layout = document.getElementById('fx-layout');
     if (activeTab === 'indent') renderIndentTab(layout, items);
     else if (activeTab === 'product') renderProductTab(layout, items);
     else if (activeTab === 'inventory') renderInventoryTab(layout);
     else renderCustomerTab(layout, items);
-    // Urgent-order chime when the floor opens the app with a pending urgent order.
-    try { alertOnOpen(); } catch (e) {}
   }
 
   function filterControls() {
@@ -224,7 +216,9 @@
   // ============ INDENT TAB ============
   function renderIndentTab(layout, items) {
     const inds = applyFilters(allItems()).reduce((a, x) => { (a[x.ind.id] = a[x.ind.id] || { ind: x.ind, items: [] }).items.push(x.it); return a; }, {});
-    const list = Object.values(inds).sort((a, b) => (b.ind.priority ? 1 : 0) - (a.ind.priority ? 1 : 0));  // urgent first
+    // Urgent first, then NEWEST first (today's indents on top, by time sent).
+    const indTs = (x) => Date.parse(x.ind.sentAt || '') || (parseInt(String(x.ind.id).replace(/\D/g, '').slice(0, 13), 10) || 0);
+    const list = Object.values(inds).sort((a, b) => ((b.ind.priority ? 1 : 0) - (a.ind.priority ? 1 : 0)) || (indTs(b) - indTs(a)));
     layout.innerHTML = `
       <aside class="fx-sidebar"><div class="fx-side-title">Filters</div>${filterControls()}
         <div class="fx-side-hint">The <b>white copy</b> stays here (office). The <b>yellow copy</b> prints for the factory. Approve to notify the office.</div>
@@ -841,34 +835,45 @@
   }
 
   // ---- Photo capture ----
+  // Photo capture that works everywhere — including the Android APK (WebView),
+  // where live getUserMedia is unreliable. The two file inputs are the primary,
+  // always-working path: "Take Photo" opens the device camera app, "Gallery"
+  // lets them pick a photo they already clicked & saved. A live in-page preview
+  // is offered as a bonus only when the browser actually grants it (with a
+  // watchdog so it never leaves a dead black box).
   function capturePhoto(title, onDone) {
     const m = modal(`<h3>${esc(title)}</h3>
-      <div class="fx-cam-wrap"><video id="fx-video" autoplay playsinline></video><div class="fx-cam-fallback" id="fx-camfb" hidden>Camera unavailable — please upload a photo.</div></div>
+      <div class="fx-cam-wrap" id="fx-cam-wrap" hidden><video id="fx-video" autoplay playsinline muted></video></div>
+      <div class="fx-cam-choose">
+        <label class="fx-cam-big"><span class="fx-cam-ic">📷</span><b>Take Photo</b><small>opens the camera</small><input type="file" accept="image/*" capture="environment" id="fx-cam-take" hidden></label>
+        <label class="fx-cam-big"><span class="fx-cam-ic">🖼️</span><b>Gallery</b><small>choose a saved photo</small><input type="file" accept="image/*" id="fx-cam-file" hidden></label>
+      </div>
       <div class="fx-modal-actions"><button class="fx-btn" id="fx-cam-cancel">Cancel</button>
-        <label class="fx-btn" style="cursor:pointer">📁 Upload<input type="file" accept="image/*" capture="environment" id="fx-cam-file" hidden></label>
-        <button class="fx-btn fx-btn-go" id="fx-cam-snap">📸 Capture</button></div>`);
-    const v = m.querySelector('#fx-video'); let stream = null;
-    const uploadLabel = m.querySelector('#fx-cam-file').closest('label');
-    const noCam = () => { v.hidden = true; m.querySelector('#fx-camfb').hidden = false; const snap = m.querySelector('#fx-cam-snap'); if (snap) snap.style.display = 'none'; if (uploadLabel) uploadLabel.classList.add('fx-btn-go'); };
-    (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
-      ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(s => { stream = s; v.srcObject = s; }).catch(noCam)
-      : noCam();
-    const stop = () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
-    const busy = (on) => { const s = m.querySelector('#fx-cam-snap'); if (s) s.textContent = on ? '⏳ Saving…' : '📸 Capture'; };
-    const fin = (raw) => { stop(); busy(true); stampPhoto(raw, (d, meta) => { closeModal(m); onDone(d, meta); }); };
+        <button class="fx-btn fx-btn-go" id="fx-cam-snap" hidden>📸 Capture from preview</button></div>`);
+    const wrap = m.querySelector('#fx-cam-wrap'), v = m.querySelector('#fx-video'), snap = m.querySelector('#fx-cam-snap');
+    let stream = null, live = false;
+    const showLive = () => { live = true; wrap.hidden = false; snap.hidden = false; };
+    // Best-effort live preview with a watchdog; failure just leaves the reliable buttons.
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        let settled = false;
+        const wd = setTimeout(() => { if (!settled) { settled = true; try { if (stream) stream.getTracks().forEach(t => t.stop()); } catch (e) {} } }, 3500);
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+          .then(s => { if (settled) { s.getTracks().forEach(t => t.stop()); return; } settled = true; clearTimeout(wd); stream = s; v.srcObject = s; showLive(); })
+          .catch(() => { settled = true; clearTimeout(wd); });
+      }
+    } catch (e) {}
+    const stop = () => { try { if (stream) stream.getTracks().forEach(t => t.stop()); } catch (e) {} };
+    const fin = (raw) => { stop(); stampPhoto(raw, (d, meta) => { closeModal(m); onDone(d, meta); }); };
+    const readFile = (inp) => { const f = inp.files && inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => fin(r.result); r.onerror = () => toast('Could not read that photo — try again'); r.readAsDataURL(f); };
     m.querySelector('#fx-cam-cancel').onclick = () => { stop(); closeModal(m); };
-    m.querySelector('#fx-cam-snap').onclick = () => {
-      if (v.hidden || !v.videoWidth) { toast('No camera — use Upload'); return; }
-      const cv = document.createElement('canvas');
-      cv.width = v.videoWidth; cv.height = v.videoHeight; cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
-      fin(cv.toDataURL('image/jpeg', 0.85));
-    };
-    m.querySelector('#fx-cam-file').onchange = e => {
-      const f = e.target.files[0]; if (!f) return;
-      const r = new FileReader();
-      r.onload = () => fin(r.result);
-      r.onerror = () => toast('Could not read that photo — try again');
-      r.readAsDataURL(f);
+    m.querySelector('#fx-cam-take').onchange = e => readFile(e.target);
+    m.querySelector('#fx-cam-file').onchange = e => readFile(e.target);
+    snap.onclick = () => {
+      if (!live || !v.videoWidth) { toast('Use Take Photo or Gallery'); return; }
+      const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight;
+      cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
+      snap.textContent = '⏳ Saving…'; fin(cv.toDataURL('image/jpeg', 0.85));
     };
   }
 
@@ -955,6 +960,10 @@
   function bumpLauncherBadge() { const n = allItems().filter(x => !x.it.seen).length; const b = document.getElementById('btn-factory'); if (b) { let bd = b.querySelector('.fx-launch-badge'); if (n) { if (!bd) { bd = document.createElement('span'); bd.className = 'fx-launch-badge'; b.appendChild(bd); } bd.textContent = n; } else if (bd) bd.remove(); } }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Seed the "already chimed" set with urgent orders that existed before this
+    // load, so re-opening the app is SILENT (a text banner shows instead); only
+    // urgent orders that arrive live from here on will play the notification sound.
+    try { const al = loadAlerted(); pendingUrgent().forEach(i => al.add(i.id)); saveAlerted(al); } catch (e) {}
     bumpLauncherBadge();
     // Reload safety: if the saved screen is the factory, render it (else the page shows blank).
     if (document.body.dataset.screen === 'screen-factory' || (function () { try { return localStorage.getItem('fixo_screen') === 'screen-factory'; } catch (e) { return false; } })()) {
