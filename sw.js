@@ -5,14 +5,14 @@
 //     This is what makes repeat loads (and the phone/APK) fast.
 //   • App shell + logic (HTML, app JS/CSS): NETWORK-FIRST — always fresh when
 //     online so fixes roll out immediately; falls back to cache when offline.
-const CACHE = 'fixo-v6';
+const CACHE = 'fixo-v7';
 const SHELL = [
   './', './index.html',
-  './styles.css', './factory.css', './factory-big.css', './chatiq.css', './automate.css', './indent.css', './mobile.css',
+  './styles.css', './factory.css', './factory-big.css', './chatiq.css', './automate.css', './indent.css', './progress.css', './mobile.css',
   './images.js', './product-images-data.js', './product-images.js',
   './vendor/pdf.min.js', './vendor/exceljs.min.js',
   './db.js', './auth.js', './customers-seed.js', './inventory-seed.js', './app.js', './clients.js',
-  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js', './admin.js', './automate.js', './indent.js', './sync.js',
+  './shell.js', './testing-mode.js', './verify.js', './proforma.js', './factory.js', './dispatch.js', './chatiq.js', './inventory.js', './admin.js', './automate.js', './indent.js', './progress.js', './sync.js',
   './jspdf.umd.min.js',
   './assets/app-icons/app-192.png', './assets/app-icons/app-512.png'
 ];

@@ -84,7 +84,8 @@
     model = freshModel();
     renderBuilder(host);
     buildEditor();
-    window.FIXO_PF = { loadFromQuote, loadItems, buildIndentHtml };
+    window.FIXO_PF = { loadFromQuote, loadItems, buildIndentHtml,
+      reopenSaved(id) { if (window.showScreen) showScreen('screen-proforma'); try { reopenProforma(id); } catch (e) {} } };
   });
 
   function renderBuilder(host) {

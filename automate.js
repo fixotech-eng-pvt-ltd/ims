@@ -33,6 +33,20 @@
     'Cable Tray - Junction Box', 'Cable Tray - Coupler Plate',
     'M08 Threaded Rod', 'M08 Anchor Fastener', 'Bolt, Nut & Washer Set'
   ];
+  // Generic product names for the guided picker (material is chosen separately).
+  const BASE_CATALOG = [
+    'Perforated Cable Tray', 'Ladder Type Cable Tray', 'Raceway With Cover', 'Slotted Channel',
+    'Horizontal Bend', 'Vertical Bend', 'Cross Bend', 'Tee Bend', 'Reducer',
+    'Junction Box', 'Coupler Plate', 'Threaded Rod', 'Anchor Fastener', 'Bolt, Nut & Washer Set'
+  ];
+  // Step-1 material options (like the Smart Calculator's material picker).
+  const MATERIALS = [
+    { key: 'gi', label: 'GI (Pre-Galvanised)', prefix: 'GI', ic: '🧲', sub: '120 GSM pre-galv' },
+    { key: 'hotdip', label: 'Hot Dip Galvanised', prefix: 'Hot Dip', ic: '🔥', sub: 'HDG coated' },
+    { key: 'powder', label: 'Powder Coated', prefix: 'Powder Coated', ic: '🎨', sub: 'colour finish' },
+    { key: 'ms', label: 'MS (Mild Steel)', prefix: 'MS', ic: '⚙️', sub: 'bare / painted' },
+    { key: 'ss', label: 'Stainless Steel', prefix: 'SS', ic: '✨', sub: 'SS 202 / 304' }
+  ];
 
   let chats = load();
   let curId = null;
@@ -121,12 +135,34 @@
     finishTurn(c);
   }
 
-  // ---------- the product / options menu (photo picker) ----------
-  function toMenu(c, intro) {
+  // ---------- guided flow: material → product → quantity → rate ----------
+  // Step 1 (like the Smart Calculator) — pick the material as options (MCQ).
+  function askMaterial(c, intro) {
+    c.step = 'material';
+    const btns = MATERIALS.map(m => `<button class="am-mat-btn" data-mat="${m.key}"><span class="am-mat-ic">${m.ic}</span><b>${esc(m.label)}</b><span class="am-mat-sub">${esc(m.sub)}</span></button>`).join('');
+    botSay(c, `<div class="am-menu">
+      <div class="am-menu-lab">${intro ? 'Let\'s add the first product.' : 'Next product —'} first, which <b>material</b>?</div>
+      <div class="am-mat-row">${btns}</div>
+      ${c.items.length ? `<div class="am-menu-btns"><button class="fx-btn fx-btn-go" data-act="preview">✓ Preview for approval</button></div><div class="am-menu-sofar">So far: ${c.items.length} line(s) · ${money(c.items.reduce((s, it) => s + (it.amount || 0), 0))}</div>` : ''}
+    </div>`);
+    finishTurn(c);
+  }
+  function setMaterial(key) {
+    const c = cur(); if (!c) return;
+    const m = MATERIALS.find(x => x.key === key) || MATERIALS[0];
+    c.material = m; userSay(c, m.label); appendMsg({ role: 'user', html: esc(m.label) });
+    toMenu(c, false, true);
+  }
+
+  // Step 2 — the product picker (photos), scoped by the chosen material.
+  function toMenu(c, intro, afterMat) {
+    if (!c.material) return askMaterial(c, intro);
     c.step = 'menu';
-    const cards = CATALOG.map(n => { const u = imgUrl(n); return `<button class="am-pick-card" data-prod="${esc(n)}">${u ? `<img src="${u}" onerror="this.style.display='none'">` : '<span class="am-pick-ic">📦</span>'}<span>${esc(n)}</span></button>`; }).join('');
+    const cat = productsForMaterial(c.material);
+    const cards = cat.map(n => { const label = c.material.prefix ? c.material.prefix + ' ' + n : n; const u = imgUrl(n); return `<button class="am-pick-card" data-prod="${esc(n)}">${u ? `<img src="${u}" onerror="this.style.display='none'">` : '<span class="am-pick-ic">📦</span>'}<span>${esc(n)}</span></button>`; }).join('');
     const html = `<div class="am-menu">
-      ${intro ? '<div class="am-menu-lab">Add products — scroll and tap. Then add freight/details, or preview.</div>' : '<div class="am-menu-lab">Add another product, freight, a detail — or preview for approval.</div>'}
+      <div class="am-mat-chip">Material: <b>${esc(c.material.label)}</b> <button class="am-mat-change" data-act="change-mat">change</button></div>
+      <div class="am-menu-lab">${afterMat ? 'Now pick the <b>product</b> — scroll and tap.' : 'Add another product, freight, a detail — or preview.'}</div>
       <div class="am-pick-row">${cards}<button class="am-pick-card am-pick-custom" data-act="custom"><span class="am-pick-ic">＋</span><span>Custom</span></button></div>
       <div class="am-menu-btns">
         <button class="fx-btn" data-act="freight">🚚 Freight</button>
@@ -137,24 +173,61 @@
     </div>`;
     botSay(c, html); finishTurn(c);
   }
+  function productsForMaterial(mat) {
+    // All materials offer the same tray/accessory range; the material is prefixed.
+    return BASE_CATALOG.slice();
+  }
+  // Step 3 — quantity (typed), then rate (typed).
   function selectProduct(name) {
     const c = cur(); if (!c) return;
-    c.draft = { desc: name }; c.step = 'qty';
-    userSay(c, name); appendMsg({ role: 'user', html: esc(name) });
-    const sug = suggestRate(name);
-    botSay(c, `How many <b>${esc(name)}</b>? Enter the <b>quantity</b>.${sug ? ` <span class="am-dim">(recent rate ≈ ${money(sug)})</span>` : ''}`);
+    const desc = (c.material && c.material.prefix && !new RegExp('^' + c.material.prefix, 'i').test(name)) ? c.material.prefix + ' ' + name : name;
+    c.draft = { desc }; c.step = 'qty';
+    userSay(c, desc); appendMsg({ role: 'user', html: esc(desc) });
+    const sug = suggestRate(desc);
+    botSay(c, `How many <b>${esc(desc)}</b>? Enter the <b>quantity</b> (type the number, e.g. <i>120</i> or <i>120 Mtr</i>).${sug ? ` <span class="am-dim">(recent rate ≈ ${money(sug)})</span>` : ''}`);
     finishTurn(c);
   }
 
-  // ---------- requirement paste (WhatsApp / email) ----------
+  // ---------- requirement paste (WhatsApp / email) + paper photo scan (OCR) ----------
   function pasteRequirement() {
     const c = cur(); if (!c) return;
-    const m = modal(`<h3>📩 Paste requirement (WhatsApp / email)</h3>
-      <div class="fx-modal-body"><p class="fx-note">Paste the customer's message. I'll read it and list the products for you to confirm.</p>
-      <textarea id="am-req" class="fx-in" rows="7" placeholder="e.g. Need 500 nos GI perforated cable tray 300x50, 200 mtr ladder tray, 100 bolts..."></textarea></div>
+    const m = modal(`<h3>📩 Requirement — paste or scan a photo</h3>
+      <div class="fx-modal-body"><p class="fx-note">Paste the customer's WhatsApp / email message, <b>or upload a photo of the hand-written order</b> — I'll scan it, then list the products for you to confirm.</p>
+      <textarea id="am-req" class="fx-in" rows="6" placeholder="e.g. Need 500 nos GI perforated cable tray 300x50, 200 mtr ladder tray, 100 bolts..."></textarea>
+      <label class="am-ocr-drop" id="am-ocr-drop">📷 Tap to upload a photo of the written order (paper)<input type="file" id="am-ocr-file" accept="image/*" capture="environment" hidden></label>
+      <div class="am-ocr-status" id="am-ocr-status" hidden></div></div>
       <div class="fx-modal-actions"><button class="fx-btn" id="am-req-x">Cancel</button><button class="fx-btn fx-btn-go" id="am-req-ok">Read it</button></div>`);
     m.querySelector('#am-req-x').onclick = () => closeModal(m);
     m.querySelector('#am-req-ok').onclick = () => { const t = m.querySelector('#am-req').value; closeModal(m); ingestRequirement(t); };
+    const drop = m.querySelector('#am-ocr-drop'), file = m.querySelector('#am-ocr-file'), status = m.querySelector('#am-ocr-status');
+    drop.onclick = () => file.click();
+    file.onchange = () => { const f = file.files[0]; if (f) scanPaper(f, status, m.querySelector('#am-req')); };
+  }
+  // OCR a photo of a hand-written / printed order using Tesseract.js (lazy-loaded).
+  async function scanPaper(fileObj, statusEl, textEl) {
+    statusEl.hidden = false; statusEl.textContent = '📷 Loading scanner…';
+    let T;
+    try { T = await ensureTesseract(); } catch (e) { statusEl.innerHTML = '⚠ Couldn\'t load the scanner (needs internet). Please type the order above instead.'; return; }
+    try {
+      statusEl.textContent = '🔎 Scanning the photo… this can take a few seconds.';
+      const res = await T.recognize(fileObj, 'eng', { logger: (mm) => { if (mm.status === 'recognizing text') statusEl.textContent = '🔎 Reading… ' + Math.round((mm.progress || 0) * 100) + '%'; } });
+      const text = (res && res.data && res.data.text || '').trim();
+      if (!text) { statusEl.innerHTML = '⚠ Couldn\'t read any text. Try a clearer, well-lit photo — or type it above.'; return; }
+      textEl.value = (textEl.value ? textEl.value + '\n' : '') + text;
+      statusEl.innerHTML = '✓ Scanned. Check/edit the text above, then tap <b>Read it</b>.';
+    } catch (e) { statusEl.innerHTML = '⚠ Scan failed. Please type the order above instead.'; }
+  }
+  function ensureTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (window.__amTessP) return window.__amTessP;
+    window.__amTessP = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js';
+      s.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('no Tesseract'));
+      s.onerror = () => reject(new Error('load failed'));
+      document.head.appendChild(s);
+    });
+    return window.__amTessP;
   }
   function parseRequirement(text) {
     const items = [];
@@ -350,11 +423,13 @@
 
   function wire(scope) {
     scope.querySelectorAll('[data-prod]').forEach(b => { if (b.__w) return; b.__w = 1; b.onclick = () => selectProduct(b.dataset.prod); });
+    scope.querySelectorAll('[data-mat]').forEach(b => { if (b.__w) return; b.__w = 1; b.onclick = () => setMaterial(b.dataset.mat); });
     scope.querySelectorAll('[data-act]').forEach(b => {
       if (b.__w) return; b.__w = 1;
       b.onclick = () => {
         const c = cur(); if (!c) return; const doc = b.closest('.am-doc'); const act = b.dataset.act;
-        if (act === 'custom') { c.step = 'custom_prod'; botSay(c, 'Type the <b>custom product name</b>.'); finishTurn(c); }
+        if (act === 'change-mat') { c.material = null; askMaterial(c, false); }
+        else if (act === 'custom') { c.step = 'custom_prod'; botSay(c, 'Type the <b>custom product name</b>.'); finishTurn(c); }
         else if (act === 'freight') { c.step = 'freight_amt'; botSay(c, 'Enter the <b>freight / forwarding amount</b> (₹).'); finishTurn(c); }
         else if (act === 'note') { c.step = 'note_text'; botSay(c, 'Type the <b>detail / note</b> to add to the quotation (e.g. delivery time, payment terms).'); finishTurn(c); }
         else if (act === 'preview') prepareApproval();

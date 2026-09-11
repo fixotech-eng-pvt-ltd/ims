@@ -18,7 +18,7 @@
 
   /* Hard clamp: factory / dispatch / inventory shells must never grow wider
      than the screen. Wide tables scroll inside their own card instead. */
-  #factory-app, #dispatch-app, #inventory-app,
+  #factory-app, #dispatch-app, #inventory-app, #admin-app,
   .factory-body, .fx-hero, .fx-hero-right, .fx-tabs, .fx-layout,
   .fx-main, .fx-cards, .fx-card { max-width: 100%; min-width: 0; box-sizing: border-box; }
   .fx-main, .fx-cards { width: 100%; }
@@ -90,8 +90,21 @@
   #dr-frame, #dp-frame, #ciq-frame { height: 52vh; }
   .inv-form-row { grid-template-columns: 1fr; }
 
-  /* ---- ChatIQ ---- */
-  .ciq-side { display: none; }
+  /* ---- ChatIQ: keep a compact top switch strip so Question-asking ⇄
+         Automate me is reachable on phones (was fully hidden before). ---- */
+  .ciq { flex-direction: column; }
+  .ciq-side {
+    display: flex !important; flex-direction: row; align-items: center; gap: 8px;
+    width: 100%; flex: 0 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 8px 10px; border-right: none; border-bottom: 1px solid #ececec; background: #fff;
+  }
+  .ciq-side-top { flex: 0 0 auto; }
+  .ciq-side-top .ciq-brand { display: none; }          /* keep just the ← back */
+  .ciq-side-lab, #ciq-chats, .ciq-side .ciq-examples { display: none; }  /* hide recent/examples clutter */
+  .ciq-new { flex: 0 0 auto; width: auto; white-space: nowrap; padding: 8px 12px; margin: 0; }
+  .ciq-nav { flex: 1 1 auto; flex-direction: row; gap: 6px; margin: 0; }
+  .ciq-nav-item { flex: 1 1 auto; white-space: nowrap; justify-content: center; padding: 9px 10px; font-size: 13px; }
+  .ciq-nav-item em { display: none; }
   .ciq-main, .ciq-inputwrap, .ciq-msg, .ciq-empty { max-width: 100%; }
   .ciq-msg { padding: 0 12px; }
 
@@ -168,4 +181,17 @@
 
   /* a soft "more →" cue so users know a table scrolls sideways */
   .fx-card { position: relative; }
+
+  /* ---- Admin panel phone polish ---- */
+  #admin-app { padding: 12px !important; }
+  #admin-app .fx-hero { padding: 14px 16px; }
+  .adm-toggle-row { align-items: flex-start; }
+  .adm-toggle-row .tm-switch { align-self: center; }
+  .adm-users th, .adm-users td { padding: 7px 8px; font-size: 12.5px; }
+  .adm-acc { display: flex; margin: 3px 0; white-space: normal; }
+  #admin-app .fx-card td .adm-acc { min-width: 120px; }
+  .adm-addrow .fx-in, .adm-addrow .fx-btn { width: 100%; }
+  /* monitoring range toggle + action buttons wrap cleanly */
+  .mon-toolbar .fx-view-toggle { width: 100%; }
+  .mon-toolbar .fx-btn { flex: 1 1 auto; }
 }

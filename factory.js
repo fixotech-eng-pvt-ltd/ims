@@ -27,7 +27,7 @@
 
   // Live refresh: when the sync layer pulls new/changed indents from Supabase,
   // re-read them into memory and re-render the board (no manual refresh needed).
-  function reload() { try { indents = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) {} if (document.body.dataset.screen === 'screen-factory') render(); }
+  function reload() { try { indents = JSON.parse(localStorage.getItem(LS) || '[]') || []; } catch (e) {} try { alertNewUrgent(); } catch (e) {} if (document.body.dataset.screen === 'screen-factory') render(); }
   window.addEventListener('fixo:sync', (e) => { if (e.detail && e.detail.keys && e.detail.keys.indexOf(LS) >= 0) reload(); });
 
   // Production pipeline (6 stages). First 4 confirmed by the factory; "Finishing"
@@ -63,13 +63,44 @@
   }
 
   // ---- Alert (sound + vibration) for urgent/priority indents ----
-  function playAlert() {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) { const c = new AC(); const o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.08; o.start(); o.frequency.setValueAtTime(660, c.currentTime + 0.15); setTimeout(() => { o.stop(); c.close(); }, 320); }
-    } catch (e) {}
-    try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) {}
+  // A short attention chime; `reps` repeats it so an urgent order is unmissable
+  // on the factory floor.
+  function playAlert(reps) {
+    reps = reps || 1;
+    for (let i = 0; i < reps; i++) {
+      setTimeout(() => {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) { const c = new AC(); const o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.09; o.start(); o.frequency.setValueAtTime(660, c.currentTime + 0.15); setTimeout(() => { o.stop(); c.close(); }, 340); }
+        } catch (e) {}
+      }, i * 480);
+    }
+    try { if (navigator.vibrate) navigator.vibrate([160, 80, 160, 80, 160]); } catch (e) {}
   }
+
+  // Urgent-order alerting. Sound fires when: (a) an urgent indent arrives (same
+  // device or pulled from the cloud on another device), and (b) the factory app
+  // is opened while an urgent order is still pending (not yet approved).
+  const pendingUrgent = () => indents.filter(i => i.priority && !i.factoryApproved);
+  let knownUrgentIds = null;           // set once we've seen the current urgent set
+  let alertedThisOpen = false;         // one open-alert per visit to the factory screen
+  function seedKnownUrgent() { knownUrgentIds = new Set(pendingUrgent().map(i => i.id)); }
+  function alertNewUrgent() {
+    // called after a sync/reload — chime for urgent indents we hadn't seen before
+    if (knownUrgentIds == null) { seedKnownUrgent(); return; }
+    const now = pendingUrgent();
+    const fresh = now.filter(i => !knownUrgentIds.has(i.id));
+    now.forEach(i => knownUrgentIds.add(i.id));
+    if (fresh.length) { playAlert(3); toast('🚩 URGENT order received — ' + (fresh[0].customer || '') + (fresh.length > 1 ? ' +' + (fresh.length - 1) + ' more' : '')); }
+  }
+  function alertOnOpen() {
+    if (alertedThisOpen) return;
+    const p = pendingUrgent();
+    if (p.length) { alertedThisOpen = true; playAlert(3); toast('🚩 ' + p.length + ' URGENT order(s) pending on the floor'); }
+    seedKnownUrgent();
+  }
+  // reset the open-alert when we leave the factory screen so it fires again next visit
+  document.addEventListener('click', () => { if (document.body.dataset.screen !== 'screen-factory') alertedThisOpen = false; }, true);
 
   // ---- Receive from office ----
   function receiveIndent(rec) {
@@ -92,7 +123,7 @@
       }))
     });
     save();
-    if (rec.priority) { playAlert(); toast('🚩 URGENT order received — ' + (rec.indentCustomer || rec.customer || '') + ' (top priority)'); }
+    if (rec.priority) { playAlert(3); toast('🚩 URGENT order received — ' + (rec.indentCustomer || rec.customer || '') + ' (top priority)'); if (knownUrgentIds) knownUrgentIds.add(rec.id || indents[0].id); }
     else toast('New indent received — ' + (rec.indentCustomer || rec.customer || ''));
     if (document.body.dataset.screen === 'screen-factory') render();
     bumpLauncherBadge();
@@ -170,6 +201,8 @@
     else if (activeTab === 'product') renderProductTab(layout, items);
     else if (activeTab === 'inventory') renderInventoryTab(layout);
     else renderCustomerTab(layout, items);
+    // Urgent-order chime when the floor opens the app with a pending urgent order.
+    try { alertOnOpen(); } catch (e) {}
   }
 
   function filterControls() {

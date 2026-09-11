@@ -305,5 +305,9 @@
   // live refresh when factory approval / new indents arrive from the cloud
   window.addEventListener('fixo:sync', (e) => { if (document.body.dataset.screen === 'screen-indent' && view === 'tracker') { const keys = (e.detail && e.detail.keys) || []; if (!keys.length || keys.indexOf(FACTORY) >= 0 || keys.indexOf(DRAFTS) >= 0) renderTracker(); } });
 
-  window.FIXO_INDENT = { render };
+  window.FIXO_INDENT = {
+    render,
+    openDraft(id) { if (window.showScreen) showScreen('screen-indent'); const d = loadDrafts().find(x => x.id === id); if (d) { model = JSON.parse(JSON.stringify(d)); view = 'prepare'; } else { view = 'tracker'; } render(); },
+    showTracker() { if (window.showScreen) showScreen('screen-indent'); view = 'tracker'; render(); }
+  };
 })();

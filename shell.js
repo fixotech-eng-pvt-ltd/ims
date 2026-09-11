@@ -49,6 +49,9 @@
     const fwd = document.getElementById('btn-forward-proforma');
     if (fwd) fwd.addEventListener('click', forwardToProforma);
 
+    const prog = document.getElementById('btn-progress-status');
+    if (prog) prog.addEventListener('click', () => { if (window.FIXO_PROGRESS) FIXO_PROGRESS.open(); });
+
     // Factory home launcher: open Floor or Dispatch app
     document.querySelectorAll('[data-open-factory]').forEach(b => b.addEventListener('click', () => {
       if (b.dataset.openFactory === 'dispatch') { showScreen('screen-dispatch'); if (window.FIXO_DISPATCH && FIXO_DISPATCH.render) FIXO_DISPATCH.render(); }
