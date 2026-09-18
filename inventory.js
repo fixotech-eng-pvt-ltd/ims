@@ -46,6 +46,37 @@
     localStorage.setItem('fixo_inv_seed_v2', '1');
   }
 
+  // Clean up duplicate materials left on a device by the old random-id seeding
+  // (each item appeared up to 4×). Groups by normalised name, keeps ONE canonical
+  // row (prefers the stable inv-<slug> id), unions their transactions, and removes
+  // the extras locally and from the cloud. Runs once per load; no-op when clean.
+  function dedupeOnce() {
+    const items = load(); if (items.length < 2) return;
+    const normName = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const groups = {};
+    items.forEach(it => { const k = normName(it.name) || it.id; (groups[k] = groups[k] || []).push(it); });
+    const dupGroups = Object.values(groups).filter(g => g.length > 1);
+    if (!dupGroups.length) return;
+    const removedIds = [];
+    const kept = [];
+    Object.values(groups).forEach(g => {
+      if (g.length === 1) { kept.push(g[0]); return; }
+      // canonical: the stable-id one if present, else the one with most txns
+      g.sort((a, b) => (String(b.id).startsWith('inv-') - String(a.id).startsWith('inv-')) || ((b.txns || []).length - (a.txns || []).length));
+      const canon = g[0];
+      const seenTx = new Set((canon.txns || []).map(t => t.id));
+      g.slice(1).forEach(dup => {
+        (dup.txns || []).forEach(t => { if (!t.id || !seenTx.has(t.id)) { canon.txns = canon.txns || []; canon.txns.push(t); if (t.id) seenTx.add(t.id); } });
+        removedIds.push(dup.id);
+      });
+      kept.push(canon);
+    });
+    save(kept);
+    // clear the removed rows from Supabase too (best-effort)
+    try { if (window.FIXO_SYNC && FIXO_SYNC.deleteRow) removedIds.forEach(id => FIXO_SYNC.deleteRow('fixo_inv_items', id)); } catch (e) {}
+    try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore('fixo_inv_items'); } catch (e) {}
+  }
+
   // ---- derived ----
   const balanceOf = (it) => num(it.opening) + (it.txns || []).reduce((s, t) => s + num(t.receipt) - num(t.issue), 0);
   const statusOf = (it) => { const b = balanceOf(it); if (b <= 0) return 'short'; if (num(it.minQty) > 0 && b <= num(it.minQty)) return 'low'; return 'ok'; };
@@ -56,6 +87,7 @@
   // ---- render ----
   function render() {
     seedOnce();
+    dedupeOnce();
     const host = document.getElementById('inventory-app'); if (!host) return;
     const all = load();
     const acc = all.filter(i => i.type === 'accessory'), prod = all.filter(i => i.type === 'production');

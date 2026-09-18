@@ -102,7 +102,7 @@
       refNo: rec.refNo || '', indentNo: rec.indentNo || '001',
       indentDate: rec.indentDate || '', sentAt: rec.sentAt || new Date().toISOString(), month,
       customer: rec.indentCustomer || rec.customer || 'Unnamed',
-      indentCustomer: rec.indentCustomer || rec.customer || '', indentNotes: rec.indentNotes || '',
+      indentCustomer: rec.indentCustomer || rec.customer || '', indentNotes: rec.indentNotes || '', preparedBy: rec.preparedBy || '',
       priority: !!rec.priority,
       customerAddr: rec.customerAddr || '', factoryApproved: false,
       items: (rec.items || []).map((it, i) => ({
@@ -177,7 +177,15 @@
           <div class="fx-logo-chip"><img src="${logo}" alt="Fixotech" onerror="this.style.display='none'"></div>
         </div>
       </div>
-      ${(() => { const p = pendingUrgent(); return p.length ? `<div class="fx-urgent-banner" id="fx-urgent-banner">🚩 <b>${p.length} urgent order${p.length > 1 ? 's' : ''}</b> pending — please action &amp; approve to notify the office. <button class="fx-ub-x" id="fx-ub-x" title="Dismiss">✕</button></div>` : ''; })()}
+      ${(() => {
+        const p = pendingUrgent(); if (!p.length) return '';
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const todayN = p.filter(i => (i.sentAt || '').slice(0, 10) === todayKey).length;
+        const older = p.length - todayN;
+        const main = todayN ? `🚩 <b>${todayN} urgent order${todayN > 1 ? 's' : ''} today</b> — action &amp; approve to notify the office.` : `🚩 <b>${older} urgent order${older > 1 ? 's' : ''} still pending</b> from earlier.`;
+        const note = (todayN && older) ? ` <span class="fx-ub-older">+ ${older} older pending</span>` : '';
+        return `<div class="fx-urgent-banner" id="fx-urgent-banner">${main}${note} <button class="fx-ub-x" id="fx-ub-x" title="Dismiss">✕</button></div>`;
+      })()}
       <div class="fx-tabs">
         <button class="fx-tab ${activeTab === 'indent' ? 'active' : ''}" data-tab="indent">📋 Indents</button>
         ${testingScope ? '' : `<button class="fx-tab ${activeTab === 'product' ? 'active' : ''}" data-tab="product">📦 Product-wise ${dot}</button>
@@ -938,18 +946,36 @@
     const ind = indents.find(i => i.id === indId); if (!ind) return;
     if (!(window.FIXO_PF && FIXO_PF.buildIndentHtml)) { toast('Printer not ready'); return; }
     const yellow = copy !== 'white';
-    const model = { indentNo: ind.indentNo, indentDate: ind.indentDate, customer: ind.customer, indentCustomer: ind.indentCustomer, indentNotes: ind.indentNotes,
+    const model = { indentNo: ind.indentNo, indentDate: ind.indentDate, customer: ind.customer, indentCustomer: ind.indentCustomer, indentNotes: ind.indentNotes, preparedBy: ind.preparedBy || '',
       items: ind.items.map(it => ({ sl: it.sl, desc: it.desc, qty: it.qty, unit: it.unit, dealtBy: it.dealtBy, deliveryDate: it.deliveryDate, readyToDispatch: it.readyToDispatch, weight: it.weight })) };
-    openPrintEditor(FIXO_PF.buildIndentHtml(model, { editable: true, size: 'auto', yellow, dispatchCols: true }), yellow ? 'Yellow copy (Factory)' : 'White copy (Office)');
+    openPrintEditor(FIXO_PF.buildIndentHtml(model, { editable: true, size: 'auto', yellow, dispatchCols: true }), yellow ? 'Yellow copy (Factory)' : 'White copy (Office)', ind);
+  }
+  // Read edits from the factory indent editor back into the stored indent record
+  // (text fields only — production state like stage/photos is untouched), so a
+  // change made here is saved and reflected for the office & dispatch too.
+  function readFactoryEdits(doc, ind) {
+    if (!doc || !ind) return;
+    const rows = [...doc.querySelectorAll('tr.idt-item')];
+    if (!rows.length) return;
+    const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
+    rows.forEach((tr, k) => {
+      const it = ind.items[k]; if (!it) return; const td = tr.querySelectorAll('td');
+      const descEl = tr.querySelector('.desc-txt') || td[1];
+      it.sl = grab(td[0]); it.desc = grab(descEl); it.qty = grab(td[2]); it.unit = grab(td[3]) || it.unit; it.dealtBy = grab(td[4]); it.deliveryDate = grab(td[5]);
+    });
+    const cust = doc.querySelector('tr.idt-cust td:nth-child(2)'); if (cust) { const v = grab(cust); if (v) { ind.indentCustomer = v; ind.customer = v; } }
+    save();
+    if (document.body.dataset.screen === 'screen-factory') render();
   }
   // Reusable WYSIWYG editor for the factory indent (click-to-edit, then print)
-  function openPrintEditor(html, title) {
-    const m = modal(`<div class="fx-ed-head"><h3>Verify &amp; Print — ${esc(title)}</h3><span class="fx-ed-hint">✎ Click any cell to edit, then Print.</span></div>
+  function openPrintEditor(html, title, ind) {
+    const m = modal(`<div class="fx-ed-head"><h3>Verify &amp; Print — ${esc(title)}</h3><span class="fx-ed-hint">✎ Click any cell to edit; changes are saved.</span></div>
       <div class="fx-ed-body"><iframe id="fx-ed-frame"></iframe></div>
-      <div class="fx-modal-actions"><button class="fx-btn" id="fx-ed-cancel">Cancel</button><button class="fx-btn fx-btn-go" id="fx-ed-print">🖨 Proceed to Print</button></div>`, 'fx-ed-modal');
+      <div class="fx-modal-actions"><button class="fx-btn" id="fx-ed-cancel">Save &amp; close</button><button class="fx-btn fx-btn-go" id="fx-ed-print">🖨 Proceed to Print</button></div>`, 'fx-ed-modal');
     const fr = m.querySelector('#fx-ed-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(html); d.close();
-    m.querySelector('#fx-ed-cancel').onclick = () => closeModal(m);
-    m.querySelector('#fx-ed-print').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
+    const commit = () => { try { readFactoryEdits(d, ind); } catch (e) {} };
+    m.querySelector('#fx-ed-cancel').onclick = () => { commit(); closeModal(m); };
+    m.querySelector('#fx-ed-print').onclick = () => { commit(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
 
   // ---- Misc ----

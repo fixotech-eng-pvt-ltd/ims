@@ -1300,6 +1300,7 @@ let editedQuote = null;
 try { editedQuote = JSON.parse(localStorage.getItem('fixo_edited_quote') || 'null'); } catch (e) {}
 
 function _escTab(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function num(v) { const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
 
 function snapshotActive() {
   const cn = document.getElementById('client-name');
@@ -1442,9 +1443,110 @@ document.addEventListener('DOMContentLoaded', () => {
   ['btn-save-order', 'btn-save-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', saveCurrentOrder); });
   ['btn-open-order', 'btn-open-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', openSavedOrders); });
   ['btn-clear-order', 'btn-clear-order-top'].forEach(id => { const b = document.getElementById(id); if (b) b.addEventListener('click', clearCurrentOrder); });
+  { const cp = document.getElementById('btn-custom-prod'); if (cp) cp.addEventListener('click', openCustomProductModal); }
   window.addEventListener('beforeunload', persistSessions);
   setInterval(() => { if (!restoring) persistSessions(); }, 1500); // autosave (reload-safe)
 });
+
+// ----------------------------------------------------------------
+// CUSTOM PRODUCT — add anything not in the catalogue (e.g. a clamp).
+// The user names it (so it can be reused), picks how it's measured, optionally
+// computes weight from size, sets a rate & qty, and it becomes a normal quote
+// line that flows to the PI / indent and is saved with the order. Saved custom
+// products are remembered by name for next time.
+// ----------------------------------------------------------------
+function loadCustomProducts() { try { return JSON.parse(localStorage.getItem('fixo_custom_products') || '[]'); } catch (e) { return []; } }
+function storeCustomProducts(a) { try { localStorage.setItem('fixo_custom_products', JSON.stringify(a.slice(0, 200))); } catch (e) {} }
+function openCustomProductModal(preset) {
+  const saved = loadCustomProducts();
+  let modal = document.getElementById('custom-prod-modal');
+  if (!modal) { modal = document.createElement('div'); modal.id = 'custom-prod-modal'; modal.className = 'modal-overlay'; document.body.appendChild(modal); }
+  const BASES = [['nos', 'Piece (Nos)'], ['mtr', 'Length (Mtr)'], ['kg', 'Weight (Kg)'], ['sqft', 'Area (Sq.ft)']];
+  const cur = preset || { name: '', basis: 'nos', rate: '', qty: 1, weight: '', useDim: false, L: '', W: '', Thk: '' };
+  modal.innerHTML = `<div class="modal-dialog" style="max-width:520px">
+    <div class="modal-header"><div class="modal-title-group"><h3>✦ Custom product</h3><p class="modal-sub">Add a product that isn't in the list. Name it so you can reuse it.</p></div><button class="modal-close-btn" id="cp-x">&times;</button></div>
+    <div class="modal-body">
+      <label class="cpm-lab">Product name <span class="cpm-req">*</span></label>
+      <input class="fx-in cpm-in" id="cp-name" list="cp-saved" placeholder="e.g. GI Clamp 50mm" value="${_escTab(cur.name)}" autocomplete="off">
+      <datalist id="cp-saved">${saved.map(s => `<option value="${_escTab(s.name)}">`).join('')}</datalist>
+      ${saved.length ? `<div class="cpm-saved-row">${saved.slice(0, 8).map(s => `<button class="cpm-chip" data-load="${_escTab(s.name)}">${_escTab(s.name)}</button>`).join('')}</div>` : ''}
+
+      <label class="cpm-lab">How is it measured / charged?</label>
+      <div class="cpm-basis" id="cp-basis">${BASES.map(([v, l]) => `<button class="cpm-basis-btn ${cur.basis === v ? 'active' : ''}" data-basis="${v}">${l}</button>`).join('')}</div>
+
+      <label class="cpm-check"><input type="checkbox" id="cp-usedim" ${cur.useDim ? 'checked' : ''}> Compute weight from size (steel)</label>
+      <div class="cpm-dims" id="cp-dims" ${cur.useDim ? '' : 'hidden'}>
+        <div class="cpm-dim"><label>Length (mm)</label><input class="fx-in" id="cp-L" type="number" min="0" value="${_escTab(cur.L)}"></div>
+        <div class="cpm-dim"><label>Width (mm)</label><input class="fx-in" id="cp-W" type="number" min="0" value="${_escTab(cur.W)}"></div>
+        <div class="cpm-dim"><label>Thick (mm)</label><input class="fx-in" id="cp-Thk" type="number" min="0" value="${_escTab(cur.Thk)}"></div>
+      </div>
+
+      <div class="cpm-grid">
+        <div><label class="cpm-lab">Weight / unit (kg)</label><input class="fx-in" id="cp-weight" type="number" min="0" step="0.001" value="${_escTab(cur.weight)}" placeholder="optional"></div>
+        <div><label class="cpm-lab" id="cp-rate-lab">Rate ₹</label><input class="fx-in" id="cp-rate" type="number" min="0" step="0.01" value="${_escTab(cur.rate)}"></div>
+        <div><label class="cpm-lab" id="cp-qty-lab">Quantity</label><input class="fx-in" id="cp-qty" type="number" min="0" step="1" value="${_escTab(cur.qty)}"></div>
+      </div>
+
+      <div class="cpm-preview" id="cp-preview"></div>
+    </div>
+    <div class="fx-modal-actions" style="padding:0 18px 18px"><button class="fx-btn" id="cp-cancel">Cancel</button><button class="fx-btn fx-btn-go" id="cp-add">✓ Save &amp; add to quote</button></div>
+  </div>`;
+  modal.classList.add('show');
+
+  const $ = (id) => modal.querySelector(id);
+  const state = Object.assign({}, cur);
+  const rateUnit = () => ({ nos: 'per piece', mtr: 'per metre', kg: 'per kg', sqft: 'per sq.ft' }[state.basis] || 'per unit');
+  const qtyUnit = () => ({ nos: 'Nos', mtr: 'Metres', kg: 'Pieces', sqft: 'Sq.ft' }[state.basis] || 'Qty');
+  function computeWeight() {
+    if (state.useDim) { const v = (num(state.L) * num(state.W) * num(state.Thk)) / 1000 * 7.85 / 1000; return Math.round(v * 1000) / 1000; }
+    return num(state.weight);
+  }
+  function effectiveRate() { // rate per quantity-unit, so amount = rate × qty (matches quote panel)
+    const r = num(state.rate);
+    if (state.basis === 'kg') { const w = computeWeight(); return w > 0 ? Math.round(w * r * 100) / 100 : r; }
+    return r;
+  }
+  function refresh() {
+    $('#cp-rate-lab').textContent = 'Rate ₹ (' + rateUnit() + ')';
+    $('#cp-qty-lab').textContent = 'Quantity (' + qtyUnit() + ')';
+    const w = computeWeight(); if (state.useDim) $('#cp-weight').value = w || '';
+    const er = effectiveRate(), qty = num(state.qty), amt = Math.round(er * qty);
+    $('#cp-preview').innerHTML = `<div class="cpm-prev-row"><span>Weight / unit</span><b>${w ? w + ' kg' : '—'}</b></div>
+      <div class="cpm-prev-row"><span>Rate / piece</span><b>₹${er.toLocaleString('en-IN')}</b></div>
+      <div class="cpm-prev-row cpm-prev-total"><span>Amount (${qty} × ₹${er.toLocaleString('en-IN')})</span><b>₹${amt.toLocaleString('en-IN')}</b></div>`;
+  }
+  $('#cp-x').onclick = $('#cp-cancel').onclick = () => modal.classList.remove('show');
+  modal.querySelectorAll('[data-basis]').forEach(b => b.onclick = () => { state.basis = b.dataset.basis; modal.querySelectorAll('[data-basis]').forEach(x => x.classList.toggle('active', x === b)); refresh(); });
+  modal.querySelectorAll('[data-load]').forEach(b => b.onclick = () => { const s = saved.find(x => x.name === b.dataset.load); if (s) openCustomProductModal(Object.assign({ qty: 1 }, s)); });
+  $('#cp-usedim').onchange = e => { state.useDim = e.target.checked; $('#cp-dims').hidden = !state.useDim; refresh(); };
+  ['L', 'W', 'Thk'].forEach(k => { $('#cp-' + k).oninput = e => { state[k] = e.target.value; refresh(); }; });
+  $('#cp-name').oninput = e => { state.name = e.target.value; };
+  $('#cp-weight').oninput = e => { state.weight = e.target.value; refresh(); };
+  $('#cp-rate').oninput = e => { state.rate = e.target.value; refresh(); };
+  $('#cp-qty').oninput = e => { state.qty = e.target.value; refresh(); };
+  $('#cp-add').onclick = () => {
+    const name = (state.name || '').trim();
+    if (!name) { toast('Give the custom product a name'); $('#cp-name').focus(); return; }
+    if (!(num(state.rate) > 0)) { toast('Enter a rate'); $('#cp-rate').focus(); return; }
+    // remember it for reuse (by name)
+    const list = loadCustomProducts().filter(s => s.name.toLowerCase() !== name.toLowerCase());
+    list.unshift({ name, basis: state.basis, rate: num(state.rate), weight: computeWeight() || num(state.weight), useDim: !!state.useDim, L: state.L, W: state.W, Thk: state.Thk });
+    storeCustomProducts(list);
+    // add as a normal quote line
+    const er = effectiveRate(), qty = Math.max(0, num(state.qty)), w = computeWeight();
+    quoteItems.push({
+      id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      productKey: 'custom', custom: true, name: name, sheet: 'gi',
+      type: state.basis === 'mtr' ? 'linear' : 'piece', finish: 'Custom',
+      inputs: {}, qty: qty, quoteRate: er, unitWeight: w,
+      totalCost: Math.round(er * qty), totalWeight: w * qty, breakdown: { basis: state.basis }
+    });
+    modal.classList.remove('show');
+    renderQuotePanel();
+    toast(name + ' added to quote');
+  };
+  refresh();
+}
 
 // ----------------------------------------------------------------
 // SAVED ORDERS — explicit save + reopen-to-re-edit (survives new orders/reload)
@@ -1979,11 +2081,11 @@ function renderQuotePanel() {
     if (item.inputs.H || item.inputs.H1) details.push(`H:${item.inputs.H || item.inputs.H1}`);
     const unit = item.type === 'linear' ? 'mtr' : 'pcs';
     const el = document.createElement('div');
-    el.className = `quote-item ${item.sheet}`;
-    el.setAttribute('draggable', 'true');
+    el.className = `quote-item ${item.sheet}${item.custom ? ' custom' : ''}`;
+    if (!item.custom) el.setAttribute('draggable', 'true');
     el.dataset.qid = item.id;
-    el.innerHTML = `<span class="qi-drag" title="Drag back to the workspace to edit">⠿</span><span class="qi-name">${item.name}</span>
-      <button class="qi-edit" data-qedit="${item.id}" title="Edit — move back to workspace">✎</button>
+    el.innerHTML = `<span class="qi-drag" title="${item.custom ? 'Custom product — edit qty/rate below' : 'Drag back to the workspace to edit'}">${item.custom ? '✦' : '⠿'}</span><span class="qi-name">${item.name}${item.custom ? ' <em class="qi-custom-tag">custom</em>' : ''}</span>
+      ${item.custom ? '' : `<button class="qi-edit" data-qedit="${item.id}" title="Edit — move back to workspace">✎</button>`}
       <button class="qi-remove" data-qremove="${item.id}">&times;</button>
       <div class="qi-details">${details.join(' | ')}</div>
       <div class="qi-edit-row">

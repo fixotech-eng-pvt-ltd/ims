@@ -28,7 +28,7 @@
   let trackFilter = 'all';      // all | draft | sent | approved
 
   function freshModel() {
-    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, status: 'draft' };
+    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', preparedBy: currentUserName(), customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, status: 'draft' };
   }
   function blankItem() { return { sl: '', desc: '', qty: '', unit: 'Nos', dealtBy: '', deliveryDate: '' }; }
 
@@ -47,6 +47,7 @@
     'Junction Box', 'Coupler Plate', 'Threaded Rod', 'Anchor Fastener', 'Bolt, Nut & Washer Set'
   ];
   const imgUrl = (name) => { try { return (window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.guessUrl) ? FIXO_PRODUCT_IMG.guessUrl(name) : ''; } catch (e) { return ''; } };
+  const currentUserName = () => { try { const u = window.FIXO_AUTH && FIXO_AUTH.currentUser(); return u ? (u.name || u.email || '') : ''; } catch (e) { return ''; } };
 
   // ---------- data sources ----------
   function clients() { return (window.FixoDB ? window.FixoDB.listClients() : Promise.resolve([])).then(a => (clientsCache = a || [])); }
@@ -99,6 +100,7 @@
           <label>Indent No.<input id="idp-no" value="${esc(model.indentNo)}"></label>
           <label>Date<input id="idp-date" value="${esc(model.indentDate)}"></label>
           <label>Customer / Site (heading)<input id="idp-cust" value="${esc(model.indentCustomer)}" placeholder="e.g. Shivashakthi Entpr."></label>
+          <label>Prepared by (your name — signs the indent)<input id="idp-prepby" value="${esc(model.preparedBy || '')}" placeholder="Preparer name"></label>
           <label class="idp-wide">Notes (one per line — e.g. finish / colour)<textarea id="idp-notes" rows="2" placeholder="e.g. Siemens grey">${esc(model.indentNotes)}</textarea></label>
         </div>
 
@@ -124,6 +126,7 @@
     body.querySelector('#idp-no').oninput = e => model.indentNo = e.target.value;
     body.querySelector('#idp-date').oninput = e => model.indentDate = e.target.value;
     body.querySelector('#idp-cust').oninput = e => model.indentCustomer = e.target.value;
+    body.querySelector('#idp-prepby').oninput = e => model.preparedBy = e.target.value;
     body.querySelector('#idp-notes').oninput = e => model.indentNotes = e.target.value;
     body.querySelector('#idp-urgent').onchange = e => model.priority = e.target.checked;
     bindRows(body);
@@ -244,14 +247,57 @@
     openEditor(html);
   }
   function openEditor(html) {
-    const m = modal(`<div class="idp-editor-head"><b>Verify &amp; Print — Production Work Order</b><button class="idp-btn" data-x>Close</button></div>
+    const m = modal(`<div class="idp-editor-head"><b>Verify &amp; Print — Production Work Order</b><span class="idp-ed-hint">✎ Edit any cell; changes are saved automatically.</span><button class="idp-btn" data-x>Save &amp; close</button></div>
       <iframe id="idp-frame" class="idp-frame"></iframe>
       <div class="idp-modal-act"><button class="idp-btn idp-btn-go" data-print>🖨 Print / Save PDF</button></div>`, true);
     const frame = m.querySelector('#idp-frame');
     const d = frame.contentDocument || frame.contentWindow.document; d.open(); d.write(html); d.close();
     if (window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.attachReplaceUI) { try { FIXO_PRODUCT_IMG.attachReplaceUI(d, { imgClass: 'prod-thumb', onReplaced: () => toast('Picture updated') }); } catch (e) {} }
-    m.querySelector('[data-x]').onclick = () => m.remove();
-    m.querySelector('[data-print]').onclick = () => { try { frame.contentWindow.focus(); frame.contentWindow.print(); logAct('printed', { no: model.indentNo, customer: model.indentCustomer }); } catch (e) { toast('Print blocked — allow pop-ups'); } };
+    const commit = () => { try { readIndentEdits(d); persistModelEverywhere(); } catch (e) {} };
+    m.querySelector('[data-x]').onclick = () => { commit(); m.remove(); renderPrepare(); toast('Changes saved'); };
+    m.querySelector('[data-print]').onclick = () => { commit(); try { frame.contentWindow.focus(); frame.contentWindow.print(); logAct('printed', { no: model.indentNo, customer: model.indentCustomer }); } catch (e) { toast('Print blocked — allow pop-ups'); } };
+  }
+  // Read the edited indent (contenteditable) back into the model, so any change
+  // made in the PDF editor is captured — not just visual.
+  function readIndentEdits(doc) {
+    if (!doc) return;
+    const rows = [...doc.querySelectorAll('tr.idt-item')];
+    if (rows.length) {
+      model.items = rows.map(tr => {
+        const td = tr.querySelectorAll('td');
+        const descEl = tr.querySelector('.desc-txt') || td[1];
+        const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
+        return { sl: grab(td[0]), desc: grab(descEl), qty: grab(td[2]), unit: grab(td[3]) || 'Nos', dealtBy: grab(td[4]), deliveryDate: grab(td[5]) };
+      }).filter(it => (it.desc || '').trim());
+      if (!model.items.length) model.items = [blankItem()];
+    }
+    const cust = doc.querySelector('tr.idt-cust td:nth-child(2)'); if (cust) { const v = (cust.innerText || cust.textContent || '').trim(); if (v) model.indentCustomer = v; }
+  }
+  // Save the current model to WHEREVER it belongs: its draft, and — if it was
+  // already sent — the live factory indent too (so edits reflect everywhere and
+  // the factory/dispatch/office all see the change). This is the "bypass" glue:
+  // a change made at any stage is recorded and visible in every stage.
+  function persistModelEverywhere() {
+    const real = model.items.filter(it => (it.desc || '').trim());
+    // update a matching draft
+    const drafts = loadDrafts();
+    const di = drafts.findIndex(d => d.id === model.id);
+    if (di >= 0) { drafts[di] = JSON.parse(JSON.stringify(model)); saveDrafts(drafts); }
+    // update a matching sent/factory indent
+    try {
+      let sent = loadSent(); const si = sent.findIndex(s => s.id === model.id);
+      if (si >= 0) {
+        const s = sent[si];
+        s.indentCustomer = model.indentCustomer || s.indentCustomer; s.customer = model.indentCustomer || s.customer;
+        s.indentNotes = model.indentNotes || s.indentNotes; s.preparedBy = model.preparedBy || s.preparedBy;
+        // merge item text edits onto existing factory items (keep production state)
+        s.items = real.map((it, k) => Object.assign({}, s.items[k] || {}, { sl: it.sl, desc: it.desc, qty: it.qty, unit: it.unit, dealtBy: it.dealtBy, deliveryDate: it.deliveryDate }));
+        localStorage.setItem(FACTORY, JSON.stringify(sent));
+        try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(FACTORY); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('fixo:sync', { detail: { keys: [FACTORY] } })); } catch (e) {}
+      }
+    } catch (e) {}
+    logAct('edited', { no: model.indentNo, customer: model.indentCustomer, lines: real.length });
   }
   function fallbackHtml() {
     const rows = model.items.map((it, i) => `<tr><td>${esc(it.sl || (i + 1))}</td><td>${esc(it.desc)}</td><td>${esc(it.qty)}</td><td>${esc(it.unit)}</td></tr>`).join('');
@@ -283,7 +329,7 @@
       id: model.id || uid('ind-'), refNo: '', indentNo: model.indentNo || nextIndentNo(),
       indentDate: model.indentDate || today(), sentAt: new Date().toISOString(), priority: !!urgent,
       customer: model.indentCustomer || model.customer || '', customerAddr: '',
-      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '',
+      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '',
       items: real.map((it, i) => ({ id: uid('it-'), sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' }))
     };
     if (window.FIXO_FACTORY && FIXO_FACTORY.receiveIndent) FIXO_FACTORY.receiveIndent(rec);
@@ -339,7 +385,7 @@
     body.querySelectorAll('[data-reprint]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.reprint); if (s) { model = normalizeSent(s); previewPrint(); } });
   }
   function normalizeSent(s) {
-    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
+    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
   }
 
   // ---------- modal helper ----------

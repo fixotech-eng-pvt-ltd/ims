@@ -396,8 +396,10 @@
     const dispatch = !!opts.dispatchCols;   // add "✓ Dispatch" + "Weight" columns
     const items = m.items || [];
     let size = opts.size || 'auto';
-    if (size === 'auto') size = items.length > 10 ? 'full' : 'half';
-    const totalRows = size === 'full' ? 28 : 13;
+    // 'auto' now prints COMPACT for small indents — only as many rows as needed
+    // (plus a tiny buffer) so a short order takes the top of the sheet and the
+    // rest of the paper can be reused. Big indents still fill a full page.
+    if (size === 'auto') size = items.length > 10 ? 'full' : 'compact';
     const logo = img('logo', typeof LOGO_IMG !== 'undefined' ? LOGO_IMG : undefined);
     const cols = dispatch ? 8 : 6;
     const custColspan = cols - 1, titleColspan = cols - 2, signColspan = cols / 2;
@@ -426,6 +428,9 @@
       </tr>`;
       used++;
     });
+    // Row budget: full page = 28; compact = just the content + 2 spare rows for
+    // hand-written additions (min 5 so the header still looks balanced); half = 13.
+    const totalRows = size === 'full' ? 28 : size === 'compact' ? Math.max(used + 2, 5) : 13;
     const fillerCells = '<td class="c">&nbsp;</td>' + '<td></td>'.repeat(cols - 1);
     for (let f = used; f < totalRows; f++) rows += `<tr>${fillerCells}</tr>`;
 
@@ -433,7 +438,7 @@
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
 @page{size:A4;margin:8mm}
 body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:8mm;color:#000;font-size:11px;background:${yellow ? '#f7f0a8' : '#fff'}}
-.pwo{border:2px solid #000;background:${yellow ? '#f7f0a8' : '#fff'};${size === 'half' ? 'page-break-inside:avoid;' : 'min-height:274mm;'}display:flex;flex-direction:column}
+.pwo{border:2px solid #000;background:${yellow ? '#f7f0a8' : '#fff'};${size !== 'full' ? 'page-break-inside:avoid;' : 'min-height:274mm;'}display:flex;flex-direction:column}
 .pwo + .pwo{margin-top:6mm}
 table{width:100%;border-collapse:collapse}
 td,th{border:1px solid #000;padding:2px 5px;vertical-align:middle}
@@ -458,6 +463,7 @@ tbody td{height:${size === 'full' ? '9mm' : '8mm'}}
 .prod-thumb{height:${size === 'full' ? '13mm' : '11mm'};width:auto;max-width:24mm;object-fit:contain;border:1px solid #ccc}
 ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
 .sign td{font-weight:bold;font-size:11px;height:14mm;vertical-align:bottom}
+.sign-name{font-weight:bold;font-size:13px;font-style:italic;font-family:'Segoe Script','Comic Sans MS',cursive;color:#1e3a8a;margin-top:2px}
 .layer[contenteditable] td:hover{background:rgba(59,130,246,.07)}
 @media print{body{padding:0}.layer[contenteditable] td:hover{background:transparent}}
 </style></head><body>
@@ -476,7 +482,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
       <th style="width:8%">Sl.<br>No.</th><th class="desc-col">Description</th><th style="width:9%">QTY.</th><th style="width:9%">UOM</th><th style="width:12%">Dealt By</th><th style="width:12%">Delivery<br>Date</th>${dispatch ? '<th style="width:8%">✓<br>Dispatch</th><th style="width:10%">Weight<br>(kg)</th>' : ''}
     </tr></thead>
     <tbody>${rows}</tbody>
-    <tr class="sign"><td colspan="${signColspan}">Prepared by</td><td colspan="${signColspan}">Authorised by</td></tr>
+    <tr class="sign"><td colspan="${signColspan}">Prepared by${m.preparedBy ? `<div class="sign-name">${esc(m.preparedBy)}</div>` : ''}</td><td colspan="${signColspan}">Authorised by</td></tr>
   </table>
 </div>
 </div>
@@ -503,6 +509,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
     if (!model.indentDate) model.indentDate = today();
     if (model.indentCustomer == null) model.indentCustomer = model.customer || model.deliveryTo || '';
     if (model.indentNotes == null) model.indentNotes = '';
+    if (!model.preparedBy) { try { const u = window.FIXO_AUTH && FIXO_AUTH.currentUser(); model.preparedBy = u ? (u.name || u.email || '') : ''; } catch (e) {} }
     const rows = model.items.map((it, i) => idtRowHtml(it, i)).join('');
     const autoSize = model.items.length > 10 ? 'Full page' : 'Half page';
     host.innerHTML = `
@@ -514,8 +521,9 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
           <select id="idt-size"><option value="auto">Auto (${autoSize})</option><option value="full">Full page</option><option value="half">Half page</option></select>
         </label>
       </div>
-      <div class="pf-fields" style="grid-template-columns:1fr 1fr">
+      <div class="pf-fields" style="grid-template-columns:1fr 1fr 1fr">
         <label>Customer / Site (heading)<input type="text" id="idt-cust" value="${esc(model.indentCustomer)}" placeholder="e.g. Shivashakthi Entpr."></label>
+        <label>Prepared by (signs the indent)<input type="text" id="idt-prepby" value="${esc(model.preparedBy || '')}" placeholder="Preparer name"></label>
         <label>Notes (one per line — e.g. finish / colour)<textarea id="idt-notes" rows="2" placeholder="e.g. Siemens grey">${esc(model.indentNotes)}</textarea></label>
       </div>
       <div class="pf-items-wrap">
@@ -535,6 +543,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
     document.getElementById('idt-date').addEventListener('input', e => { model.indentDate = e.target.value; });
     document.getElementById('idt-cust').addEventListener('input', e => { model.indentCustomer = e.target.value; });
     document.getElementById('idt-notes').addEventListener('input', e => { model.indentNotes = e.target.value; });
+    { const pb = document.getElementById('idt-prepby'); if (pb) pb.addEventListener('input', e => { model.preparedBy = e.target.value; }); }
     bindIndentRows(host);
     document.getElementById('idt-add').addEventListener('click', () => {
       model.items.push({ serial: '001', desc: '', qty: '', unit: 'Nos', dealtBy: '', deliveryDate: '' });
@@ -588,7 +597,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
       indentDate: model.indentDate || '', sentAt: new Date().toISOString(),
       priority: !!(urgentEl && urgentEl.checked),
       customer: model.indentCustomer || model.customer || '', customerAddr: model.customerAddr || '',
-      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '',
+      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '',
       items: (model.items || []).map((it, i) => ({
         id: 'it-' + Date.now() + '-' + i,
         sl: it.sl != null ? it.sl : '', desc: it.desc || '', qty: it.qty,
