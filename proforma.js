@@ -428,9 +428,9 @@
       </tr>`;
       used++;
     });
-    // Row budget: full page = 28; compact = just the content + 2 spare rows for
-    // hand-written additions (min 5 so the header still looks balanced); half = 13.
-    const totalRows = size === 'full' ? 28 : size === 'compact' ? Math.max(used + 2, 5) : 13;
+    // Row budget: full page = 28; compact = content + exactly ONE spare row (no
+    // wasted paper — a short indent stays short); half = 13.
+    const totalRows = size === 'full' ? 28 : size === 'compact' ? used + 1 : 13;
     const fillerCells = '<td class="c">&nbsp;</td>' + '<td></td>'.repeat(cols - 1);
     for (let f = used; f < totalRows; f++) rows += `<tr>${fillerCells}</tr>`;
 

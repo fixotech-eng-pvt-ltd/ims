@@ -1457,35 +1457,57 @@ document.addEventListener('DOMContentLoaded', () => {
 // ----------------------------------------------------------------
 function loadCustomProducts() { try { return JSON.parse(localStorage.getItem('fixo_custom_products') || '[]'); } catch (e) { return []; } }
 function storeCustomProducts(a) { try { localStorage.setItem('fixo_custom_products', JSON.stringify(a.slice(0, 200))); } catch (e) {} }
+// Material densities (g/cc) for the optional weight-from-size helper.
+const CP_DENSITIES = [['steel', 'Steel / GI', 7.85], ['ss', 'Stainless Steel', 8.0], ['alu', 'Aluminium', 2.70], ['brass', 'Brass', 8.5], ['copper', 'Copper', 8.96], ['other', 'Other (set ↓)', 0]];
+// Pricing methods — the user chooses how THIS product is calculated.
+const CP_METHODS = [
+  ['flat', 'Flat rate × qty', 'Simple: amount = quantity × rate.'],
+  ['weight', 'By weight (₹/kg)', 'Amount = quantity × weight-per-unit × ₹/kg.'],
+  ['area', 'By area (₹/sq.ft)', 'Amount = quantity × area-per-unit × ₹/sq.ft.'],
+  ['length', 'By length (₹/metre)', 'Amount = quantity × length-per-unit × ₹/metre.']
+];
 function openCustomProductModal(preset) {
   const saved = loadCustomProducts();
   let modal = document.getElementById('custom-prod-modal');
   if (!modal) { modal = document.createElement('div'); modal.id = 'custom-prod-modal'; modal.className = 'modal-overlay'; document.body.appendChild(modal); }
-  const BASES = [['nos', 'Piece (Nos)'], ['mtr', 'Length (Mtr)'], ['kg', 'Weight (Kg)'], ['sqft', 'Area (Sq.ft)']];
-  const cur = preset || { name: '', basis: 'nos', rate: '', qty: 1, weight: '', useDim: false, L: '', W: '', Thk: '' };
-  modal.innerHTML = `<div class="modal-dialog" style="max-width:520px">
-    <div class="modal-header"><div class="modal-title-group"><h3>✦ Custom product</h3><p class="modal-sub">Add a product that isn't in the list. Name it so you can reuse it.</p></div><button class="modal-close-btn" id="cp-x">&times;</button></div>
+  const cur = Object.assign({ name: '', method: 'flat', unit: '', rate: '', qty: 1, perUnit: '', useDim: false, dimUnit: 'mm', density: 'steel', densityVal: 7.85, L: '', W: '', Thk: '' }, preset || {});
+  const state = Object.assign({}, cur);
+  const methodMeta = () => CP_METHODS.find(m => m[0] === state.method) || CP_METHODS[0];
+  const defUnit = () => ({ flat: 'Nos', weight: 'Nos', area: 'Sq.ft', length: 'Mtr' }[state.method] || 'Nos');
+  const rateUnitLabel = () => ({ flat: 'per unit', weight: 'per kg', area: 'per sq.ft', length: 'per metre' }[state.method]);
+  const perUnitLabel = () => ({ weight: 'Weight / unit (kg)', area: 'Area / unit (sq.ft)', length: 'Length / unit (m)' }[state.method] || '');
+
+  modal.innerHTML = `<div class="modal-dialog" style="max-width:540px">
+    <div class="modal-header"><div class="modal-title-group"><h3>✦ Custom product</h3><p class="modal-sub">Add anything not in the list — you decide how it's calculated. Name it to reuse.</p></div><button class="modal-close-btn" id="cp-x">&times;</button></div>
     <div class="modal-body">
       <label class="cpm-lab">Product name <span class="cpm-req">*</span></label>
       <input class="fx-in cpm-in" id="cp-name" list="cp-saved" placeholder="e.g. GI Clamp 50mm" value="${_escTab(cur.name)}" autocomplete="off">
       <datalist id="cp-saved">${saved.map(s => `<option value="${_escTab(s.name)}">`).join('')}</datalist>
       ${saved.length ? `<div class="cpm-saved-row">${saved.slice(0, 8).map(s => `<button class="cpm-chip" data-load="${_escTab(s.name)}">${_escTab(s.name)}</button>`).join('')}</div>` : ''}
 
-      <label class="cpm-lab">How is it measured / charged?</label>
-      <div class="cpm-basis" id="cp-basis">${BASES.map(([v, l]) => `<button class="cpm-basis-btn ${cur.basis === v ? 'active' : ''}" data-basis="${v}">${l}</button>`).join('')}</div>
+      <label class="cpm-lab">How should it be calculated?</label>
+      <div class="cpm-methods" id="cp-methods">${CP_METHODS.map(([v, l]) => `<button class="cpm-method-btn ${cur.method === v ? 'active' : ''}" data-method="${v}">${l}</button>`).join('')}</div>
+      <div class="cpm-method-hint" id="cp-method-hint"></div>
 
-      <label class="cpm-check"><input type="checkbox" id="cp-usedim" ${cur.useDim ? 'checked' : ''}> Compute weight from size (steel)</label>
-      <div class="cpm-dims" id="cp-dims" ${cur.useDim ? '' : 'hidden'}>
-        <div class="cpm-dim"><label>Length (mm)</label><input class="fx-in" id="cp-L" type="number" min="0" value="${_escTab(cur.L)}"></div>
-        <div class="cpm-dim"><label>Width (mm)</label><input class="fx-in" id="cp-W" type="number" min="0" value="${_escTab(cur.W)}"></div>
-        <div class="cpm-dim"><label>Thick (mm)</label><input class="fx-in" id="cp-Thk" type="number" min="0" value="${_escTab(cur.Thk)}"></div>
-      </div>
-
-      <div class="cpm-grid">
-        <div><label class="cpm-lab">Weight / unit (kg)</label><input class="fx-in" id="cp-weight" type="number" min="0" step="0.001" value="${_escTab(cur.weight)}" placeholder="optional"></div>
+      <div class="cpm-grid3">
+        <div><label class="cpm-lab">Unit (what 1 qty is)</label><input class="fx-in" id="cp-unit" placeholder="${defUnit()}" value="${_escTab(cur.unit)}"></div>
+        <div id="cp-perunit-wrap"><label class="cpm-lab" id="cp-perunit-lab"></label><input class="fx-in" id="cp-perunit" type="number" min="0" step="0.0001" value="${_escTab(cur.perUnit)}" placeholder="optional"></div>
         <div><label class="cpm-lab" id="cp-rate-lab">Rate ₹</label><input class="fx-in" id="cp-rate" type="number" min="0" step="0.01" value="${_escTab(cur.rate)}"></div>
-        <div><label class="cpm-lab" id="cp-qty-lab">Quantity</label><input class="fx-in" id="cp-qty" type="number" min="0" step="1" value="${_escTab(cur.qty)}"></div>
       </div>
+
+      <div id="cp-dimwrap" hidden>
+        <label class="cpm-check"><input type="checkbox" id="cp-usedim" ${cur.useDim ? 'checked' : ''}> <span id="cp-usedim-lab">Compute from size</span></label>
+        <div class="cpm-dims" id="cp-dims" ${cur.useDim ? '' : 'hidden'}>
+          <div class="cpm-dim"><label>Length</label><input class="fx-in" id="cp-L" type="number" min="0" value="${_escTab(cur.L)}"></div>
+          <div class="cpm-dim"><label>Width</label><input class="fx-in" id="cp-W" type="number" min="0" value="${_escTab(cur.W)}"></div>
+          <div class="cpm-dim" id="cp-thk-wrap"><label>Thick</label><input class="fx-in" id="cp-Thk" type="number" min="0" value="${_escTab(cur.Thk)}"></div>
+          <div class="cpm-dim"><label>Units</label><select class="fx-in" id="cp-dimUnit"><option value="mm" ${cur.dimUnit === 'mm' ? 'selected' : ''}>mm</option><option value="ft" ${cur.dimUnit === 'ft' ? 'selected' : ''}>ft</option></select></div>
+          <div class="cpm-dim" id="cp-density-wrap"><label>Material</label><select class="fx-in" id="cp-density">${CP_DENSITIES.map(([k, l]) => `<option value="${k}" ${cur.density === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          <div class="cpm-dim" id="cp-densityval-wrap" hidden><label>Density (g/cc)</label><input class="fx-in" id="cp-densityVal" type="number" min="0" step="0.01" value="${_escTab(cur.densityVal)}"></div>
+        </div>
+      </div>
+
+      <div class="cpm-grid"><div style="grid-column:1/-1"><label class="cpm-lab" id="cp-qty-lab">Quantity</label><input class="fx-in" id="cp-qty" type="number" min="0" step="1" value="${_escTab(cur.qty)}"></div></div>
 
       <div class="cpm-preview" id="cp-preview"></div>
     </div>
@@ -1494,52 +1516,72 @@ function openCustomProductModal(preset) {
   modal.classList.add('show');
 
   const $ = (id) => modal.querySelector(id);
-  const state = Object.assign({}, cur);
-  const rateUnit = () => ({ nos: 'per piece', mtr: 'per metre', kg: 'per kg', sqft: 'per sq.ft' }[state.basis] || 'per unit');
-  const qtyUnit = () => ({ nos: 'Nos', mtr: 'Metres', kg: 'Pieces', sqft: 'Sq.ft' }[state.basis] || 'Qty');
-  function computeWeight() {
-    if (state.useDim) { const v = (num(state.L) * num(state.W) * num(state.Thk)) / 1000 * 7.85 / 1000; return Math.round(v * 1000) / 1000; }
-    return num(state.weight);
+  const densityVal = () => { if (state.density === 'other') return num(state.densityVal); const d = CP_DENSITIES.find(x => x[0] === state.density); return d ? d[2] : 7.85; };
+  // per-unit quantity (kg / sqft / m) — typed, or computed from dimensions
+  function perUnitQty() {
+    if (state.method === 'flat') return 1;
+    if (state.useDim) {
+      const L = num(state.L), W = num(state.W), T = num(state.Thk), mm = state.dimUnit === 'mm';
+      if (state.method === 'weight') { const volcc = mm ? (L * W * T) / 1000 : (L * 304.8) * (W * 304.8) * (T * 304.8) / 1000; return Math.round(volcc * densityVal() / 1000 * 1000) / 1000; }
+      if (state.method === 'area') { const sqm = mm ? (L * W) / 1e6 : (L * 0.3048) * (W * 0.3048); return Math.round(sqm * 10.7639 * 1000) / 1000; }
+      if (state.method === 'length') { return mm ? Math.round(L / 1000 * 1000) / 1000 : Math.round(L * 0.3048 * 1000) / 1000; }
+    }
+    return num(state.perUnit) || (state.method === 'length' ? 1 : 0);
   }
-  function effectiveRate() { // rate per quantity-unit, so amount = rate × qty (matches quote panel)
-    const r = num(state.rate);
-    if (state.basis === 'kg') { const w = computeWeight(); return w > 0 ? Math.round(w * r * 100) / 100 : r; }
-    return r;
+  function effectiveRate() { const r = num(state.rate); if (state.method === 'flat') return r; const p = perUnitQty(); return Math.round(p * r * 100) / 100; }
+  function syncMethodUI() {
+    const showPer = state.method !== 'flat';
+    $('#cp-perunit-wrap').style.visibility = showPer ? 'visible' : 'hidden';
+    $('#cp-perunit-lab').textContent = perUnitLabel();
+    $('#cp-dimwrap').hidden = !showPer;
+    $('#cp-thk-wrap').style.display = state.method === 'weight' ? '' : 'none';
+    $('#cp-density-wrap').style.display = state.method === 'weight' ? '' : 'none';
+    $('#cp-densityval-wrap').hidden = !(state.method === 'weight' && state.density === 'other');
+    $('#cp-usedim-lab').textContent = state.method === 'weight' ? 'Compute weight from size' : state.method === 'area' ? 'Compute area from size' : 'Compute length from size';
+    $('#cp-rate-lab').textContent = 'Rate ₹ (' + rateUnitLabel() + ')';
+    $('#cp-unit').placeholder = defUnit();
+    $('#cp-method-hint').textContent = methodMeta()[2];
   }
   function refresh() {
-    $('#cp-rate-lab').textContent = 'Rate ₹ (' + rateUnit() + ')';
-    $('#cp-qty-lab').textContent = 'Quantity (' + qtyUnit() + ')';
-    const w = computeWeight(); if (state.useDim) $('#cp-weight').value = w || '';
+    syncMethodUI();
+    if (state.useDim && state.method !== 'flat') { const p = perUnitQty(); $('#cp-perunit').value = p || ''; }
     const er = effectiveRate(), qty = num(state.qty), amt = Math.round(er * qty);
-    $('#cp-preview').innerHTML = `<div class="cpm-prev-row"><span>Weight / unit</span><b>${w ? w + ' kg' : '—'}</b></div>
-      <div class="cpm-prev-row"><span>Rate / piece</span><b>₹${er.toLocaleString('en-IN')}</b></div>
-      <div class="cpm-prev-row cpm-prev-total"><span>Amount (${qty} × ₹${er.toLocaleString('en-IN')})</span><b>₹${amt.toLocaleString('en-IN')}</b></div>`;
+    const unit = (state.unit || defUnit());
+    const per = perUnitQty();
+    let mid = '';
+    if (state.method !== 'flat') mid = `<div class="cpm-prev-row"><span>${perUnitLabel().replace(' (kg)', '').replace(' (sq.ft)', '').replace(' (m)', '')}</span><b>${per || '—'} ${state.method === 'weight' ? 'kg' : state.method === 'area' ? 'sq.ft' : 'm'}</b></div>`;
+    $('#cp-preview').innerHTML = `${mid}<div class="cpm-prev-row"><span>Rate / ${unit}</span><b>₹${er.toLocaleString('en-IN')}</b></div>
+      <div class="cpm-prev-row cpm-prev-total"><span>Amount (${qty} ${unit} × ₹${er.toLocaleString('en-IN')})</span><b>₹${amt.toLocaleString('en-IN')}</b></div>`;
   }
   $('#cp-x').onclick = $('#cp-cancel').onclick = () => modal.classList.remove('show');
-  modal.querySelectorAll('[data-basis]').forEach(b => b.onclick = () => { state.basis = b.dataset.basis; modal.querySelectorAll('[data-basis]').forEach(x => x.classList.toggle('active', x === b)); refresh(); });
+  modal.querySelectorAll('[data-method]').forEach(b => b.onclick = () => { state.method = b.dataset.method; modal.querySelectorAll('[data-method]').forEach(x => x.classList.toggle('active', x === b)); refresh(); });
   modal.querySelectorAll('[data-load]').forEach(b => b.onclick = () => { const s = saved.find(x => x.name === b.dataset.load); if (s) openCustomProductModal(Object.assign({ qty: 1 }, s)); });
   $('#cp-usedim').onchange = e => { state.useDim = e.target.checked; $('#cp-dims').hidden = !state.useDim; refresh(); };
   ['L', 'W', 'Thk'].forEach(k => { $('#cp-' + k).oninput = e => { state[k] = e.target.value; refresh(); }; });
+  $('#cp-dimUnit').onchange = e => { state.dimUnit = e.target.value; refresh(); };
+  $('#cp-density').onchange = e => { state.density = e.target.value; refresh(); };
+  $('#cp-densityVal').oninput = e => { state.densityVal = e.target.value; refresh(); };
   $('#cp-name').oninput = e => { state.name = e.target.value; };
-  $('#cp-weight').oninput = e => { state.weight = e.target.value; refresh(); };
+  $('#cp-unit').oninput = e => { state.unit = e.target.value; refresh(); };
+  $('#cp-perunit').oninput = e => { state.perUnit = e.target.value; refresh(); };
   $('#cp-rate').oninput = e => { state.rate = e.target.value; refresh(); };
   $('#cp-qty').oninput = e => { state.qty = e.target.value; refresh(); };
   $('#cp-add').onclick = () => {
     const name = (state.name || '').trim();
     if (!name) { toast('Give the custom product a name'); $('#cp-name').focus(); return; }
     if (!(num(state.rate) > 0)) { toast('Enter a rate'); $('#cp-rate').focus(); return; }
-    // remember it for reuse (by name)
+    const per = perUnitQty();
     const list = loadCustomProducts().filter(s => s.name.toLowerCase() !== name.toLowerCase());
-    list.unshift({ name, basis: state.basis, rate: num(state.rate), weight: computeWeight() || num(state.weight), useDim: !!state.useDim, L: state.L, W: state.W, Thk: state.Thk });
+    list.unshift({ name, method: state.method, unit: state.unit || defUnit(), rate: num(state.rate), perUnit: per || num(state.perUnit), useDim: !!state.useDim, dimUnit: state.dimUnit, density: state.density, densityVal: densityVal(), L: state.L, W: state.W, Thk: state.Thk });
     storeCustomProducts(list);
-    // add as a normal quote line
-    const er = effectiveRate(), qty = Math.max(0, num(state.qty)), w = computeWeight();
+    const er = effectiveRate(), qty = Math.max(0, num(state.qty)), unit = state.unit || defUnit();
+    const weight = state.method === 'weight' ? per : 0;
     quoteItems.push({
       id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-      productKey: 'custom', custom: true, name: name, sheet: 'gi',
-      type: state.basis === 'mtr' ? 'linear' : 'piece', finish: 'Custom',
-      inputs: {}, qty: qty, quoteRate: er, unitWeight: w,
-      totalCost: Math.round(er * qty), totalWeight: w * qty, breakdown: { basis: state.basis }
+      productKey: 'custom', custom: true, name: name, sheet: 'gi', customUnit: unit,
+      type: state.method === 'length' ? 'linear' : 'piece', finish: 'Custom',
+      inputs: {}, qty: qty, quoteRate: er, unitWeight: weight,
+      totalCost: Math.round(er * qty), totalWeight: weight * qty, breakdown: { method: state.method, unit, perUnit: per }
     });
     modal.classList.remove('show');
     renderQuotePanel();
@@ -2079,7 +2121,7 @@ function renderQuotePanel() {
     if (item.inputs.T || item.inputs.T1) details.push(`T:${item.inputs.T || item.inputs.T1}`);
     if (item.inputs.W || item.inputs.W1) details.push(`W:${item.inputs.W || item.inputs.W1}`);
     if (item.inputs.H || item.inputs.H1) details.push(`H:${item.inputs.H || item.inputs.H1}`);
-    const unit = item.type === 'linear' ? 'mtr' : 'pcs';
+    const unit = item.customUnit ? item.customUnit : (item.type === 'linear' ? 'mtr' : 'pcs');
     const el = document.createElement('div');
     el.className = `quote-item ${item.sheet}${item.custom ? ' custom' : ''}`;
     if (!item.custom) el.setAttribute('draggable', 'true');

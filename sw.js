@@ -5,7 +5,7 @@
 //     This is what makes repeat loads (and the phone/APK) fast.
 //   • App shell + logic (HTML, app JS/CSS): NETWORK-FIRST — always fresh when
 //     online so fixes roll out immediately; falls back to cache when offline.
-const CACHE = 'fixo-v12';
+const CACHE = 'fixo-v13';
 const SHELL = [
   './', './index.html',
   './styles.css', './factory.css', './factory-big.css', './chatiq.css', './automate.css', './indent.css', './progress.css', './mobile.css',
