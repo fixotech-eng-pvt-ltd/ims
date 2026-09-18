@@ -20,10 +20,10 @@
     try { const n = JSON.parse(localStorage.getItem('fixo_office_notifications') || '[]'); n.unshift(Object.assign({ type, indentNo: indentNo || '', at: new Date().toISOString(), seen: false }, extra || {})); localStorage.setItem('fixo_office_notifications', JSON.stringify(n)); } catch (e) {}
     if (window.FIXO_OFFICE && FIXO_OFFICE.refreshBell) FIXO_OFFICE.refreshBell();
   }
-  function sendNoteToOffice(g) {
+  function sendNoteToOffice(g, noteHtml) {
     try {
       const log = JSON.parse(localStorage.getItem('fixo_dispatch_log') || '[]');
-      log.unshift({ id: 'dp-' + Date.now(), customer: g.customer, indentNo: g.indentNo || '', at: new Date().toISOString(), count: g.items.length, items: g.items.map(it => ({ desc: it.desc, qty: it.qty, unit: it.unit, weight: it.weight, finish: it.finish })) });
+      log.unshift({ id: 'dp-' + Date.now(), customer: g.customer, indentNo: g.indentNo || '', at: new Date().toISOString(), count: g.items.length, noteHtml: noteHtml || '', items: g.items.map(it => ({ desc: it.desc, qty: it.qty, unit: it.unit, weight: it.weight, finish: it.finish })) });
       localStorage.setItem('fixo_dispatch_log', JSON.stringify(log.slice(0, 200)));
     } catch (e) {}
     notifyOffice('dispatch_note_sent', g.indentNo || '', { customer: g.customer, reason: g.items.length + ' item(s) — dispatch note sent' });
@@ -210,11 +210,13 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
     if (!gs.length) { toast('Nothing ready to dispatch'); return; }
     const m = modal(`<div class="fx-ed-head"><h3>Verify &amp; Print — Today's Dispatch</h3><span class="fx-ed-hint">✎ Click any cell to edit. Joint plates &amp; bolts auto-added.</span></div>
       <div class="fx-ed-body"><iframe id="dp-frame"></iframe></div>
-      <div class="fx-modal-actions"><button class="fx-btn" id="dp-cancel">Cancel</button><button class="fx-btn" id="dp-send-office">📤 Send to Office</button><button class="fx-btn fx-btn-go" id="dp-print">🖨 Proceed to Print</button></div>`, 'fx-ed-modal');
+      <div class="fx-modal-actions"><button class="fx-btn" id="dp-cancel">Cancel</button><button class="fx-btn" id="dp-save">💾 Save</button><button class="fx-btn" id="dp-send-office">📤 Send to Office</button><button class="fx-btn fx-btn-go" id="dp-print">🖨 Save &amp; Print</button></div>`, 'fx-ed-modal');
     const fr = m.querySelector('#dp-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(buildNoteHtml(gs)); d.close();
+    const editedHtml = () => { try { const lay = d.querySelector('.layer'); return lay ? lay.outerHTML : ''; } catch (e) { return ''; } };
     m.querySelector('#dp-cancel').onclick = () => closeModal(m);
-    m.querySelector('#dp-send-office').onclick = () => { gs.forEach(sendNoteToOffice); closeModal(m); };
-    m.querySelector('#dp-print').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
+    m.querySelector('#dp-save').onclick = () => { const h = editedHtml(); gs.forEach(g => sendNoteToOffice(g, h)); toast('Saved to Dispatch Records — with your edits'); };
+    m.querySelector('#dp-send-office').onclick = () => { const h = editedHtml(); gs.forEach(g => sendNoteToOffice(g, h)); closeModal(m); };
+    m.querySelector('#dp-print').onclick = () => { const h = editedHtml(); gs.forEach(g => sendNoteToOffice(g, h)); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
 
   function doDispatch(g, all) {

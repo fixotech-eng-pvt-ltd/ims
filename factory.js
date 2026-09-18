@@ -971,9 +971,10 @@
   function openPrintEditor(html, title, ind) {
     const m = modal(`<div class="fx-ed-head"><h3>Verify &amp; Print — ${esc(title)}</h3><span class="fx-ed-hint">✎ Click any cell to edit; changes are saved.</span></div>
       <div class="fx-ed-body"><iframe id="fx-ed-frame"></iframe></div>
-      <div class="fx-modal-actions"><button class="fx-btn" id="fx-ed-cancel">Save &amp; close</button><button class="fx-btn fx-btn-go" id="fx-ed-print">🖨 Proceed to Print</button></div>`, 'fx-ed-modal');
+      <div class="fx-modal-actions"><button class="fx-btn" id="fx-ed-cancel">Close</button><button class="fx-btn" id="fx-ed-save">💾 Save changes</button><button class="fx-btn fx-btn-go" id="fx-ed-print">🖨 Save &amp; Print</button></div>`, 'fx-ed-modal');
     const fr = m.querySelector('#fx-ed-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(html); d.close();
     const commit = () => { try { readFactoryEdits(d, ind); } catch (e) {} };
+    m.querySelector('#fx-ed-save').onclick = () => { commit(); toast('Changes saved — reflected everywhere'); };
     m.querySelector('#fx-ed-cancel').onclick = () => { commit(); closeModal(m); };
     m.querySelector('#fx-ed-print').onclick = () => { commit(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }

@@ -247,14 +247,15 @@
     openEditor(html);
   }
   function openEditor(html) {
-    const m = modal(`<div class="idp-editor-head"><b>Verify &amp; Print — Production Work Order</b><span class="idp-ed-hint">✎ Edit any cell; changes are saved automatically.</span><button class="idp-btn" data-x>Save &amp; close</button></div>
+    const m = modal(`<div class="idp-editor-head"><b>Verify &amp; Print — Production Work Order</b><span class="idp-ed-hint">✎ Edit any cell, then Save.</span><button class="idp-btn" data-x>Close</button></div>
       <iframe id="idp-frame" class="idp-frame"></iframe>
-      <div class="idp-modal-act"><button class="idp-btn idp-btn-go" data-print>🖨 Print / Save PDF</button></div>`, true);
+      <div class="idp-modal-act"><button class="idp-btn idp-btn-save" data-save>💾 Save changes</button><button class="idp-btn idp-btn-go" data-print>🖨 Save &amp; Print PDF</button></div>`, true);
     const frame = m.querySelector('#idp-frame');
     const d = frame.contentDocument || frame.contentWindow.document; d.open(); d.write(html); d.close();
     if (window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.attachReplaceUI) { try { FIXO_PRODUCT_IMG.attachReplaceUI(d, { imgClass: 'prod-thumb', onReplaced: () => toast('Picture updated') }); } catch (e) {} }
     const commit = () => { try { readIndentEdits(d); persistModelEverywhere(); } catch (e) {} };
-    m.querySelector('[data-x]').onclick = () => { commit(); m.remove(); renderPrepare(); toast('Changes saved'); };
+    m.querySelector('[data-save]').onclick = () => { commit(); renderPrepare(); toast('Changes saved — reflected everywhere'); };
+    m.querySelector('[data-x]').onclick = () => { commit(); m.remove(); renderPrepare(); };
     m.querySelector('[data-print]').onclick = () => { commit(); try { frame.contentWindow.focus(); frame.contentWindow.print(); logAct('printed', { no: model.indentNo, customer: model.indentCustomer }); } catch (e) { toast('Print blocked — allow pop-ups'); } };
   }
   // Read the edited indent (contenteditable) back into the model, so any change

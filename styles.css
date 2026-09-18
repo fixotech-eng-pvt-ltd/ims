@@ -2114,3 +2114,7 @@ body.testing-on .tm-banner { display: block; background: #fef9c3; border: 1px so
 .cpm-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
 .cpm-dims { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 640px) { .cpm-methods { grid-template-columns: 1fr; } .cpm-grid3 { grid-template-columns: 1fr; } }
+
+/* Save button inside the PDF editors */
+.btn-save-edit { background: #059669; color: #fff; border: none; border-radius: var(--radius-xs); padding: 10px 18px; font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn-save-edit:hover { background: #047857; }

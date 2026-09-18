@@ -573,6 +573,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
   }
 
   function openIndentEditor(size) {
+    editorMode = 'indent';
     const html = buildIndentHtml(model, { editable: true, size: size || 'auto' });
     const titleEl = document.getElementById('pi-editor-title'); if (titleEl) titleEl.textContent = 'Verify & Edit — Production Work Order (Indent)';
     const procEl = document.getElementById('pi-proceed'); if (procEl) procEl.textContent = 'Proceed to Print';
@@ -727,7 +728,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
 
     let rows = '';
     m.items.forEach((it, i) => {
-      rows += `<tr><td class="c">${it.sl != null ? it.sl : i + 1}</td><td>${esc(it.desc)}</td><td class="c">${esc(it.unit || '')}</td><td class="c">${esc(it.qty)}</td><td class="r">${money(it.rate)}</td><td class="r b">${money(it.amount)}</td></tr>`;
+      rows += `<tr class="pi-irow"><td class="c">${it.sl != null ? it.sl : i + 1}</td><td>${esc(it.desc)}</td><td class="c">${esc(it.unit || '')}</td><td class="c">${esc(it.qty)}</td><td class="r">${money(it.rate)}</td><td class="r b">${money(it.amount)}</td></tr>`;
     });
     for (let f = model.items.length; f < 8; f++) rows += '<tr><td class="c">&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>';
 
@@ -833,13 +834,15 @@ ${wm ? `<div class="wm"><img id="pv-wm" src="${wm}"></div>` : ''}
             </span>
           </div>
           <div class="pdfed-body"><iframe id="pi-frame" title="Proforma preview"></iframe></div>
-          <div class="modal-actions vf-actions"><button class="btn-cancel" id="pi-cancel">Cancel</button><button class="btn-send" id="pi-proceed">Proceed to Print</button></div>
+          <div class="modal-actions vf-actions"><button class="btn-cancel" id="pi-cancel">Cancel</button><button class="btn-save-edit" id="pi-save">💾 Save changes</button><button class="btn-send" id="pi-proceed">Proceed to Print</button></div>
         </div>
       </div>`;
     document.body.appendChild(el.firstElementChild);
     document.getElementById('pi-x').addEventListener('click', closeEditor);
     document.getElementById('pi-cancel').addEventListener('click', closeEditor);
+    document.getElementById('pi-save').addEventListener('click', () => { commitEditor(); toast('Changes saved — reflected everywhere'); });
     document.getElementById('pi-proceed').addEventListener('click', () => {
+      commitEditor();
       const frame = document.getElementById('pi-frame');
       try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
       closeEditor();
@@ -854,8 +857,12 @@ ${wm ? `<div class="wm"><img id="pv-wm" src="${wm}"></div>` : ''}
       const im = d && d.getElementById('pv-' + repl); if (im) im.src = url;
     });
   }
+  let editorMode = 'pi';
   function openEditor() {
     if (!model.items.length || model.items.every(it => !it.desc && !it.amount)) { toast('Add at least one line item'); return; }
+    editorMode = 'pi';
+    const procEl = document.getElementById('pi-proceed'); if (procEl) procEl.textContent = 'Proceed to Print';
+    const titleEl = document.getElementById('pi-editor-title'); if (titleEl) titleEl.textContent = 'Verify & Edit — Proforma Invoice';
     const html = buildPiHtml(model, { editable: true });
     const frame = document.getElementById('pi-frame');
     const d = frame.contentDocument || frame.contentWindow.document;
@@ -863,6 +870,51 @@ ${wm ? `<div class="wm"><img id="pv-wm" src="${wm}"></div>` : ''}
     document.getElementById('pi-editor-modal').classList.add('show');
   }
   function closeEditor() { document.getElementById('pi-editor-modal').classList.remove('show'); }
+
+  // Read edits made in the PDF editor back into the model, so a change made in
+  // the editor is SAVED (not just printed) and flows to every stage.
+  function commitEditor() {
+    const frame = document.getElementById('pi-frame'); if (!frame) return;
+    const d = frame.contentDocument || frame.contentWindow.document; if (!d) return;
+    const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
+    if (editorMode === 'indent') {
+      const irows = [...d.querySelectorAll('tr.idt-item')];
+      if (irows.length) {
+        model.items = irows.map(tr => { const td = tr.querySelectorAll('td'); const descEl = tr.querySelector('.desc-txt') || td[1]; return { desc: grab(descEl), qty: grab(td[2]), unit: grab(td[3]) || 'Nos', dealtBy: grab(td[4]), deliveryDate: grab(td[5]), sl: grab(td[0]) }; }).filter(it => (it.desc || '').trim());
+        if (!model.items.length) model.items = [{ desc: '', unit: 'Nos', qty: 1, rate: 0 }];
+      }
+      const cust = d.querySelector('tr.idt-cust td:nth-child(2)'); if (cust) { const v = grab(cust); if (v) model.indentCustomer = v; }
+      try { renderIndent(); } catch (e) {}
+      reflectEverywhere();
+    } else {
+      const irows = [...d.querySelectorAll('tr.pi-irow')];
+      if (irows.length) {
+        model.items = irows.map(tr => { const td = tr.querySelectorAll('td'); const rate = num(grab(td[4])); const qty = num(grab(td[3])); return { sl: grab(td[0]), desc: grab(td[1]), unit: grab(td[2]), qty: qty, rate: rate, amount: Math.round(qty * rate * 100) / 100 }; }).filter(it => (it.desc || '').trim());
+      }
+      try { renderItems(); renderTotals(); } catch (e) {}
+      reflectEverywhere();
+    }
+  }
+  // Persist the edited model wherever it lives: update a matching saved proforma,
+  // and — if this proforma's indent was already sent — the live factory indent.
+  function reflectEverywhere() {
+    try {
+      const list = loadSavedPf(); const i = list.findIndex(r => r.model && r.model.refNo === model.refNo && (r.customer === model.customer || !model.customer));
+      if (i >= 0) { list[i].model = JSON.parse(JSON.stringify(model)); storeSavedPf(list); }
+    } catch (e) {}
+    try {
+      const K = 'fixo_factory_indents'; const arr = JSON.parse(localStorage.getItem(K) || '[]');
+      const j = arr.findIndex(s => s.refNo && s.refNo === model.refNo);
+      if (j >= 0) {
+        const s = arr[j];
+        s.indentCustomer = model.indentCustomer || s.indentCustomer; s.customer = model.indentCustomer || s.customer;
+        s.items = (model.items || []).map((it, k) => Object.assign({}, s.items[k] || {}, { sl: it.sl, desc: it.desc, qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy, deliveryDate: it.deliveryDate }));
+        localStorage.setItem(K, JSON.stringify(arr));
+        try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(K); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('fixo:sync', { detail: { keys: [K] } })); } catch (e) {}
+      }
+    } catch (e) {}
+  }
 
   // ---------------- Excel ----------------
   function piFileName(ext) {

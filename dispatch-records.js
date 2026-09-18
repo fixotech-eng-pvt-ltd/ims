@@ -55,6 +55,9 @@
   // Build the SAME note the factory prepared (logo + accessories + format).
   function noteHtmlFor(r) {
     const date = new Date(r.at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    // Prefer the exact note that was saved/edited on the dispatch floor, so any
+    // edits made in the PDF editor are what the office sees & prints.
+    if (r.noteHtml && String(r.noteHtml).trim()) return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial;padding:8mm">${r.noteHtml}</body></html>`;
     if (window.FIXO_DISPATCH && FIXO_DISPATCH.buildNote)
       return FIXO_DISPATCH.buildNote([recToGroup(r)], { date, title: 'DISPATCH NOTE', no: r.indentNo || '' });
     return '<p style="font-family:Arial">Dispatch note unavailable.</p>';
