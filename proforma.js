@@ -450,6 +450,7 @@ td,th{border:1px solid #000;padding:2px 5px;vertical-align:middle}
 .hd .co div{font-size:8.5px;font-weight:bold}
 .norow td{font-weight:bold;font-size:12px;border-top:none}
 .no-val{color:#b00000;font-weight:bold;font-size:15px}
+.deliv-cell{font-weight:normal;font-size:10px;white-space:pre-wrap;line-height:1.25}
 .titlerow th{font-weight:bold;text-align:center;font-size:14px;letter-spacing:.5px}
 .titlerow .code{font-size:12px}
 thead th{font-weight:bold;text-align:center;font-size:10.5px;background:${yellow ? '#f2ea90' : '#fff'}}
@@ -473,7 +474,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
     ${logo ? `<img id="pv-logo" src="${logo}">` : `<div class="co"><b>FIXOTECH</b><div>ENGINEERING SYSTEMS PRIVATE LIMITED</div><div>ISO 9001:2015 CERTIFIED COMPANY</div></div>`}
   </div>
   <table>
-    <tr class="norow"><td style="width:12%">No.</td><td class="no-val" style="width:38%">${esc(m.indentNo || '001')}</td><td style="width:20%;text-align:right">Date :</td><td style="width:30%">${esc(m.indentDate || '')}</td></tr>
+    <tr class="norow"><td style="width:11%">No.</td><td class="no-val" style="width:22%">${esc(m.indentNo || '001')}</td><td style="width:11%;text-align:right">Date :</td><td style="width:22%">${esc(m.indentDate || '')}</td><td style="width:14%;text-align:right">Delivery&nbsp;to :</td><td style="width:20%" class="deliv-cell">${ml([m.deliveryTo, m.deliveryAddr].filter(Boolean).join(' — '))}</td></tr>
   </table>
   <table>
     <thead>
@@ -598,7 +599,7 @@ ${(window.FIXO_PRODUCT_IMG && FIXO_PRODUCT_IMG.SLOT_CSS) || ''}
       indentDate: model.indentDate || '', sentAt: new Date().toISOString(),
       priority: !!(urgentEl && urgentEl.checked),
       customer: model.indentCustomer || model.customer || '', customerAddr: model.customerAddr || '',
-      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '',
+      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '', deliveryTo: model.deliveryTo || '', deliveryAddr: model.deliveryAddr || '',
       items: (model.items || []).map((it, i) => ({
         id: 'it-' + Date.now() + '-' + i,
         sl: it.sl != null ? it.sl : '', desc: it.desc || '', qty: it.qty,

@@ -140,7 +140,8 @@
       <div class="inv-toolbar">
         <input class="fx-in inv-search" id="inv-search" placeholder="🔎 Search material…" value="${esc(q)}">
         <button class="fx-btn" id="inv-print-btn" title="Print this stock summary">🖨 Print summary</button>
-        <button class="fx-btn fx-btn-go" id="inv-add-btn">➕ Add material</button>
+        <button class="fx-btn fx-btn-go" id="inv-recv-btn" title="Record material that arrived">➕ Material received</button>
+        <button class="fx-btn" id="inv-add-btn">✎ Add / edit material</button>
       </div>
       <div class="fx-card"><table class="fx-tbl inv-tbl"><thead><tr>
         <th>Material</th><th>Unit</th><th>Balance</th><th>Slips</th><th>Status</th><th></th>
@@ -149,6 +150,7 @@
     const s = body.querySelector('#inv-search');
     s.oninput = () => { q = s.value; const b = document.getElementById('inv-body'); if (b) { renderTable(b, listIn); const ns = document.getElementById('inv-search'); if (ns) { ns.focus(); ns.setSelectionRange(ns.value.length, ns.value.length); } } };
     body.querySelector('#inv-add-btn').onclick = () => editItem(null);
+    body.querySelector('#inv-recv-btn').onclick = () => openReceive();
     const title = type === 'accessory' ? 'Accessories' : type === 'production' ? 'Production Materials' : 'All Materials';
     body.querySelector('#inv-print-btn').onclick = () => printSummary(list, title + (ql ? ' — “' + q + '”' : ''));
     body.querySelectorAll('[data-ledger]').forEach(b => b.onclick = () => openLedger(b.dataset.ledger));
@@ -220,6 +222,55 @@
       toast(isRecv ? ('Received ' + qty + ' ' + it.unit) : ('Issued ' + qty + ' ' + it.unit + ' — ' + balanceOf(t) + ' left'));
       if (ctx.onDone) ctx.onDone(rec);
       if (!isRecv) printSlip(t, rec, true);
+    };
+  }
+
+  // Quick "material received" flow — usable from the office Inventory app AND the
+  // Factory Floor. Pick an existing material (GI / MS / SS / Aluminium …) or type
+  // a new one, enter the received quantity; it's recorded as a receipt in the
+  // shared stock register (synced to every device — office & factory alike).
+  function openReceive(ctx) {
+    ctx = ctx || {};
+    const all = load().slice().sort((a, b) => a.name.localeCompare(b.name));
+    const m = modal(`<h3>➕ Material received — add to stock</h3>
+      <div class="fx-modal-body inv-form">
+        <label class="fx-lab">Material</label>
+        <input class="fx-in" id="rc-name" list="rc-list" placeholder="e.g. MS Coil 2mm — or type a new name" value="${esc(ctx.name || '')}" autocomplete="off">
+        <datalist id="rc-list">${all.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>
+        <div class="inv-form-row" style="margin-top:8px">
+          <div><label class="fx-lab">Quantity</label><input class="fx-in" id="rc-qty" type="number" min="0" step="0.001" placeholder="e.g. 40"></div>
+          <div><label class="fx-lab">Unit</label><input class="fx-in" id="rc-unit" value="Kg" placeholder="Kg / Nos / Mtr / Ton"></div>
+          <div><label class="fx-lab">Date</label><input class="fx-in" id="rc-date" type="date" value="${today()}"></div>
+        </div>
+        <div class="inv-form-row" style="margin-top:8px">
+          <div><label class="fx-lab">Supplier</label><input class="fx-in" id="rc-sup" placeholder="Supplier name"></div>
+          <div><label class="fx-lab">Bill No.</label><input class="fx-in" id="rc-bill" placeholder="Supplier bill"></div>
+        </div>
+        <p class="fx-note" id="rc-hint"></p>
+      </div>
+      <div class="fx-modal-actions"><button class="fx-btn" id="rc-x">Cancel</button><button class="fx-btn fx-btn-go" id="rc-ok">✓ Add to stock</button></div>`);
+    const nameEl = m.querySelector('#rc-name'), unitEl = m.querySelector('#rc-unit'), hint = m.querySelector('#rc-hint');
+    const matchOf = () => all.find(x => x.name.toLowerCase() === nameEl.value.trim().toLowerCase());
+    const syncUnit = () => { const it = matchOf(); if (it) { unitEl.value = it.unit || 'Kg'; hint.innerHTML = `Existing material · current balance <b>${balanceOf(it)} ${esc(it.unit)}</b>.`; } else if (nameEl.value.trim()) { hint.textContent = 'New material — it will be created in the stock register.'; } else hint.textContent = ''; };
+    nameEl.oninput = syncUnit; syncUnit();
+    m.querySelector('#rc-x').onclick = () => closeModal(m);
+    m.querySelector('#rc-ok').onclick = () => {
+      const name = nameEl.value.trim(); const qty = num(m.querySelector('#rc-qty').value);
+      if (!name) { toast('Enter the material name'); return; }
+      if (qty <= 0) { toast('Enter the received quantity'); return; }
+      const list = load();
+      let it = list.find(x => x.name.toLowerCase() === name.toLowerCase());
+      const txn = { id: uid(), date: m.querySelector('#rc-date').value || today(), particulars: m.querySelector('#rc-sup').value.trim(), bill: m.querySelector('#rc-bill').value.trim(), remarks: '', receipt: qty };
+      if (it) { it.txns = it.txns || []; it.txns.push(txn); }
+      else {
+        it = { id: 'inv-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name, sheet: name, unit: unitEl.value.trim() || 'Kg', type: 'production', opening: 0, minQty: 0, txns: [txn] };
+        list.push(it);
+      }
+      save(list);
+      try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore('fixo_inv_items'); } catch (e) {}
+      closeModal(m); toast('✓ Added ' + qty + ' ' + (it.unit || '') + ' of ' + name + ' to stock');
+      try { if (document.body.dataset.screen === 'screen-inventory') render(); } catch (e) {}
+      if (ctx.onDone) ctx.onDone();
     };
   }
 
@@ -423,7 +474,7 @@
 
   // Public API (names kept stable for the Factory Floor integration)
   window.FIXO_INVENTORY = {
-    render, openLink, usageForOrder, refreshBadge,
+    render, openLink, usageForOrder, refreshBadge, openReceive,
     availableOf: balanceOf, loadStock: load, balanceOf, statusOf,
     printSummary, printLedger
   };

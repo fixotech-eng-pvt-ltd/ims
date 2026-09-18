@@ -28,7 +28,7 @@
   let trackFilter = 'all';      // all | draft | sent | approved
 
   function freshModel() {
-    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', preparedBy: currentUserName(), customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, status: 'draft' };
+    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', preparedBy: currentUserName(), deliveryAddr: '', customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, status: 'draft' };
   }
   function blankItem() { return { sl: '', desc: '', qty: '', unit: 'Nos', dealtBy: '', deliveryDate: '' }; }
 
@@ -101,6 +101,7 @@
           <label>Date<input id="idp-date" value="${esc(model.indentDate)}"></label>
           <label>Customer / Site (heading)<input id="idp-cust" value="${esc(model.indentCustomer)}" placeholder="e.g. Shivashakthi Entpr."></label>
           <label>Prepared by (your name — signs the indent)<input id="idp-prepby" value="${esc(model.preparedBy || '')}" placeholder="Preparer name"></label>
+          <label class="idp-wide">Delivery address (for Dispatch — where to send the material)<textarea id="idp-deliv" rows="2" placeholder="Site / delivery address & contact">${esc(model.deliveryAddr || '')}</textarea></label>
           <label class="idp-wide">Notes (one per line — e.g. finish / colour)<textarea id="idp-notes" rows="2" placeholder="e.g. Siemens grey">${esc(model.indentNotes)}</textarea></label>
         </div>
 
@@ -127,6 +128,7 @@
     body.querySelector('#idp-date').oninput = e => model.indentDate = e.target.value;
     body.querySelector('#idp-cust').oninput = e => model.indentCustomer = e.target.value;
     body.querySelector('#idp-prepby').oninput = e => model.preparedBy = e.target.value;
+    body.querySelector('#idp-deliv').oninput = e => model.deliveryAddr = e.target.value;
     body.querySelector('#idp-notes').oninput = e => model.indentNotes = e.target.value;
     body.querySelector('#idp-urgent').onchange = e => model.priority = e.target.checked;
     bindRows(body);
@@ -330,7 +332,7 @@
       id: model.id || uid('ind-'), refNo: '', indentNo: model.indentNo || nextIndentNo(),
       indentDate: model.indentDate || today(), sentAt: new Date().toISOString(), priority: !!urgent,
       customer: model.indentCustomer || model.customer || '', customerAddr: '',
-      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '',
+      indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '', deliveryAddr: model.deliveryAddr || '',
       items: real.map((it, i) => ({ id: uid('it-'), sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' }))
     };
     if (window.FIXO_FACTORY && FIXO_FACTORY.receiveIndent) FIXO_FACTORY.receiveIndent(rec);
@@ -386,7 +388,7 @@
     body.querySelectorAll('[data-reprint]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.reprint); if (s) { model = normalizeSent(s); previewPrint(); } });
   }
   function normalizeSent(s) {
-    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
+    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', deliveryAddr: s.deliveryAddr || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
   }
 
   // ---------- modal helper ----------

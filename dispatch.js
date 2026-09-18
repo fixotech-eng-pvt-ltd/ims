@@ -92,6 +92,7 @@
             ${a ? `<span class="fx-approved">✓ Dispatch approved</span>` : `<button class="fx-btn fx-btn-go" data-dappr="${esc(g.indentNo)}">✓ Approve (dispatch dept)</button>`}
           </div>
         </div>
+        ${(g.deliveryTo || g.deliveryAddr) ? `<div class="fx-deliv">🚚 <b>Deliver to:</b> ${esc([g.deliveryTo, g.deliveryAddr].filter(Boolean).join(' — '))}</div>` : ''}
         <table class="fx-tbl"><thead><tr><th>Sl</th><th>Description</th><th>Qty</th><th>UOM</th></tr></thead>
           <tbody>${g.items.map(it => `<tr><td class="c">${esc(it.sl != null ? it.sl : '')}</td><td>${esc((F().shortName ? F().shortName(it.desc) : it.desc))}${it.finish ? `<span class="fx-fin">${esc(it.finish)}</span>` : ''}</td><td class="c">${esc(it.qty)}</td><td class="c">${esc(it.unit)}</td></tr>`).join('')}</tbody>
         </table></div>`;

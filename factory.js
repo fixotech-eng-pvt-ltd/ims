@@ -102,7 +102,7 @@
       refNo: rec.refNo || '', indentNo: rec.indentNo || '001',
       indentDate: rec.indentDate || '', sentAt: rec.sentAt || new Date().toISOString(), month,
       customer: rec.indentCustomer || rec.customer || 'Unnamed',
-      indentCustomer: rec.indentCustomer || rec.customer || '', indentNotes: rec.indentNotes || '', preparedBy: rec.preparedBy || '',
+      indentCustomer: rec.indentCustomer || rec.customer || '', indentNotes: rec.indentNotes || '', preparedBy: rec.preparedBy || '', deliveryAddr: rec.deliveryAddr || '', deliveryTo: rec.deliveryTo || '',
       priority: !!rec.priority,
       customerAddr: rec.customerAddr || '', factoryApproved: false,
       items: (rec.items || []).map((it, i) => ({
@@ -244,6 +244,7 @@
     layout.querySelectorAll('[data-wt]').forEach(inp => inp.onchange = () => updateItem(inp.dataset.wt, { weight: inp.value }));
     layout.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => togglePriority(b.dataset.prio));
     layout.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => openProductionPlan(b.dataset.plan));
+    layout.querySelectorAll('[data-inspect]').forEach(b => b.onclick = () => openInspectionReport(b.dataset.inspect));
   }
   function togglePriority(indId) {
     const ind = indents.find(i => i.id === indId); if (!ind) return;
@@ -252,29 +253,81 @@
     else toast('Priority cleared');
     render();
   }
-  // ---- Production Plan (editable + printable, with operator names) ----
-  function openProductionPlan(indId) {
-    const ind = indents.find(i => i.id === indId); if (!ind) return;
-    const seqRows = ind.items.map((it, i) => {
-      const stages = stagesFor(it.desc);
-      return stages.filter(s => s !== 'ready').map(s => `<tr><td>${esc(it.desc.split('\n')[0]).slice(0, 30)}</td><td>${STAGES[s]}</td><td class="c">${esc(it.qty)} ${esc(it.unit)}</td><td class="c"></td><td><input class="pp-op" placeholder="Operator"></td></tr>`).join('');
-    }).join('');
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Production Plan</title><style>
-      *{box-sizing:border-box;-webkit-print-color-adjust:exact}@page{size:A4;margin:10mm}html,body{background:#fff}
-      body{font-family:Arial,sans-serif;color:#000;font-size:12px;padding:6mm}
-      .wrap{border:2px solid #000;padding:10px}.hd{text-align:center;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px}
-      .hd b{font-size:18px}.top{display:flex;justify-content:space-between;font-weight:bold;margin:6px 0}
-      table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:5px 6px;font-size:11px}.c{text-align:center}
-      th{background:#eee}.pp-op{width:100%;border:none;font-size:11px}</style></head>
-      <body><div class="wrap layer" contenteditable="true">
-        <div class="hd"><b>FIXOTECH — PRODUCTION PLAN</b><div>PROD/R/03</div></div>
-        <div class="top"><span>Customer: ${esc(ind.customer)}</span><span>Indent No: ${esc(ind.indentNo)}</span><span>Date: ${esc(ind.indentDate || new Date().toLocaleDateString('en-IN'))}</span></div>
-        <table><thead><tr><th>Part / Description</th><th>Process</th><th class="c">Planned Qty</th><th class="c">Achieved</th><th>Operator Name</th></tr></thead>
-        <tbody>${seqRows}</tbody></table>
-        <div class="top" style="margin-top:24px"><span>Prepared by</span><span>Checked by</span><span>Approved by</span></div>
+  // ---- Factory documents: digital Production Plan (PROD/R/03) & Set-Up /
+  // In-process Inspection Report (PROD/R/04). Pre-filled from the indent, fully
+  // editable, and SAVED against the indent (with an optional photo of the paper
+  // copy). They match the paper forms, incl. rejection & reason fields, and one
+  // sheet can hold several customers (add rows freely — it's click-to-edit).
+  const DOC_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact}@page{size:A4 landscape;margin:8mm}html,body{background:#fff}
+    body{font-family:Arial,sans-serif;color:#000;font-size:11px;padding:5mm}
+    .wrap{border:2px solid #000;padding:8px}
+    .hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}
+    .hd img{height:38px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:17px;letter-spacing:1px}.hd .co div{font-size:8px;font-weight:bold}
+    .hd .rc{font-size:9px;text-align:right;border:1px solid #000;padding:3px 6px}
+    .title{text-align:center;font-weight:bold;font-size:14px;margin:4px 0}
+    .meta{display:flex;flex-wrap:wrap;gap:4px 18px;font-weight:bold;font-size:11px;margin:4px 0}
+    table{width:100%;border-collapse:collapse;margin-top:4px}th,td{border:1px solid #000;padding:4px 5px;font-size:10px;vertical-align:top}
+    .c{text-align:center}th{background:#e8e8e8;font-size:9.5px;text-align:center}
+    tbody td{height:9mm}.sign{display:flex;justify-content:space-between;margin-top:16px;font-weight:bold}
+    .rej{border:1px solid #000;padding:5px;margin-top:6px;min-height:12mm}.docphoto{margin-top:8px}.docphoto img{max-width:100%;border:1px solid #999}`;
+  const docHeader = () => { const logo = (typeof LOGO_IMG !== 'undefined' && LOGO_IMG) ? LOGO_IMG : ''; return `<div class="hd">${logo ? `<img src="${logo}">` : ''}<div class="co"><b>FIXOTECH</b><div>ENGINEERING SYSTEMS PRIVATE LIMITED</div><div>ISO 9001:2015 CERTIFIED COMPANY</div></div><div class="rc" id="dr"></div></div>`; };
+
+  function productionPlanHtml(ind) {
+    const rows = [];
+    ind.items.forEach((it) => { stagesFor(it.desc).filter(s => s !== 'ready').forEach(s => {
+      rows.push(`<tr><td class="c">${esc(ind.indentDate || '')}</td><td></td><td></td><td>${esc(ind.customer || '')}</td><td>${esc(STAGES[s])}</td><td class="c">${esc(it.qty || '')}</td><td class="c"></td><td class="c"></td><td></td><td></td><td></td></tr>`);
+    }); });
+    for (let f = 0; f < 4; f++) rows.push(`<tr>${'<td></td>'.repeat(11)}</tr>`);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Production Plan</title><style>${DOC_CSS}</style></head>
+      <body><div class="wrap layer" contenteditable="true">${docHeader().replace('id="dr"', '')}
+        <div class="rc" style="float:right;font-size:9px">Rec. No.: PROD/R/03 · Rev.00 · 01.12.2020 · Page 1 of 1</div>
+        <div class="title">PRODUCTION PLAN</div>
+        <div class="meta"><span>Part Name : ${esc(ind.customer || '')}</span><span>Drg. No. : ${esc(ind.indentNo || '')}</span></div>
+        <table><thead><tr><th>Date</th><th>Machine Name</th><th>Machine No.</th><th>Customer</th><th>Process</th><th>Planned Qty.</th><th>Achieved Qty.</th><th>Rejection Qty.</th><th>Reason for Rejection</th><th>Operator Name</th><th>Operator Sign.</th></tr></thead>
+        <tbody>${rows.join('')}</tbody></table>
       </div></body></html>`;
-    openPrintEditor(html, 'Production Plan — ' + ind.customer);
   }
+  function inspectionReportHtml(ind) {
+    const rows = ind.items.map((it, i) => {
+      const isMtr = /mtr|meter/i.test(it.unit || '');
+      return `<tr><td class="c">${i + 1}</td><td>${esc((it.desc || '').split('\n').join(' '))}</td><td class="c">${isMtr ? esc(it.qty || '') : ''}</td><td></td><td class="c">${isMtr ? '' : esc(it.qty || '')}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    });
+    for (let f = 0; f < 3; f++) rows.push(`<tr>${'<td></td>'.repeat(11)}</tr>`);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Set Up & In-process Inspection Report</title><style>${DOC_CSS}</style></head>
+      <body><div class="wrap layer" contenteditable="true">${docHeader().replace('id="dr"', '')}
+        <div class="rc" style="float:right;font-size:9px">Rec. No.: PROD/R/04 · Rev.00 · 01.12.2020 · Page 1 of 1</div>
+        <div class="title">Set Up &amp; In-process Inspection Report</div>
+        <div class="meta"><span>Customer : ${esc(ind.customer || '')}</span><span>Indent No. : ${esc(ind.indentNo || '')}</span><span>Process Start Date : ${esc(ind.indentDate || '')}</span><span>Process End Date : </span></div>
+        <table><thead><tr><th>Sl.No.</th><th>Size</th><th>Qty in Mtrs.</th><th>Cutting</th><th>Qty. in No.</th><th>No. of Slotting</th><th>Punching</th><th>Bending</th><th>Welding</th><th>Remarks</th><th>Sketch</th></tr></thead>
+        <tbody>${rows.join('')}</tbody></table>
+        <div style="font-weight:bold;margin-top:6px">Reason For Rejection</div><div class="rej"></div>
+        <div class="sign"><span>Prepared By${ind.preparedBy ? ' : ' + esc(ind.preparedBy) : ''}</span><span>Checked By</span><span>Approved By</span></div>
+      </div></body></html>`;
+  }
+  // Shared editor that PRE-FILLS or loads the saved copy, lets the floor edit,
+  // attach a photo of the handwritten sheet, and SAVE — persisted on the indent
+  // and synced so office & dispatch see the same digital record.
+  function openFactoryDoc(indId, kind) {
+    const ind = indents.find(i => i.id === indId); if (!ind) return;
+    ind.docs = ind.docs || {}; ind.docPhotos = ind.docPhotos || {};
+    const label = kind === 'plan' ? 'Production Plan' : 'Inspection Report';
+    let html = ind.docs[kind] || (kind === 'plan' ? productionPlanHtml(ind) : inspectionReportHtml(ind));
+    const photo = ind.docPhotos[kind] || '';
+    const m = modal(`<div class="fx-ed-head"><h3>${esc(label)} — ${esc(ind.customer)}</h3><span class="fx-ed-hint">✎ Fill it in (or attach a photo of the paper), then Save.</span></div>
+      <div class="fx-ed-body"><iframe id="fx-doc-frame"></iframe></div>
+      <div class="fx-modal-actions"><button class="fx-btn" id="fx-doc-x">Close</button><button class="fx-btn" id="fx-doc-photo">📷 Attach paper photo</button><button class="fx-btn" id="fx-doc-save">💾 Save</button><button class="fx-btn fx-btn-go" id="fx-doc-print">🖨 Save &amp; Print</button></div>`, 'fx-ed-modal');
+    const fr = m.querySelector('#fx-doc-frame'); const d = fr.contentDocument || fr.contentWindow.document;
+    const draw = (h, ph) => { d.open(); d.write(h.replace('</div></body>', (ph ? `<div class="docphoto"><div style="font-weight:bold;font-size:10px">📷 Photographed paper copy</div><img src="${ph}"></div>` : '') + '</div></body>')); d.close(); };
+    draw(html, photo);
+    const grabHtml = () => { try { const lay = d.querySelector('.layer'); if (!lay) return html; const c = lay.cloneNode(true); const dp = c.querySelector('.docphoto'); if (dp) dp.remove(); return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${DOC_CSS}</style></head><body>${c.outerHTML}</body></html>`; } catch (e) { return html; } };
+    const commit = () => { ind.docs[kind] = grabHtml(); save(); try { window.dispatchEvent(new CustomEvent('fixo:sync', { detail: { keys: [LS] } })); } catch (e) {} };
+    m.querySelector('#fx-doc-x').onclick = () => { commit(); closeModal(m); };
+    m.querySelector('#fx-doc-save').onclick = () => { commit(); toast(label + ' saved'); };
+    m.querySelector('#fx-doc-print').onclick = () => { commit(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
+    m.querySelector('#fx-doc-photo').onclick = () => capturePhoto('Photograph the ' + label + ' sheet', (dataUrl) => { ind.docPhotos[kind] = dataUrl; commit(); draw(ind.docs[kind], dataUrl); toast('Photo attached & saved'); });
+  }
+  function openProductionPlan(indId) { openFactoryDoc(indId, 'plan'); }
+  function openInspectionReport(indId) { openFactoryDoc(indId, 'inspection'); }
   function indentCard(g) {
     const appr = g.ind.factoryApproved, pr = g.ind.priority;
     return `<div class="fx-card ${pr ? 'fx-priority' : ''}">
@@ -286,8 +339,10 @@
           <button class="fx-btn fx-print" data-print="${g.ind.id}" data-copy="yellow">🖨 Yellow copy</button>
           <button class="fx-btn" data-print="${g.ind.id}" data-copy="white">🖨 White copy</button>
           <button class="fx-btn" data-plan="${g.ind.id}">🗒 Production plan</button>
+          <button class="fx-btn" data-inspect="${g.ind.id}">📋 Inspection report</button>
         </div>
       </div>
+      ${(g.ind.deliveryTo || g.ind.deliveryAddr) ? `<div class="fx-deliv">🚚 <b>Deliver to:</b> ${esc([g.ind.deliveryTo, g.ind.deliveryAddr].filter(Boolean).join(' — '))}</div>` : ''}
       <table class="fx-tbl">
         <thead><tr><th>Sl</th><th>Description</th><th>Qty</th><th>UOM</th><th>Status</th><th>✓ Dispatch</th><th>Weight (kg)</th></tr></thead>
         <tbody>${g.items.map(indentRow).join('')}</tbody>
@@ -385,6 +440,7 @@
       <section class="fx-main">
         <div class="fx-main-head"><h3 class="fx-main-title">Inventory — stock balances</h3>
           <div class="fx-head-actions">
+            <button class="fx-btn fx-btn-go" id="fx-inv-recv" title="Record material that just arrived">➕ Material received</button>
             <button class="fx-btn fx-sheet-btn2" id="fx-inv-print" title="Print this stock summary">🖨 Print</button>
             <div class="fx-view-toggle">
               <button class="fx-vt ${invTabType === 'accessory' ? 'active' : ''}" data-invt="accessory">Accessories</button>
@@ -401,6 +457,8 @@
     if (se) se.oninput = () => { invTabQ = se.value; renderInventoryTab(layout); const n = layout.querySelector('#fx-inv-search'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
     const open = layout.querySelector('#fx-inv-open');
     if (open) open.onclick = () => { showScreen('screen-inventory'); INV.render(); };
+    const recv = layout.querySelector('#fx-inv-recv');
+    if (recv && INV.openReceive) recv.onclick = () => INV.openReceive({ onDone: () => renderInventoryTab(layout) });
     const pr = layout.querySelector('#fx-inv-print');
     if (pr && INV.printSummary) pr.onclick = () => INV.printSummary(list, invTabType === 'accessory' ? 'Accessories' : invTabType === 'production' ? 'Production Materials' : 'All Materials');
   }
@@ -946,7 +1004,7 @@
     const ind = indents.find(i => i.id === indId); if (!ind) return;
     if (!(window.FIXO_PF && FIXO_PF.buildIndentHtml)) { toast('Printer not ready'); return; }
     const yellow = copy !== 'white';
-    const model = { indentNo: ind.indentNo, indentDate: ind.indentDate, customer: ind.customer, indentCustomer: ind.indentCustomer, indentNotes: ind.indentNotes, preparedBy: ind.preparedBy || '',
+    const model = { indentNo: ind.indentNo, indentDate: ind.indentDate, customer: ind.customer, indentCustomer: ind.indentCustomer, indentNotes: ind.indentNotes, preparedBy: ind.preparedBy || '', deliveryAddr: ind.deliveryAddr || '', deliveryTo: ind.deliveryTo || '',
       items: ind.items.map(it => ({ sl: it.sl, desc: it.desc, qty: it.qty, unit: it.unit, dealtBy: it.dealtBy, deliveryDate: it.deliveryDate, readyToDispatch: it.readyToDispatch, weight: it.weight })) };
     openPrintEditor(FIXO_PF.buildIndentHtml(model, { editable: true, size: 'auto', yellow, dispatchCols: true }), yellow ? 'Yellow copy (Factory)' : 'White copy (Office)', ind);
   }
