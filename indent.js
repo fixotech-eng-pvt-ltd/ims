@@ -366,7 +366,7 @@
       const when = d.savedAt || (d.sentAt ? new Date(d.sentAt).toLocaleString('en-IN') : '');
       const actions = kind === 'draft'
         ? `<button class="idp-mini" data-open="${d.id}">✎ Open</button><button class="idp-mini" data-send="${d.id}">➤ Send</button><button class="idp-mini idp-mini-x" data-del="${d.id}">🗑</button>`
-        : `<button class="idp-mini" data-reprint="${d.id}">🖨 Reprint</button>`;
+        : `<button class="idp-mini" data-reprint="${d.id}">🖨 Reprint</button>${(d.docs && (d.docs.plan || d.docs.inspection)) ? `<button class="idp-mini" data-docs="${d.id}">📁 Factory docs</button>` : ''}`;
       return `<div class="idp-track-row ${kind}">
         <div class="idp-track-main"><b>${esc(d.indentCustomer || d.customer || 'Indent')}</b>
           <span class="idp-track-sub">No. ${esc(d.indentNo || '—')} · ${lines} line(s)${when ? ' · ' + esc(when) : ''}${d.priority ? ' · 🚩 URGENT' : ''}</span></div>
@@ -386,6 +386,24 @@
     body.querySelectorAll('[data-send]').forEach(b => b.onclick = () => { const d = loadDrafts().find(x => x.id === b.dataset.send); if (d) { model = JSON.parse(JSON.stringify(d)); sendToFactory(); } });
     body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (!confirm('Delete this draft?')) return; saveDrafts(loadDrafts().filter(x => x.id !== b.dataset.del)); renderTracker(); });
     body.querySelectorAll('[data-reprint]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.reprint); if (s) { model = normalizeSent(s); previewPrint(); } });
+    body.querySelectorAll('[data-docs]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.docs); if (s) viewFactoryDocs(s); });
+  }
+  // Read-only viewer so the office & management can review the Production Plan and
+  // Inspection Report the factory filled (synced from the factory record).
+  function viewFactoryDocs(s) {
+    const docs = s.docs || {};
+    const tabs = [['plan', '🗒 Production Plan'], ['inspection', '📋 Inspection Report']].filter(t => docs[t[0]]);
+    if (!tabs.length) { toast('No factory documents saved yet'); return; }
+    let cur = tabs[0][0];
+    const m = modal(`<div class="idp-editor-head"><b>Factory documents — ${esc(s.customer)} (No. ${esc(s.indentNo)})</b><button class="idp-btn" data-x>Close</button></div>
+      <div class="idp-doc-tabs">${tabs.map(t => `<button class="idp-mini" data-dt="${t[0]}">${t[1]}</button>`).join('')}<button class="idp-btn idp-btn-go" data-print style="margin-left:auto">🖨 Print / Save PDF</button></div>
+      <iframe id="idp-frame" class="idp-frame"></iframe>`, true);
+    const fr = m.querySelector('#idp-frame');
+    const load = (k) => { const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(docs[k] || '<p>Not available.</p>'); d.close(); cur = k; };
+    load(cur);
+    m.querySelector('[data-x]').onclick = () => m.remove();
+    m.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => load(b.dataset.dt));
+    m.querySelector('[data-print]').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
   function normalizeSent(s) {
     return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', deliveryAddr: s.deliveryAddr || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };

@@ -190,8 +190,9 @@
         <button class="fx-tab ${activeTab === 'indent' ? 'active' : ''}" data-tab="indent">📋 Indents</button>
         ${testingScope ? '' : `<button class="fx-tab ${activeTab === 'product' ? 'active' : ''}" data-tab="product">📦 Product-wise ${dot}</button>
         <button class="fx-tab ${activeTab === 'customer' ? 'active' : ''}" data-tab="customer">👤 Customer-wise ${dot}</button>
-        <button class="fx-tab ${activeTab === 'inventory' ? 'active' : ''}" data-tab="inventory">📦 Inventory</button>
-        <button class="fx-sheet-btn" id="fx-upload-sheet" title="Can't use the app? Photograph the floor work-sheet">📄 Upload floor sheet</button>`}
+        <button class="fx-tab ${activeTab === 'inventory' ? 'active' : ''}" data-tab="inventory">📦 Inventory</button>`}
+        <button class="fx-tab ${activeTab === 'documents' ? 'active' : ''}" data-tab="documents">📁 Documents</button>
+        ${testingScope ? '' : `<button class="fx-sheet-btn" id="fx-upload-sheet" title="Can't use the app? Photograph the floor work-sheet">📄 Upload floor sheet</button>`}
       </div>
       <div class="fx-layout" id="fx-layout"></div>`;
     host.querySelectorAll('.fx-tab').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
@@ -202,7 +203,59 @@
     if (activeTab === 'indent') renderIndentTab(layout, items);
     else if (activeTab === 'product') renderProductTab(layout, items);
     else if (activeTab === 'inventory') renderInventoryTab(layout);
+    else if (activeTab === 'documents') renderDocumentsTab(layout);
     else renderCustomerTab(layout, items);
+  }
+
+  // ---- Documents section — the engineers' organized library of Production
+  // Plans, Inspection Reports and uploaded floor sheets, grouped by customer.
+  // Fill / view / print each, or download the whole set. Continuous-process
+  // friendly (multiple orders), and the saved docs sync so the office & top
+  // management can review them too.
+  let docsView = 'customer';   // customer | product
+  function floorSheets() { try { return JSON.parse(localStorage.getItem('fixo_floor_sheets') || '[]') || []; } catch (e) { return []; } }
+  function renderDocumentsTab(layout) {
+    const list = applyFilters(allItems()).reduce((a, x) => { (a[x.ind.id] = a[x.ind.id] || { ind: x.ind }).ind = x.ind; return a; }, {});
+    const inds = Object.values(list).map(v => v.ind).sort((a, b) => (Date.parse(b.sentAt || '') || 0) - (Date.parse(a.sentAt || '') || 0));
+    const sheets = floorSheets();
+    // group by customer (or product category)
+    const groups = {};
+    inds.forEach(ind => { const key = docsView === 'customer' ? (ind.customer || 'Unnamed') : (prettyCat(ind.items[0] ? categoryOf(ind.items[0].desc) : 'other')); (groups[key] = groups[key] || []).push(ind); });
+    const docBtn = (ind, kind, label, has) => `<button class="fx-doc-chip ${has ? 'has' : ''}" data-doc="${ind.id}" data-kind="${kind}">${has ? '✓ ' : ''}${label}</button>`;
+    const cards = Object.keys(groups).sort().map(k => {
+      const rows = groups[k].map(ind => {
+        const d = ind.docs || {};
+        const phs = sheets.filter(s => (s.indentNo && s.indentNo === ind.indentNo) || (s.customer && ind.customer && s.customer.toLowerCase() === ind.customer.toLowerCase()));
+        return `<div class="fx-doc-row">
+          <div class="fx-doc-main"><b>No. ${esc(ind.indentNo)}</b> <span class="fx-meta">${esc(ind.customer)} · ${esc((ind.sentAt || '').slice(0, 10))} · ${ind.items.length} line(s)</span></div>
+          <div class="fx-doc-chips">
+            ${docBtn(ind, 'plan', '🗒 Production Plan', !!d.plan)}
+            ${docBtn(ind, 'inspection', '📋 Inspection Report', !!d.inspection)}
+            <button class="fx-doc-chip" data-dprint="${ind.id}">🖨 Print / Save both</button>
+            ${phs.length ? `<span class="fx-doc-ph">📷 ${phs.length} sheet photo(s)</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="fx-card"><div class="fx-doc-grp">${esc(k)} <span class="fx-meta">· ${groups[k].length} indent(s)</span></div>${rows}</div>`;
+    }).join('') || emptyState('No documents yet', 'Open an indent and fill its Production Plan / Inspection Report — they will be organised here.');
+    layout.innerHTML = `
+      <aside class="fx-sidebar"><div class="fx-side-title">Organise by</div>
+        <div class="fx-view-toggle" style="margin-bottom:10px"><button class="fx-vt ${docsView === 'customer' ? 'active' : ''}" data-docv="customer">👤 Customer</button><button class="fx-vt ${docsView === 'product' ? 'active' : ''}" data-docv="product">📦 Product</button></div>
+        <div class="fx-side-hint">The digital <b>Production Plan</b> &amp; <b>Inspection Report</b> for every order — fill, view, print or save as PDF. Saved copies are visible to the office &amp; management too.</div>
+      </aside>
+      <section class="fx-main">${cards}</section>`;
+    layout.querySelectorAll('[data-docv]').forEach(b => b.onclick = () => { docsView = b.dataset.docv; renderDocumentsTab(layout); });
+    layout.querySelectorAll('[data-doc]').forEach(b => b.onclick = () => openFactoryDoc(b.dataset.doc, b.dataset.kind));
+    layout.querySelectorAll('[data-dprint]').forEach(b => b.onclick = () => printBothDocs(b.dataset.dprint));
+  }
+  function printBothDocs(indId) {
+    const ind = indents.find(i => i.id === indId); if (!ind) return;
+    const plan = (ind.docs && ind.docs.plan) || productionPlanHtml(ind);
+    const insp = (ind.docs && ind.docs.inspection) || inspectionReportHtml(ind);
+    const body = (h) => (h.match(/<body[^>]*>([\s\S]*?)<\/body>/i) || [, h])[1];
+    const w = window.open('', '_blank'); if (!w) { toast('Allow pop-ups to download'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Factory Documents — ${esc(ind.customer)}</title><style>${DOC_CSS}</style></head><body>${body(plan)}<div style="page-break-before:always"></div>${body(insp)}</body></html>`);
+    w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
   }
 
   function filterControls() {
@@ -224,9 +277,10 @@
   // ============ INDENT TAB ============
   function renderIndentTab(layout, items) {
     const inds = applyFilters(allItems()).reduce((a, x) => { (a[x.ind.id] = a[x.ind.id] || { ind: x.ind, items: [] }).items.push(x.it); return a; }, {});
-    // Urgent first, then NEWEST first (today's indents on top, by time sent).
+    // NEWEST first — today's indents on top (by time sent), regardless of urgent.
+    // Urgent is surfaced separately as the banner/notification + a card badge.
     const indTs = (x) => Date.parse(x.ind.sentAt || '') || (parseInt(String(x.ind.id).replace(/\D/g, '').slice(0, 13), 10) || 0);
-    const list = Object.values(inds).sort((a, b) => ((b.ind.priority ? 1 : 0) - (a.ind.priority ? 1 : 0)) || (indTs(b) - indTs(a)));
+    const list = Object.values(inds).sort((a, b) => indTs(b) - indTs(a));
     layout.innerHTML = `
       <aside class="fx-sidebar"><div class="fx-side-title">Filters</div>${filterControls()}
         <div class="fx-side-hint">The <b>white copy</b> stays here (office). The <b>yellow copy</b> prints for the factory. Approve to notify the office.</div>

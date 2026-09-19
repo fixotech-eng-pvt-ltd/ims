@@ -229,3 +229,15 @@
 
 .fx-deliv { background: #eff6ff; border: 1px solid #dbeafe; color: #1e40af; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin: 8px 0; }
 .fx-deliv b { color: #1e3a8a; }
+
+/* Documents section */
+.fx-doc-grp { font-weight: 800; color: #1e3a8a; font-size: 14px; margin-bottom: 10px; }
+.fx-doc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #eef2f7; flex-wrap: wrap; }
+.fx-doc-row:first-of-type { border-top: none; }
+.fx-doc-main b { font-size: 14px; }
+.fx-doc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.fx-doc-chip { border: 1px solid #d7dbe3; background: #fff; border-radius: 8px; padding: 6px 11px; font-size: 12px; cursor: pointer; color: #334155; }
+.fx-doc-chip:hover { background: #eff6ff; border-color: #93c5fd; }
+.fx-doc-chip.has { background: #ecfdf5; border-color: #a7f3d0; color: #166534; }
+.fx-doc-ph { font-size: 11.5px; color: #7c6f00; background: #fef9c3; border-radius: 8px; padding: 5px 9px; }
+@media (max-width: 640px) { .fx-doc-row { flex-direction: column; align-items: flex-start; gap: 6px; } }

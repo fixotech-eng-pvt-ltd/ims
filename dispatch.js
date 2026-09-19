@@ -79,7 +79,7 @@
     // indent that arrived (dispatch has its own printer).
     const dTs = (x) => Date.parse(x.sentAt || '') || (parseInt(String(x.id).replace(/\D/g, '').slice(0, 13), 10) || 0);
     const inds = (F().getIndents ? F().getIndents() : []).slice()
-      .sort((a, b) => ((b.priority ? 1 : 0) - (a.priority ? 1 : 0)) || (dTs(b) - dTs(a)));   // urgent first, then newest first
+      .sort((a, b) => dTs(b) - dTs(a));   // NEWEST first (today on top); urgent shown as a badge/notification
     if (!inds.length) { body.innerHTML = emptyState('No indents yet', 'Every indent sent to the factory also lands here for the dispatch department — ready to print.'); return; }
     const appr = loadAppr();
     body.innerHTML = inds.map(g => {

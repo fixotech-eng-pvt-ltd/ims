@@ -1422,6 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bind('btn-print-csv', 'click', exportCSV);
   bind('btn-approval-pdf', 'click', () => downloadPDF('approval'));
   bind('btn-download-pdf', 'click', () => downloadPDF('final'));
+  bind('btn-edit-pdf', 'click', openQuoteEditor);
   bind('btn-download-txt', 'click', downloadTXT);
   bind('wa-modal-close', 'click', closeWAModal);
   bind('wa-cancel', 'click', closeWAModal);
@@ -2995,9 +2996,9 @@ function buildQuoteHtml(model, opts) {
     // Highlight the material/finish diversification (e.g. GI 80GSM, MS Hot Dip).
     if (it.finish) { const f = esc(it.finish); desc = desc.replace(f, `<b class="fin-hl">${f}</b>`); }
     const z = qtyZero(it.qty);
-    rows += `<tr>
+    rows += `<tr class="q-irow">
       <td class="c">${it.sl != null ? it.sl : i + 1}</td>
-      <td><div class="qdesc">${thumb(it.desc)}<span>${desc}</span></div></td>
+      <td><div class="qdesc">${thumb(it.desc)}<span class="qdesc-txt">${desc}</span></div></td>
       <td class="c">${z ? '' : esc(it.unit || '')}</td>
       <td class="c">${z ? '' : esc(it.qty)}</td>
       <td class="r">${fmtINR(it.rate)}</td>
@@ -3135,6 +3136,48 @@ ${isDraft ? `<div class="draftstamp"><span>FOR APPROVAL</span></div>` : ''}
 </div>
 </body></html>`;
   return html;
+}
+
+// ---- Editable PDF editor for the quotation ----
+// Opens the quotation as a click-to-edit PDF. "Save" reads edits back and makes
+// them the source of truth (setEditedQuote) so they flow EVERYWHERE — the quote
+// panel, the final PDF, the Proforma and the Indent. Also syncs qty/rate/desc
+// onto the live quote lines so the calculator reflects the change immediately.
+function openQuoteEditor() {
+  if (!quoteItems.length) { toast('Add items to the quote first'); return; }
+  let modal = document.getElementById('quote-pdf-editor');
+  if (!modal) { modal = document.createElement('div'); modal.id = 'quote-pdf-editor'; modal.className = 'modal-overlay'; document.body.appendChild(modal); }
+  modal.innerHTML = `<div class="modal-dialog pdfed-dialog">
+    <div class="modal-header"><div class="modal-title-group"><h3>Verify &amp; Edit — Quotation PDF</h3><p class="modal-sub">Click any cell to edit. Save makes it the source everywhere (quote, Proforma, Indent).</p></div><button class="modal-close-btn" id="qpe-x">&times;</button></div>
+    <div class="pdfed-body"><iframe id="qpe-frame" title="Quotation preview"></iframe></div>
+    <div class="modal-actions vf-actions"><button class="btn-cancel" id="qpe-cancel">Close</button><button class="btn-save-edit" id="qpe-save">💾 Save changes</button><button class="btn-send" id="qpe-print">🖨 Save &amp; Print</button></div>
+  </div>`;
+  modal.classList.add('show');
+  const frame = modal.querySelector('#qpe-frame');
+  const d = frame.contentDocument || frame.contentWindow.document;
+  d.open(); d.write(buildQuoteHtml(mergedQuoteModel(), { editable: true })); d.close();
+  const commit = () => {
+    try {
+      const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
+      const irows = [...d.querySelectorAll('tr.q-irow')];
+      if (!irows.length) return;
+      const base = mergedQuoteModel();
+      const items = irows.map((tr, i) => {
+        const td = tr.querySelectorAll('td');
+        const descEl = tr.querySelector('.qdesc-txt') || td[1];
+        const rate = num(grab(td[4])); const qty = num(grab(td[3]));
+        return { desc: grab(descEl), unit: grab(td[2]) || (base.items[i] ? base.items[i].unit : 'Nos'), qty: qty, rate: rate, amount: Math.round(qty * rate * 100) / 100 };
+      });
+      const model = Object.assign({}, base, { items: items, total: items.reduce((s, it) => s + (it.amount || 0), 0) });
+      if (window.FIXO && FIXO.setEditedQuote) FIXO.setEditedQuote(model);
+      // reflect edits onto the live quote lines (qty / rate / desc) so the panel updates
+      items.forEach((it, i) => { const q = quoteItems[i]; if (!q) return; q.qty = it.qty; q.quoteRate = it.rate; q.totalCost = Math.round(it.rate * it.qty); if (it.desc) q.name = it.desc.split('\n')[0].slice(0, 80); });
+      renderQuotePanel(); if (typeof persistSessions === 'function') persistSessions();
+    } catch (e) { /* keep going */ }
+  };
+  modal.querySelector('#qpe-x').onclick = modal.querySelector('#qpe-cancel').onclick = () => modal.classList.remove('show');
+  modal.querySelector('#qpe-save').onclick = () => { commit(); toast('Saved — reflected everywhere'); };
+  modal.querySelector('#qpe-print').onclick = () => { commit(); try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {} };
 }
 
 // Print path used when jsPDF isn't available (edge case) — prints the HTML.

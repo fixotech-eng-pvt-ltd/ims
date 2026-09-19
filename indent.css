@@ -135,3 +135,5 @@
 
 .idp-btn-save { background: #059669; color: #fff; border-color: #059669; }
 .idp-btn-save:hover { background: #047857; color: #fff; }
+
+.idp-doc-tabs { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
