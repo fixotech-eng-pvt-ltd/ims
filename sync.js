@@ -25,6 +25,8 @@
     blob('fixo_dispatch_log', 'dispatch_log', o => ({ customer: o.customer, indent_no: o.indentNo || '' })),
     blob('fixo_office_notifications', 'notifications', o => ({ type: o.type, customer: o.customer || '', indent_no: o.indentNo || '', seen: !!o.seen })),
     blob('fixo_floor_sheets', 'floor_sheets', o => ({ kind: o.kind, customer: o.customer || '', indent_no: o.indentNo || '', img: o.img })),
+    blob('fixo_trading_items', 'trading_items', o => ({ name: o.name, unit: o.unit, rate: o.rate, reorder: o.reorder })),
+    blob('fixo_trading_requests', 'trading_requests', o => ({ status: o.status || 'pending', by: o.by || '' })),
     blob('fixo_chatiq_chats', 'chatiq_chats', o => ({ title: o.title || '' })),
     blob('fixo_saved_orders', 'saved_orders', o => ({ quote_no: o.quoteNo || o.qtnNo || '', client_name: o.client || '', total: o.total || 0 })),
     blob('fixo_saved_proformas', 'saved_proformas', o => ({ pi_no: o.piNo || '', client_name: o.client || '', total: o.total || 0 })),
@@ -128,7 +130,7 @@
 
   // ---- Light LIVE pull: just the fast-moving operational stores, often. This is
   // what makes a new indent / notification / dispatch appear on its own. ----
-  const LIVE = ['fixo_factory_indents', 'fixo_office_notifications', 'fixo_dispatch_log', 'fixo_dispatch_approvals'];
+  const LIVE = ['fixo_factory_indents', 'fixo_office_notifications', 'fixo_dispatch_log', 'fixo_dispatch_approvals', 'fixo_trading_items', 'fixo_trading_requests'];
   async function pullLive() {
     if (!supa() || document.hidden) return;
     const changed = [];

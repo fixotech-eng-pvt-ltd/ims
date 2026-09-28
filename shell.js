@@ -56,6 +56,7 @@
     document.querySelectorAll('[data-open-factory]').forEach(b => b.addEventListener('click', () => {
       if (b.dataset.openFactory === 'dispatch') { showScreen('screen-dispatch'); if (window.FIXO_DISPATCH && FIXO_DISPATCH.render) FIXO_DISPATCH.render(); }
       else if (b.dataset.openFactory === 'inventory') { showScreen('screen-inventory'); if (window.FIXO_INVENTORY && FIXO_INVENTORY.render) FIXO_INVENTORY.render(); }
+      else if (b.dataset.openFactory === 'trading') { showScreen('screen-trading'); if (window.FIXO_TRADING && FIXO_TRADING.render) FIXO_TRADING.render(); }
       else { showScreen('screen-factory'); if (window.FIXO_FACTORY && FIXO_FACTORY.render) FIXO_FACTORY.render(); }
     }));
     const fhBell = document.getElementById('fh-bell');

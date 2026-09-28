@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="automate.css">
   <link rel="stylesheet" href="indent.css">
   <link rel="stylesheet" href="progress.css">
+  <link rel="stylesheet" href="trading.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -114,6 +115,10 @@
           <span class="fh-app-name">Dispatch Records</span>
           <span class="fh-app-badge" id="dr-badge" hidden></span>
         </button>
+        <button class="hm-app fh-app" data-open-app="screen-trading" title="Trading">
+          <span class="fh-app-ic">🛒</span>
+          <span class="fh-app-name">Trading</span>
+        </button>
       </div>
     </div>
   </div>
@@ -158,6 +163,10 @@
           <span class="fh-app-ic">📦</span>
           <span class="fh-app-name">Inventory</span>
           <span class="fh-app-badge" id="fh-inv-badge" hidden></span>
+        </button>
+        <button class="hm-app fh-app" data-open-factory="trading" title="Trading (Dispatch)">
+          <span class="fh-app-ic">🛒</span>
+          <span class="fh-app-name">Trading</span>
         </button>
       </div>
     </div>
@@ -384,6 +393,14 @@
     <div class="factory-body" id="inventory-app"></div>
   </div>
 
+  <div id="screen-trading" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Trading</span>
+    </div>
+    <div class="factory-body" id="trading-app"></div>
+  </div>
+
   <div id="screen-admin" class="screen">
     <div class="app-topbar">
       <button class="app-back" data-goto="screen-landing">← Back</button>
@@ -493,6 +510,7 @@
   <script src="automate.js"></script>
   <script src="indent.js"></script>
   <script src="progress.js"></script>
+  <script src="trading.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).
