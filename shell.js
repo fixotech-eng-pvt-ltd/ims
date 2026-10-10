@@ -24,6 +24,23 @@
     // auth.js (loaded earlier) redirects to the login screen if not signed in.
     (window.showScreen || showScreen)('screen-landing');
 
+    // ---- Company switch (Fixotech Engineering ⇄ Fixotech Inno Structures) ----
+    const INNO_LOGO = 'assets/brand/inno-logo.png';
+    const ENGG_LOGO = 'https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg';
+    function applyCompany(co) {
+      try { localStorage.setItem('fixo_company', co); } catch (e) {}
+      const inno = co === 'inno';
+      const g = (id) => document.getElementById(id);
+      document.querySelectorAll('.co-btn').forEach(b => b.classList.toggle('active', b.dataset.co === co));
+      if (g('cards-engg')) g('cards-engg').hidden = inno;
+      if (g('cards-inno')) g('cards-inno').hidden = !inno;
+      const logo = g('landing-logo'); if (logo) logo.src = inno ? INNO_LOGO : ENGG_LOGO;
+      const title = g('landing-title'); if (title) title.innerHTML = inno ? 'FIXOTECH <span>INNO STRUCTURES</span>' : 'FIXOTECH <span>ECOSYSTEM</span>';
+      document.body.classList.toggle('co-inno', inno);
+    }
+    document.querySelectorAll('.co-btn').forEach(b => b.addEventListener('click', () => applyCompany(b.dataset.co)));
+    try { applyCompany(localStorage.getItem('fixo_company') || 'engg'); } catch (e) {}
+
     const office = document.getElementById('btn-office');
     if (office) office.addEventListener('click', () => showScreen('screen-home'));
     const factory = document.getElementById('btn-factory');

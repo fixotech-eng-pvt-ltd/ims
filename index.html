@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="indent.css">
   <link rel="stylesheet" href="progress.css">
   <link rel="stylesheet" href="trading.css">
+  <link rel="stylesheet" href="invoice.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,11 +47,15 @@
          choice stays clean and centered. -->
     <button class="admin-corner" id="btn-admin" data-goto="screen-admin" hidden title="Admin Panel">🛡️ Admin</button>
     <div class="landing">
-      <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="landing-logo">
-      <h1 class="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
+      <div class="company-switch" id="company-switch">
+        <button class="co-btn active" data-co="engg">FIXOTECH Engineering</button>
+        <button class="co-btn" data-co="inno">FIXOTECH Inno Structures</button>
+      </div>
+      <img src="https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg" alt="Fixotech" class="landing-logo" id="landing-logo">
+      <h1 class="landing-title" id="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
       <div class="landing-userbar" id="landing-userbar"></div>
-      <p class="landing-sub">Select your workspace</p>
-      <div class="landing-cards">
+      <p class="landing-sub" id="landing-sub">Select your workspace</p>
+      <div class="landing-cards" id="cards-engg">
         <button class="side-card" id="btn-office">
           <div class="side-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
@@ -66,7 +71,44 @@
           <span class="side-desc">Indents · Production · Dispatch</span>
         </button>
       </div>
+      <div class="landing-cards" id="cards-inno" hidden>
+        <button class="side-card" data-goto="screen-inno-home">
+          <div class="side-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+          </div>
+          <span class="side-name">Office Side</span>
+          <span class="side-desc">Invoicing &amp; billing</span>
+        </button>
+      </div>
     </div>
+  </div>
+
+  <!-- ============ INNO STRUCTURES — OFFICE HOME ============ -->
+  <div id="screen-inno-home" class="screen">
+    <div class="home-wm" aria-hidden="true"></div>
+    <div class="home-topbar">
+      <div class="home-brand"><img src="assets/brand/inno-logo.png" alt="Fixotech Inno Structures" style="height:30px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'FIXOTECH INNO STRUCTURES'}))"><span>&nbsp;OFFICE</span></div>
+      <div class="home-topbar-right">
+        <button class="home-back" data-goto="screen-landing">↩ Switch workspace</button>
+      </div>
+    </div>
+    <div class="home-body-v2">
+      <div class="hm-profile"><div class="hm-greet"><h2>Fixotech Inno Structures LLP</h2><p>Invoicing &amp; billing</p></div></div>
+      <div class="hm-apps">
+        <button class="hm-app fh-app" data-open-app="screen-invoice" title="Invoicing">
+          <span class="fh-app-ic">🧾</span>
+          <span class="fh-app-name">Invoicing</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-invoice" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-inno-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Inno Structures — Invoicing</span>
+    </div>
+    <div class="factory-body" id="invoice-app"></div>
   </div>
 
   <!-- ============ HOME: APP LAUNCHER ============ -->
@@ -511,6 +553,7 @@
   <script src="indent.js"></script>
   <script src="progress.js"></script>
   <script src="trading.js"></script>
+  <script src="invoice.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).

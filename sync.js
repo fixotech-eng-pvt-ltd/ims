@@ -27,6 +27,7 @@
     blob('fixo_floor_sheets', 'floor_sheets', o => ({ kind: o.kind, customer: o.customer || '', indent_no: o.indentNo || '', img: o.img })),
     blob('fixo_trading_items', 'trading_items', o => ({ name: o.name, unit: o.unit, rate: o.rate, reorder: o.reorder })),
     blob('fixo_trading_requests', 'trading_requests', o => ({ status: o.status || 'pending', by: o.by || '' })),
+    blob('fixo_inno_invoices', 'inno_invoices', o => ({ inv_no: o.invNo || '', customer: o.customer || '', total: o.total || 0 })),
     blob('fixo_chatiq_chats', 'chatiq_chats', o => ({ title: o.title || '' })),
     blob('fixo_saved_orders', 'saved_orders', o => ({ quote_no: o.quoteNo || o.qtnNo || '', client_name: o.client || '', total: o.total || 0 })),
     blob('fixo_saved_proformas', 'saved_proformas', o => ({ pi_no: o.piNo || '', client_name: o.client || '', total: o.total || 0 })),
@@ -42,7 +43,8 @@
     { ls: 'fixo_qtn_seq', skey: 'qtn_seq', to: v => +v || 0, from: v => v },
     { ls: 'fixo_pi_seq', skey: 'pi_seq', to: v => +v || 0, from: v => v },
     { ls: 'fixo_dispatch_seq', skey: 'dispatch_seq', to: v => +v || 0, from: v => v },
-    { ls: 'fixo_indent_seq', skey: 'indent_seq', to: v => +v || 0, from: v => v }
+    { ls: 'fixo_indent_seq', skey: 'indent_seq', to: v => +v || 0, from: v => v },
+    { ls: 'fixo_inno_inv_seq', skey: 'inno_inv_seq', to: v => +v || 0, from: v => v }
   ];
 
   let suppress = false;                 // don't re-trigger push during our own writes
