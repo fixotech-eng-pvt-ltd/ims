@@ -19,8 +19,10 @@
     name: 'FIXOTECH INNO STRUCTURES LLP',
     address: 'NO 4, J.P.R Building, Lakshmipura Main Road, Bangalore, Karnataka 560090, India',
     gstin: '29AAKFF5695E1ZY',
-    logo: 'assets/brand/inno-logo.png'
+    // Embedded (data-URI) so the logo always renders in the PDF editor, print & offline.
+    logo: (typeof window !== 'undefined' && window.INNO_LOGO_DATA) ? window.INNO_LOGO_DATA : 'assets/brand/inno-logo.png'
   };
+  const STATUS = { draft: { label: 'Draft', cls: 'st-draft' }, sent: { label: 'Sent to client', cls: 'st-sent' }, approved: { label: 'Approved', cls: 'st-ok' }, declined: { label: 'Not approved', cls: 'st-no' } };
   const SAVED = 'fixo_inno_invoices', SEQ = 'fixo_inno_inv_seq';
   const loadSaved = () => { try { return JSON.parse(localStorage.getItem(SAVED) || '[]') || []; } catch (e) { return []; } };
   const storeSaved = (a) => { try { localStorage.setItem(SAVED, JSON.stringify(a.slice(0, 200))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(SAVED); } catch (e) {} };
@@ -51,7 +53,7 @@
       id: uid('inv-'), invNo: nextInvNo(), invDate: today(), terms: 'Due on Receipt', dueDate: today(), eway: '',
       placeOfSupply: 'Karnataka (29)', type: 'state', gstRate: 18,
       billName: '', billGst: '', billAddr: '', sameShip: true, shipName: '', shipGst: '', shipAddr: '',
-      items: [blank()], discountPct: 0,
+      items: [blank()], discountPct: 0, status: 'draft', sentAt: '', approvedAt: '',
       notes: 'Looking forward for your business.',
       tcDelivery: 'Packing & Delivery charges extra at actuals.',
       tcPayment: '50% Advance and the rest before dispatch.',
@@ -88,13 +90,12 @@
     host.innerHTML = `
       <div class="inv-wrap">
         <div class="inv-head">
-          <div class="inv-head-l"><img src="${CO.logo}" onerror="this.style.display='none'" class="inv-logo"><div><h2>Tax Invoice</h2><p class="inv-sub">${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</p></div></div>
+          <div class="inv-head-l"><img src="${CO.logo}" onerror="this.style.display='none'" class="inv-logo"><div><h2>Tax Invoice <span class="inv-chip ${(STATUS[model.status] || STATUS.draft).cls}">${(STATUS[model.status] || STATUS.draft).label}</span></h2><p class="inv-sub">${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</p></div></div>
         </div>
         <div class="inv-topbtns">
           <button class="cp-btn small" id="inv-new">＋ New invoice</button>
           <button class="cp-btn small" id="inv-save">💾 Save invoice</button>
-          <button class="cp-btn small" id="inv-saved">📂 Saved invoices</button>
-          <button class="cp-btn small" id="inv-print">🖨 Verify &amp; Print</button>
+          <button class="cp-btn small" id="inv-saved">📋 Invoice records</button>
         </div>
 
         <div class="inv-card">
@@ -143,6 +144,18 @@
           </div>
           <div class="inv-card inv-tot-card"><div id="inv-totals"></div></div>
         </div>
+
+        <button class="inv-bigbtn" id="inv-verify">🖨 Verify &amp; Print — preview as PDF</button>
+
+        <div class="inv-stage">
+          <div class="inv-stage-lab">Invoice stage</div>
+          <div class="inv-stage-btns">
+            <button class="cp-btn" id="inv-sent">📤 Mark sent to client</button>
+            <button class="cp-btn inv-ok" id="inv-appr">✓ Client approved</button>
+            <button class="cp-btn inv-no" id="inv-decl">✕ Not approved</button>
+          </div>
+          <div class="inv-stage-hint" id="inv-stage-hint"></div>
+        </div>
       </div>`;
 
     const bind = (id, key) => { const el = document.getElementById(id); if (el) el.oninput = () => { model[key] = el.value; if (['f-gst', 'f-disc'].includes(id)) renderTotals(); }; };
@@ -154,9 +167,13 @@
     document.getElementById('f-same').onchange = e => { model.sameShip = e.target.checked; render(); };
     host.querySelectorAll('[data-type]').forEach(b => b.onclick = () => { model.type = b.dataset.type; render(); });
     document.getElementById('inv-new').onclick = () => { model = fresh(); render(); };
-    document.getElementById('inv-save').onclick = saveInvoice;
+    document.getElementById('inv-save').onclick = () => saveInvoice();
     document.getElementById('inv-saved').onclick = openSaved;
-    document.getElementById('inv-print').onclick = openEditor;
+    document.getElementById('inv-verify').onclick = openEditor;
+    document.getElementById('inv-sent').onclick = () => setStatus('sent');
+    document.getElementById('inv-appr').onclick = () => setStatus('approved');
+    document.getElementById('inv-decl').onclick = () => setStatus('declined');
+    updateStageHint();
     document.getElementById('inv-add').onclick = () => { model.items.push(blank()); renderRows(); renderTotals(); };
     document.getElementById('inv-pick').onclick = pickProduct;
     renderRows(); renderTotals();
@@ -207,25 +224,67 @@
     draw(''); m.querySelector('#pp-s').oninput = e => draw(e.target.value); m.querySelector('[data-x]').onclick = () => m.remove();
   }
 
-  // ---------- save / reopen ----------
-  function saveInvoice() {
-    if (!model.items.some(it => (it.desc || '').trim())) { toast('Add at least one item'); return; }
+  // ---------- save / reopen / status ----------
+  function saveInvoice(silent) {
+    if (!model.items.some(it => (it.desc || '').trim())) { if (!silent) toast('Add at least one item'); return false; }
     const list = loadSaved().filter(r => r.id !== model.id);
-    list.unshift({ id: model.id, invNo: model.invNo, customer: model.billName, savedAt: new Date().toLocaleString('en-IN'), total: totals(model).grand, model: JSON.parse(JSON.stringify(model)) });
+    list.unshift({ id: model.id, invNo: model.invNo, customer: model.billName, savedAt: new Date().toLocaleString('en-IN'), total: totals(model).grand, status: model.status || 'draft', model: JSON.parse(JSON.stringify(model)) });
     storeSaved(list);
-    toast('Invoice saved');
+    if (!silent) toast('Invoice saved');
+    return true;
   }
+  function setStatus(st) {
+    if (!model.items.some(it => (it.desc || '').trim())) { toast('Add items first'); return; }
+    if (st === 'sent' && !model.sentAt) model.sentAt = new Date().toLocaleString('en-IN');
+    if (st === 'approved') model.approvedAt = new Date().toLocaleString('en-IN');
+    model.status = st;
+    saveInvoice(true);   // auto-save so the record keeps the stage
+    render();
+    toast('Marked ' + (STATUS[st] || {}).label);
+  }
+  function updateStageHint() {
+    const el = document.getElementById('inv-stage-hint'); if (!el) return;
+    const map = { draft: 'Created — save it, preview the approval draft, then mark it sent to the client.', sent: 'Sent to the client' + (model.sentAt ? ' on ' + esc(model.sentAt) : '') + ' — awaiting their approval.', approved: '✓ Client approved' + (model.approvedAt ? ' on ' + esc(model.approvedAt) : '') + '.', declined: '✕ Client has not approved this invoice.' };
+    el.innerHTML = map[model.status] || map.draft;
+  }
+  let recFilter = 'all';
   function openSaved() {
-    const list = loadSaved();
-    const rows = list.length ? list.map(r => `<div class="so-row"><div class="so-info"><b>${esc(r.customer || 'Invoice')}</b><span>${esc(r.invNo)} · ${esc(r.savedAt)} · ₹${money(r.total)}</span></div><div class="so-btns"><button class="cp-btn so-open" data-id="${r.id}">Reopen</button><button class="so-del" data-id="${r.id}">×</button></div></div>`).join('') : '<div class="so-empty">No saved invoices yet.</div>';
-    const m = modal(`<h3>Saved invoices</h3><div class="modal-body">${rows}</div><div class="inv-modal-act"><button class="cp-btn" data-x>Close</button></div>`);
+    const m = modal(`<h3>Invoice records</h3>
+      <div class="inv-rec-bar" id="inv-rec-bar"></div>
+      <div class="modal-body" id="inv-rec-list"></div>
+      <div class="inv-modal-act"><button class="cp-btn" data-x>Close</button></div>`);
     m.querySelector('[data-x]').onclick = () => m.remove();
-    m.querySelectorAll('.so-open').forEach(b => b.onclick = () => { const r = loadSaved().find(x => x.id === b.dataset.id); if (r) { model = JSON.parse(JSON.stringify(r.model)); m.remove(); render(); toast('Reopened ' + (r.customer || '')); } });
-    m.querySelectorAll('.so-del').forEach(b => b.onclick = () => { storeSaved(loadSaved().filter(x => x.id !== b.dataset.id)); m.remove(); openSaved(); });
+    const drawBar = () => {
+      const all = loadSaved();
+      const count = (k) => k === 'all' ? all.length : all.filter(r => (r.status || 'draft') === k).length;
+      const f = (k, lbl) => `<button class="inv-rec-f ${recFilter === k ? 'active' : ''}" data-f="${k}">${lbl} <em>${count(k)}</em></button>`;
+      m.querySelector('#inv-rec-bar').innerHTML = f('all', 'All') + f('draft', '📝 Draft') + f('sent', '📤 Sent') + f('approved', '✓ Approved') + f('declined', '✕ Not approved');
+      m.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { recFilter = b.dataset.f; drawBar(); drawList(); });
+    };
+    const drawList = () => {
+      let list = loadSaved(); if (recFilter !== 'all') list = list.filter(r => (r.status || 'draft') === recFilter);
+      const el = m.querySelector('#inv-rec-list');
+      el.innerHTML = list.length ? list.map(r => { const st = STATUS[r.status || 'draft'] || STATUS.draft; return `<div class="inv-rec-row">
+        <div class="inv-rec-main"><b>${esc(r.customer || 'Invoice')}</b> <span class="inv-chip ${st.cls}">${st.label}</span><span class="inv-rec-sub">${esc(r.invNo)} · ${esc(r.savedAt)} · ₹${money(r.total)}</span></div>
+        <div class="inv-rec-act">
+          <button class="cp-btn so-open" data-id="${r.id}">Open</button>
+          <button class="cp-btn" data-sent="${r.id}" title="Mark sent">📤</button>
+          <button class="cp-btn inv-ok" data-appr="${r.id}" title="Approved">✓</button>
+          <button class="cp-btn inv-no" data-decl="${r.id}" title="Not approved">✕</button>
+          <button class="so-del" data-id="${r.id}">×</button>
+        </div></div>`; }).join('') : '<div class="so-empty">No invoices in this view.</div>';
+      el.querySelectorAll('.so-open').forEach(b => b.onclick = () => { const r = loadSaved().find(x => x.id === b.dataset.id); if (r) { model = JSON.parse(JSON.stringify(r.model)); m.remove(); render(); toast('Reopened ' + (r.customer || '')); } });
+      el.querySelectorAll('.so-del').forEach(b => b.onclick = () => { storeSaved(loadSaved().filter(x => x.id !== b.dataset.id)); drawBar(); drawList(); });
+      const setRec = (id, st) => { const all = loadSaved(); const r = all.find(x => x.id === id); if (r) { r.status = st; if (r.model) { r.model.status = st; if (st === 'sent' && !r.model.sentAt) r.model.sentAt = new Date().toLocaleString('en-IN'); if (st === 'approved') r.model.approvedAt = new Date().toLocaleString('en-IN'); } storeSaved(all); if (model && model.id === id) { model.status = st; } drawBar(); drawList(); toast('Marked ' + (STATUS[st] || {}).label); } };
+      el.querySelectorAll('[data-sent]').forEach(b => b.onclick = () => setRec(b.dataset.sent, 'sent'));
+      el.querySelectorAll('[data-appr]').forEach(b => b.onclick = () => setRec(b.dataset.appr, 'approved'));
+      el.querySelectorAll('[data-decl]').forEach(b => b.onclick = () => setRec(b.dataset.decl, 'declined'));
+    };
+    drawBar(); drawList();
   }
 
   // ---------- PDF (editable) ----------
-  function invoiceHtml(m, editable) {
+  function invoiceHtml(m, editable, isDraft) {
     const t = totals(m);
     const ship = m.sameShip ? { name: m.billName, gst: m.billGst, addr: m.billAddr } : { name: m.shipName, gst: m.shipGst, addr: m.shipAddr };
     const half = m.gstRate / 2;
@@ -253,10 +312,11 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4p
 .tot td{border:none;padding:3px 6px}.tot .g td{border-top:1px solid #333;font-weight:bold;font-size:13px;color:#1e3a8a}
 .words{padding:6px 12px;font-style:italic;border-top:1px solid #333}.foot{display:flex;justify-content:space-between;padding:10px 12px;border-top:1px solid #333}
 .tc{font-size:9.5px;color:#333}.sign{text-align:right}.sign b{font-size:11px}
+.wm{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-size:68px;font-weight:900;color:rgba(220,0,0,.12);letter-spacing:4px;pointer-events:none;z-index:5;white-space:nowrap}
 ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contenteditable]:hover{background:rgba(59,130,246,.06)}' : ''}
-</style></head><body><div class="doc"><div class="layer"${editable ? ' contenteditable="true" spellcheck="false"' : ''}>
-  <div class="top"><div class="co"><img src="${CO.logo}" style="height:30px" onerror="this.style.display='none'"><br><b>${esc(CO.name)}</b><div>${esc(CO.address)}</div><div>GSTIN ${esc(CO.gstin)}</div></div>
-    <div class="ti"><h1>TAX INVOICE</h1></div></div>
+</style></head><body><div class="doc">${isDraft ? '<div class="wm">DRAFT — FOR APPROVAL</div>' : ''}<div class="layer"${editable ? ' contenteditable="true" spellcheck="false"' : ''}>
+  <div class="top"><div class="co"><img src="${CO.logo}" style="height:34px" onerror="this.style.display='none'"><br><b>${esc(CO.name)}</b><div>${esc(CO.address)}</div><div>GSTIN ${esc(CO.gstin)}</div></div>
+    <div class="ti"><h1>${isDraft ? 'APPROVAL COPY' : 'TAX INVOICE'}</h1>${isDraft ? '<div style="font-size:10px;color:#b00;font-weight:bold">DRAFT — not a valid tax invoice</div>' : ''}</div></div>
   <div class="meta">
     <div><span>Invoice No :</span> <b>${esc(m.invNo)}</b></div><div><span>Invoice Date :</span> ${esc(m.invDate)}</div>
     <div><span>Terms :</span> ${esc(m.terms)}</div><div><span>Due Date :</span> ${esc(m.dueDate)}</div>
@@ -275,21 +335,30 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
   }
   function openEditor() {
     if (!model.items.some(it => (it.desc || '').trim())) { toast('Add at least one item'); return; }
-    const m = modal(`<div class="inv-ed-head"><h3>Verify &amp; Edit — Tax Invoice</h3><span class="inv-ed-hint">✎ Click any cell to edit.</span><button class="cp-btn" data-x>Close</button></div>
+    let draftView = false;
+    const m = modal(`<div class="inv-ed-head"><h3>Verify &amp; Edit — ${esc(model.invNo)}</h3>
+        <div class="inv-ed-seg"><button class="inv-ed-tab active" data-view="final">🧾 Final invoice</button><button class="inv-ed-tab" data-view="draft">📄 Approval draft</button></div>
+        <span class="inv-ed-hint">✎ Click any cell to edit — changes are saved.</span><button class="cp-btn" data-x>Close</button></div>
       <iframe id="inv-frame" class="inv-frame"></iframe>
-      <div class="inv-modal-act"><button class="cp-btn btn-save-edit" data-save>💾 Save changes</button><button class="cp-btn cp-btn-go" data-print>🖨 Save &amp; Print</button></div>`, 'big');
-    const fr = m.querySelector('#inv-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(invoiceHtml(model, true)); d.close();
+      <div class="inv-modal-act"><button class="cp-btn btn-save-edit" data-save>💾 Save changes</button><button class="cp-btn cp-btn-go" data-print>🖨 Print / Save PDF</button></div>`, 'big');
+    const fr = m.querySelector('#inv-frame');
+    const draw = () => { const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(invoiceHtml(model, true, draftView)); d.close(); };
+    draw();
     const commit = () => {
       try {
+        const d = fr.contentDocument || fr.contentWindow.document;
         const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
         const rows = [...d.querySelectorAll('table.items tbody tr')];
         if (rows.length) model.items = rows.map(tr => { const td = tr.querySelectorAll('td'); const q = grab(td[3]); const qty = num(q); const unit = q.replace(/[0-9.,\s]/g, '') || 'NOS'; return { desc: (td[1].innerText || '').split('\n')[0].trim(), sku: (grab(td[1]).match(/SKU\s*:\s*(\S+)/) || [, ''])[1], hsn: grab(td[2]), qty: qty, unit: unit, rate: num(grab(td[4])) }; }).filter(it => it.desc);
+        // persist edits everywhere: live model + the saved record (if this invoice was saved)
+        if (loadSaved().some(r => r.id === model.id)) saveInvoice(true);
         render();
       } catch (e) {}
     };
-    m.querySelector('[data-x]').onclick = () => m.remove();
-    m.querySelector('[data-save]').onclick = () => { commit(); toast('Saved'); };
-    m.querySelector('[data-print]').onclick = () => { commit(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
+    m.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { commit(); draftView = b.dataset.view === 'draft'; m.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('active', x === b)); draw(); });
+    m.querySelector('[data-x]').onclick = () => { commit(); m.remove(); };
+    m.querySelector('[data-save]').onclick = () => { commit(); toast('Changes saved'); };
+    m.querySelector('[data-print]').onclick = () => { commit(); draw(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
 
   function modal(inner, cls) { const el = document.createElement('div'); el.className = 'inv-overlay'; el.innerHTML = `<div class="inv-modal ${cls || ''}">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
