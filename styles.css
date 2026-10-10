@@ -2122,3 +2122,9 @@ body.testing-on .tm-banner { display: block; background: #fef9c3; border: 1px so
 /* Verify & Edit PDF button (Smart Calculator) */
 .btn-editpdf { width: 100%; justify-content: center; background: #eef6ff; color: var(--accent); border: 1px solid var(--accent-border); margin-bottom: 8px; }
 .btn-editpdf:hover { background: #dbeafe; }
+
+/* Company-filtered app launcher */
+.hm-empty { text-align: center; color: var(--text-muted); font-size: 14px; padding: 40px 16px; }
+
+/* Company filter: ensure hidden app tiles are truly hidden (overrides .fh-app display) */
+.co-hidden { display: none !important; }

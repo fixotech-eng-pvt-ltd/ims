@@ -55,49 +55,20 @@
       <h1 class="landing-title" id="landing-title">FIXOTECH <span>ECOSYSTEM</span></h1>
       <div class="landing-userbar" id="landing-userbar"></div>
       <p class="landing-sub" id="landing-sub">Select your workspace</p>
-      <div class="landing-cards" id="cards-engg">
+      <div class="landing-cards">
         <button class="side-card" id="btn-office">
           <div class="side-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
           </div>
           <span class="side-name">Office Side</span>
-          <span class="side-desc">Quoting, invoicing &amp; customer data</span>
+          <span class="side-desc" id="desc-office">Quoting, invoicing &amp; customer data</span>
         </button>
         <button class="side-card" id="btn-factory">
           <div class="side-ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M2 20h20M4 20V9l6 4V9l6 4V9l4 3v8"/><path d="M6 20v-3M10 20v-3M14 20v-3M18 20v-3"/></svg>
           </div>
           <span class="side-name">Factory Side</span>
-          <span class="side-desc">Indents · Production · Dispatch</span>
-        </button>
-      </div>
-      <div class="landing-cards" id="cards-inno" hidden>
-        <button class="side-card" data-goto="screen-inno-home">
-          <div class="side-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" width="40" height="40"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
-          </div>
-          <span class="side-name">Office Side</span>
-          <span class="side-desc">Invoicing &amp; billing</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ INNO STRUCTURES — OFFICE HOME ============ -->
-  <div id="screen-inno-home" class="screen">
-    <div class="home-wm" aria-hidden="true"></div>
-    <div class="home-topbar">
-      <div class="home-brand"><img src="assets/brand/inno-logo.png" alt="Fixotech Inno Structures" style="height:30px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'FIXOTECH INNO STRUCTURES'}))"><span>&nbsp;OFFICE</span></div>
-      <div class="home-topbar-right">
-        <button class="home-back" data-goto="screen-landing">↩ Switch workspace</button>
-      </div>
-    </div>
-    <div class="home-body-v2">
-      <div class="hm-profile"><div class="hm-greet"><h2>Fixotech Inno Structures LLP</h2><p>Invoicing &amp; billing</p></div></div>
-      <div class="hm-apps">
-        <button class="hm-app fh-app" data-open-app="screen-invoice" title="Invoicing">
-          <span class="fh-app-ic">🧾</span>
-          <span class="fh-app-name">Invoicing</span>
+          <span class="side-desc" id="desc-factory">Indents · Production · Dispatch</span>
         </button>
       </div>
     </div>
@@ -105,8 +76,8 @@
 
   <div id="screen-invoice" class="screen">
     <div class="app-topbar">
-      <button class="app-back" data-goto="screen-inno-home">← Home</button>
-      <span class="app-topbar-name">Fixotech Inno Structures — Invoicing</span>
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Invoice Gen</span>
     </div>
     <div class="factory-body" id="invoice-app"></div>
   </div>
@@ -138,30 +109,34 @@
         </div>
       </div>
 
-      <div class="hm-apps">
-        <button class="hm-app" data-open-app="screen-calculator" title="Smart Calculator">
+      <div class="hm-apps" id="office-apps">
+        <button class="hm-app" data-company="engg" data-open-app="screen-calculator" title="Smart Calculator">
           <img src="assets/app-icons/smart-calculator.png" alt="Smart Calculator">
         </button>
-        <button class="hm-app" data-open-app="screen-proforma" title="Proforma Invoice">
+        <button class="hm-app" data-company="engg" data-open-app="screen-proforma" title="Proforma Invoice">
           <img src="assets/app-icons/proforma-invoice.png" alt="Proforma Invoice">
         </button>
-        <button class="hm-app fh-app" data-open-app="screen-indent" title="FixoTech Indent Prep">
+        <button class="hm-app fh-app" data-company="engg" data-open-app="screen-indent" title="FixoTech Indent Prep">
           <img src="assets/app-icons/indent-prep.png" alt="FixoTech Indent Prep" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🗂️'}))">
           <span class="fh-app-name">Indent Prep</span>
         </button>
-        <button class="hm-app" data-open-app="screen-chatiq" title="Fixotech ChatIQ">
+        <button class="hm-app" data-company="engg" data-open-app="screen-chatiq" title="Fixotech ChatIQ">
           <img src="assets/app-icons/smart-iq.png" alt="Fixotech ChatIQ" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'💬'}))">
         </button>
-        <button class="hm-app fh-app" data-open-app="screen-dispatch-records" title="Dispatch Records">
+        <button class="hm-app fh-app" data-company="engg" data-open-app="screen-dispatch-records" title="Dispatch Records">
           <span class="fh-app-ic">📥</span>
           <span class="fh-app-name">Dispatch Records</span>
           <span class="fh-app-badge" id="dr-badge" hidden></span>
         </button>
-        <button class="hm-app fh-app" data-open-app="screen-trading" title="Trading">
+        <button class="hm-app fh-app" data-company="engg" data-open-app="screen-trading" title="Trading">
           <span class="fh-app-ic">🛒</span>
           <span class="fh-app-name">Trading</span>
         </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-invoice" title="Inno Invoice Gen">
+          <img src="assets/app-icons/inno-invoice-gen.png" alt="Inno Invoice Gen" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🧾'}))">
+        </button>
       </div>
+      <div class="hm-empty" id="office-empty" hidden>No apps for this company yet.</div>
     </div>
   </div>
 
@@ -192,25 +167,26 @@
         </div>
       </div>
 
-      <div class="hm-apps">
-        <button class="hm-app" data-open-factory="floor" title="Fixotech Floor">
+      <div class="hm-apps" id="factory-apps">
+        <button class="hm-app" data-company="engg" data-open-factory="floor" title="Fixotech Floor">
           <img src="assets/app-icons/factory-floor.png" alt="Fixotech Floor" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🏭'}))">
           <span class="fh-app-badge" id="fh-floor-badge" hidden></span>
         </button>
-        <button class="hm-app" data-open-factory="dispatch" title="Fixotech Dispatch">
+        <button class="hm-app" data-company="engg" data-open-factory="dispatch" title="Fixotech Dispatch">
           <img src="assets/app-icons/disptach.png" alt="Fixotech Dispatch" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🚚'}))">
           <span class="fh-app-badge" id="fh-disp-badge" hidden></span>
         </button>
-        <button class="hm-app fh-app" data-open-factory="inventory" title="Inventory Management">
+        <button class="hm-app fh-app" data-company="engg" data-open-factory="inventory" title="Inventory Management">
           <span class="fh-app-ic">📦</span>
           <span class="fh-app-name">Inventory</span>
           <span class="fh-app-badge" id="fh-inv-badge" hidden></span>
         </button>
-        <button class="hm-app fh-app" data-open-factory="trading" title="Trading (Dispatch)">
+        <button class="hm-app fh-app" data-company="engg" data-open-factory="trading" title="Trading (Dispatch)">
           <span class="fh-app-ic">🛒</span>
           <span class="fh-app-name">Trading</span>
         </button>
       </div>
+      <div class="hm-empty" id="factory-empty" hidden>No factory apps for this company yet.</div>
     </div>
   </div>
 

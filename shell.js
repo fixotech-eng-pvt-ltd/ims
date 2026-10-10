@@ -14,6 +14,8 @@
     document.body.dataset.screen = id;
     window.scrollTo(0, 0);
     try { localStorage.setItem('fixo_screen', id); } catch (e) {}
+    // keep the home launchers showing only the active company's apps
+    if (id === 'screen-home' || id === 'screen-factory-home') { try { if (window.FIXO_COMPANY) FIXO_COMPANY.applyTiles(); } catch (e) {} }
   }
   window.showScreen = showScreen;
 
@@ -25,21 +27,38 @@
     (window.showScreen || showScreen)('screen-landing');
 
     // ---- Company switch (Fixotech Engineering ⇄ Fixotech Inno Structures) ----
+    // SAME Office/Factory interface for both — only the apps inside each home
+    // change per company, and they are mutually exclusive (an app for one company
+    // never appears for the other).
     const INNO_LOGO = 'assets/brand/inno-logo.png';
     const ENGG_LOGO = 'https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg';
+    const currentCompany = () => { try { return localStorage.getItem('fixo_company') || 'engg'; } catch (e) { return 'engg'; } };
+    function applyCompanyTiles() {
+      const co = currentCompany();
+      // Use a dedicated class (not the `hidden` attribute) so this never collides
+      // with auth.js access-control, which toggles `hidden` on the same tiles.
+      [['office-apps', 'office-empty'], ['factory-apps', 'factory-empty']].forEach(([appsId, emptyId]) => {
+        const wrap = document.getElementById(appsId); if (!wrap) return;
+        let shown = 0;
+        wrap.querySelectorAll('[data-company]').forEach(t => { const on = t.dataset.company === co; t.classList.toggle('co-hidden', !on); if (on) shown++; });
+        const empty = document.getElementById(emptyId); if (empty) empty.hidden = shown === 0 ? false : true;
+      });
+    }
     function applyCompany(co) {
       try { localStorage.setItem('fixo_company', co); } catch (e) {}
       const inno = co === 'inno';
       const g = (id) => document.getElementById(id);
       document.querySelectorAll('.co-btn').forEach(b => b.classList.toggle('active', b.dataset.co === co));
-      if (g('cards-engg')) g('cards-engg').hidden = inno;
-      if (g('cards-inno')) g('cards-inno').hidden = !inno;
       const logo = g('landing-logo'); if (logo) logo.src = inno ? INNO_LOGO : ENGG_LOGO;
       const title = g('landing-title'); if (title) title.innerHTML = inno ? 'FIXOTECH <span>INNO STRUCTURES</span>' : 'FIXOTECH <span>ECOSYSTEM</span>';
+      const dO = g('desc-office'); if (dO) dO.textContent = inno ? 'Invoicing & billing' : 'Quoting, invoicing & customer data';
+      const dF = g('desc-factory'); if (dF) dF.textContent = inno ? '—' : 'Indents · Production · Dispatch';
       document.body.classList.toggle('co-inno', inno);
+      applyCompanyTiles();
     }
     document.querySelectorAll('.co-btn').forEach(b => b.addEventListener('click', () => applyCompany(b.dataset.co)));
-    try { applyCompany(localStorage.getItem('fixo_company') || 'engg'); } catch (e) {}
+    try { applyCompany(currentCompany()); } catch (e) {}
+    window.FIXO_COMPANY = { current: currentCompany, applyTiles: applyCompanyTiles };
 
     const office = document.getElementById('btn-office');
     if (office) office.addEventListener('click', () => showScreen('screen-home'));
