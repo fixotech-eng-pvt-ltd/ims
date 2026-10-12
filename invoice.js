@@ -23,7 +23,15 @@
     logo: (typeof window !== 'undefined' && window.INNO_LOGO_DATA) ? window.INNO_LOGO_DATA : 'assets/brand/inno-logo.png'
   };
   const STATUS = { draft: { label: 'Draft', cls: 'st-draft' }, sent: { label: 'Sent to client', cls: 'st-sent' }, approved: { label: 'Approved', cls: 'st-ok' }, declined: { label: 'Not approved', cls: 'st-no' } };
-  const SAVED = 'fixo_inno_invoices', SEQ = 'fixo_inno_inv_seq';
+  const SAVED = 'fixo_inno_invoices', SEQ = 'fixo_inno_inv_seq', CUSTS = 'fixo_inno_customers';
+  const CO_STATE = '29';   // Karnataka — company's place of supply
+  // Indian states (code → name) for Place of Supply.
+  const STATES = [['37','Andhra Pradesh'],['12','Arunachal Pradesh'],['18','Assam'],['10','Bihar'],['04','Chandigarh'],['22','Chhattisgarh'],['07','Delhi'],['30','Goa'],['24','Gujarat'],['06','Haryana'],['02','Himachal Pradesh'],['01','Jammu & Kashmir'],['20','Jharkhand'],['29','Karnataka'],['32','Kerala'],['23','Madhya Pradesh'],['27','Maharashtra'],['14','Manipur'],['17','Meghalaya'],['15','Mizoram'],['13','Nagaland'],['21','Odisha'],['34','Puducherry'],['03','Punjab'],['08','Rajasthan'],['11','Sikkim'],['33','Tamil Nadu'],['36','Telangana'],['16','Tripura'],['09','Uttar Pradesh'],['05','Uttarakhand'],['19','West Bengal']];
+  const stateName = (code) => { const s = STATES.find(x => x[0] === code); return s ? s[1] : ''; };
+  const posLabel = (code) => code ? '[' + code + '] ' + stateName(code) : '';
+  const gstStateCode = (gstin) => (String(gstin || '').trim().match(/^(\d{2})/) || [, ''])[1];
+  const loadCusts = () => { try { return JSON.parse(localStorage.getItem(CUSTS) || '[]') || []; } catch (e) { return []; } };
+  const storeCusts = (a) => { try { localStorage.setItem(CUSTS, JSON.stringify(a.slice(0, 500))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(CUSTS); } catch (e) {} };
   const loadSaved = () => { try { return JSON.parse(localStorage.getItem(SAVED) || '[]') || []; } catch (e) { return []; } };
   const storeSaved = (a) => { try { localStorage.setItem(SAVED, JSON.stringify(a.slice(0, 200))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(SAVED); } catch (e) {} };
   function nextInvNo() { const n = (parseInt(localStorage.getItem(SEQ) || '100', 10) || 100) + 1; localStorage.setItem(SEQ, String(n)); return 'FIS0' + n; }
@@ -50,9 +58,9 @@
   let model = null;
   function fresh() {
     return {
-      id: uid('inv-'), invNo: nextInvNo(), invDate: today(), terms: 'Due on Receipt', dueDate: today(), eway: '',
-      placeOfSupply: 'Karnataka (29)', type: 'state', gstRate: 18,
-      billName: '', billGst: '', billAddr: '', sameShip: true, shipName: '', shipGst: '', shipAddr: '',
+      id: uid('inv-'), invNo: nextInvNo(), invDate: today(), terms: 'Due on Receipt', dueDate: today(), eway: '', orderNo: '', salesperson: '', subject: '',
+      posCode: CO_STATE, placeOfSupply: posLabel(CO_STATE), type: 'state', gstRate: 18,
+      custId: '', billName: '', billGst: '', billAddr: '', sameShip: true, shipName: '', shipGst: '', shipAddr: '',
       items: [blank()], discountPct: 0, status: 'draft', sentAt: '', approvedAt: '',
       notes: 'Looking forward for your business.',
       tcDelivery: 'Packing & Delivery charges extra at actuals.',
@@ -83,35 +91,39 @@
     let out = 'Indian Rupee ' + (s.trim() || 'Zero'); if (paise) out += ' and ' + two(paise) + ' Paise'; return out.replace(/\s+/g, ' ') + ' Only';
   }
 
+  function seedCusts() {
+    if (localStorage.getItem('fixo_inno_cust_seed') === '1') return;
+    if (!loadCusts().length) storeCusts([{ id: 'cust-thrivasol', name: 'THRIVASOL RENEWABLE TECHNOLOGIES PRIVATE LIMITED', gstin: '29AANCT2412M1ZX', stateCode: '29', billAddr: '', shipAddr: '', email: '', phone: '' }]);
+    localStorage.setItem('fixo_inno_cust_seed', '1');
+  }
   // ---------- builder UI ----------
   function render() {
     const host = document.getElementById('invoice-app'); if (!host) return;
+    seedCusts();
     if (!model) model = fresh();
+    const taxMode = model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)';
     host.innerHTML = `
       <div class="inv-wrap">
-        <div class="inv-head">
-          <div class="inv-head-l"><img src="${CO.logo}" onerror="this.style.display='none'" class="inv-logo"><div><h2>Tax Invoice <span class="inv-chip ${(STATUS[model.status] || STATUS.draft).cls}">${(STATUS[model.status] || STATUS.draft).label}</span></h2><p class="inv-sub">${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</p></div></div>
+        <div class="inv-hero">
+          <div class="inv-hero-l"><img src="${CO.logo}" onerror="this.style.display='none'" class="inv-hero-logo"><div><h2>Inno Invoice Gen</h2><p>${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</p></div></div>
+          <div class="inv-hero-r"><span class="inv-chip ${(STATUS[model.status] || STATUS.draft).cls}">${(STATUS[model.status] || STATUS.draft).label}</span><div class="inv-hero-no">${esc(model.invNo)}</div></div>
         </div>
         <div class="inv-topbtns">
           <button class="cp-btn small" id="inv-new">＋ New invoice</button>
-          <button class="cp-btn small" id="inv-save">💾 Save invoice</button>
+          <button class="cp-btn small" id="inv-save">💾 Save</button>
           <button class="cp-btn small" id="inv-saved">📋 Invoice records</button>
         </div>
 
         <div class="inv-card">
-          <div class="inv-fields">
-            <label>Invoice No<input id="f-no" value="${esc(model.invNo)}"></label>
-            <label>Invoice Date<input id="f-date" value="${esc(model.invDate)}"></label>
-            <label>Terms<input id="f-terms" value="${esc(model.terms)}"></label>
-            <label>Due Date<input id="f-due" value="${esc(model.dueDate)}"></label>
-            <label>E-Way Bill#<input id="f-eway" value="${esc(model.eway)}"></label>
-            <label>Place of Supply<input id="f-pos" value="${esc(model.placeOfSupply)}"></label>
+          <div class="inv-card-h"><span class="inv-step">1</span> Customer</div>
+          <div class="inv-cust-pick">
+            <div class="inv-cust-box">
+              <input id="f-customer" class="inv-in inv-cust-in" placeholder="Select or add a customer…" value="${esc(model.billName)}" autocomplete="off">
+              <div class="inv-cust-dd" id="inv-cust-dd" hidden></div>
+            </div>
+            <button class="cp-btn" id="inv-newcust">＋ New customer</button>
           </div>
-          <div class="inv-tax-row">
-            <div class="inv-seg"><button class="inv-segb ${model.type === 'state' ? 'active' : ''}" data-type="state">State (CGST+SGST)</button><button class="inv-segb ${model.type === 'inter' ? 'active' : ''}" data-type="inter">Inter-state (IGST)</button></div>
-            <label class="inv-gst">GST %<input id="f-gst" type="number" value="${model.gstRate}" min="0" step="0.5"></label>
-            <label class="inv-gst">Discount %<input id="f-disc" type="number" value="${model.discountPct}" min="0" step="0.5"></label>
-          </div>
+          ${model.billName ? `<div class="inv-cust-info">${model.billGst ? '🧾 GSTIN ' + esc(model.billGst) + ' · ' : ''}📍 ${esc(model.placeOfSupply || '—')}${model.billAddr ? '<br>' + esc(model.billAddr) : ''}</div>` : ''}
         </div>
 
         <div class="inv-two">
@@ -119,7 +131,6 @@
             <input id="f-bname" class="inv-in" placeholder="Customer name" value="${esc(model.billName)}">
             <input id="f-bgst" class="inv-in" placeholder="GSTIN" value="${esc(model.billGst)}">
             <textarea id="f-baddr" class="inv-in" rows="2" placeholder="Billing address">${esc(model.billAddr)}</textarea>
-            <datalist id="inv-custs">${[...new Set(loadSaved().map(r => r.model && r.model.billName).filter(Boolean))].map(n => `<option value="${esc(n)}">`).join('')}</datalist>
           </div>
           <div class="inv-card"><div class="inv-card-h">Ship To <label class="inv-same"><input type="checkbox" id="f-same" ${model.sameShip ? 'checked' : ''}> same as Bill To</label></div>
             <input id="f-sname" class="inv-in" placeholder="Ship name" value="${esc(model.shipName)}" ${model.sameShip ? 'disabled' : ''}>
@@ -129,7 +140,27 @@
         </div>
 
         <div class="inv-card">
-          <div class="inv-card-h">Items <button class="cp-btn small" id="inv-add">+ Add row</button><button class="cp-btn small" id="inv-pick">🔎 Pick product</button></div>
+          <div class="inv-card-h"><span class="inv-step">2</span> Invoice details</div>
+          <div class="inv-fields">
+            <label>Invoice No<input id="f-no" value="${esc(model.invNo)}"></label>
+            <label>Invoice Date<input id="f-date" value="${esc(model.invDate)}"></label>
+            <label>Order No (PO)<input id="f-order" value="${esc(model.orderNo || '')}"></label>
+            <label>Terms<input id="f-terms" value="${esc(model.terms)}"></label>
+            <label>Due Date<input id="f-due" value="${esc(model.dueDate)}"></label>
+            <label>E-Way Bill#<input id="f-eway" value="${esc(model.eway)}"></label>
+            <label>Salesperson<input id="f-sales" value="${esc(model.salesperson || '')}"></label>
+            <label>Place of Supply<select id="f-pos">${STATES.map(s => `<option value="${s[0]}" ${s[0] === model.posCode ? 'selected' : ''}>[${s[0]}] ${s[1]}</option>`).join('')}</select></label>
+            <label class="inv-wide2">Subject<input id="f-subject" value="${esc(model.subject || '')}" placeholder="What this invoice is for"></label>
+          </div>
+          <div class="inv-tax-row">
+            <span class="inv-taxmode" id="f-taxmode">🧮 ${taxMode}</span>
+            <label class="inv-gst">GST %<input id="f-gst" type="number" value="${model.gstRate}" min="0" step="0.5"></label>
+            <label class="inv-gst">Discount %<input id="f-disc" type="number" value="${model.discountPct}" min="0" step="0.5"></label>
+          </div>
+        </div>
+
+        <div class="inv-card">
+          <div class="inv-card-h"><span class="inv-step">3</span> Items <button class="cp-btn small" id="inv-add">+ Add row</button><button class="cp-btn small" id="inv-pick">🔎 Pick product</button></div>
           <datalist id="inv-prods">${PRODUCTS.map(p => `<option value="${esc(p.name)}">`).join('')}</datalist>
           <div class="inv-items-wrap"><table class="inv-tbl"><thead><tr><th>#</th><th>Item &amp; Description</th><th>SKU</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th></tr></thead><tbody id="inv-rows"></tbody></table></div>
         </div>
@@ -148,9 +179,10 @@
         <button class="inv-bigbtn" id="inv-verify">🖨 Verify &amp; Print — preview as PDF</button>
 
         <div class="inv-stage">
-          <div class="inv-stage-lab">Invoice stage</div>
+          <div class="inv-stage-lab">Save &amp; send</div>
           <div class="inv-stage-btns">
-            <button class="cp-btn" id="inv-sent">📤 Mark sent to client</button>
+            <button class="cp-btn" id="inv-draft">💾 Save as Draft</button>
+            <button class="cp-btn cp-btn-go" id="inv-send">📤 Save &amp; Send to client</button>
             <button class="cp-btn inv-ok" id="inv-appr">✓ Client approved</button>
             <button class="cp-btn inv-no" id="inv-decl">✕ Not approved</button>
           </div>
@@ -158,25 +190,74 @@
         </div>
       </div>`;
 
-    const bind = (id, key) => { const el = document.getElementById(id); if (el) el.oninput = () => { model[key] = el.value; if (['f-gst', 'f-disc'].includes(id)) renderTotals(); }; };
-    ['f-no:invNo', 'f-date:invDate', 'f-terms:terms', 'f-due:dueDate', 'f-eway:eway', 'f-pos:placeOfSupply', 'f-bname:billName', 'f-bgst:billGst', 'f-baddr:billAddr', 'f-sname:shipName', 'f-sgst:shipGst', 'f-saddr:shipAddr', 'f-notes:notes', 'f-tcd:tcDelivery', 'f-tcp:tcPayment', 'f-tcn:tcNote'].forEach(p => { const [id, key] = p.split(':'); bind(id, key); });
+    const bind = (id, key) => { const el = document.getElementById(id); if (el) el.oninput = () => { model[key] = el.value; }; };
+    ['f-no:invNo', 'f-date:invDate', 'f-order:orderNo', 'f-terms:terms', 'f-due:dueDate', 'f-eway:eway', 'f-sales:salesperson', 'f-subject:subject', 'f-bname:billName', 'f-bgst:billGst', 'f-baddr:billAddr', 'f-sname:shipName', 'f-sgst:shipGst', 'f-saddr:shipAddr', 'f-notes:notes', 'f-tcd:tcDelivery', 'f-tcp:tcPayment', 'f-tcn:tcNote'].forEach(p => { const [id, key] = p.split(':'); bind(id, key); });
     document.getElementById('f-gst').oninput = e => { model.gstRate = num(e.target.value); renderTotals(); };
     document.getElementById('f-disc').oninput = e => { model.discountPct = num(e.target.value); renderTotals(); };
-    document.getElementById('f-bname').setAttribute('list', 'inv-custs');
-    document.getElementById('f-bname').addEventListener('change', () => { const r = loadSaved().find(x => x.model && x.model.billName === model.billName); if (r && r.model) { model.billGst = r.model.billGst || ''; model.billAddr = r.model.billAddr || ''; document.getElementById('f-bgst').value = model.billGst; document.getElementById('f-baddr').value = model.billAddr; } });
+    // Place of Supply drives CGST+SGST (same state as company) vs IGST (inter-state).
+    document.getElementById('f-pos').onchange = e => { applyPos(e.target.value); const tm = document.getElementById('f-taxmode'); if (tm) tm.textContent = '🧮 ' + (model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)'); renderTotals(); };
     document.getElementById('f-same').onchange = e => { model.sameShip = e.target.checked; render(); };
-    host.querySelectorAll('[data-type]').forEach(b => b.onclick = () => { model.type = b.dataset.type; render(); });
+    attachCustomerPicker();
+    document.getElementById('inv-newcust').onclick = () => newCustomer();
     document.getElementById('inv-new').onclick = () => { model = fresh(); render(); };
     document.getElementById('inv-save').onclick = () => saveInvoice();
     document.getElementById('inv-saved').onclick = openSaved;
     document.getElementById('inv-verify').onclick = openEditor;
-    document.getElementById('inv-sent').onclick = () => setStatus('sent');
+    document.getElementById('inv-draft').onclick = () => setStatus('draft', true);
+    document.getElementById('inv-send').onclick = () => setStatus('sent', true);
     document.getElementById('inv-appr').onclick = () => setStatus('approved');
     document.getElementById('inv-decl').onclick = () => setStatus('declined');
     updateStageHint();
     document.getElementById('inv-add').onclick = () => { model.items.push(blank()); renderRows(); renderTotals(); };
     document.getElementById('inv-pick').onclick = pickProduct;
     renderRows(); renderTotals();
+  }
+
+  // Place-of-supply → tax type. Same state as the company (Karnataka 29) ⇒ intra
+  // (CGST+SGST); any other state ⇒ inter-state (IGST).
+  function applyPos(code) { model.posCode = code; model.placeOfSupply = posLabel(code); model.type = code === CO_STATE ? 'state' : 'inter'; }
+
+  // Customer-first selector (Zoho-style): search saved customers, auto-fill
+  // billing/shipping + GSTIN + place of supply; or add a new customer.
+  function applyCustomer(c) {
+    model.custId = c.id; model.billName = c.name || ''; model.billGst = c.gstin || ''; model.billAddr = c.billAddr || '';
+    model.shipName = c.shipName || c.name || ''; model.shipGst = c.gstin || ''; model.shipAddr = c.shipAddr || c.billAddr || '';
+    const code = c.stateCode || gstStateCode(c.gstin) || model.posCode; applyPos(code);
+    render();
+  }
+  function attachCustomerPicker() {
+    const inp = document.getElementById('f-customer'), dd = document.getElementById('inv-cust-dd'); if (!inp || !dd) return;
+    const draw = () => {
+      const q = inp.value.trim().toLowerCase();
+      const list = loadCusts().filter(c => !q || (c.name || '').toLowerCase().includes(q)).slice(0, 8);
+      dd.innerHTML = list.map(c => `<button class="inv-cust-row" data-cid="${c.id}"><b>${esc(c.name)}</b><span>${esc([c.gstin, posLabel(c.stateCode || gstStateCode(c.gstin))].filter(Boolean).join(' · '))}</span></button>`).join('') + `<button class="inv-cust-row inv-cust-new" data-new="1">＋ Add “${esc(inp.value || 'new customer')}”</button>`;
+      dd.hidden = false;
+      dd.querySelectorAll('[data-cid]').forEach(b => b.onclick = () => { const c = loadCusts().find(x => x.id === b.dataset.cid); dd.hidden = true; if (c) applyCustomer(c); });
+      dd.querySelector('[data-new]').onclick = () => { dd.hidden = true; newCustomer(inp.value.trim()); };
+    };
+    inp.onfocus = draw; inp.oninput = () => { model.billName = inp.value; draw(); };
+    inp.onblur = () => setTimeout(() => { dd.hidden = true; }, 180);
+  }
+  function newCustomer(preName) {
+    const m = modal(`<h3>＋ New customer</h3>
+      <div class="fx-modal-body inv-form">
+        <label class="inv-lab">Customer name *</label><input class="inv-in" id="nc-name" value="${esc(preName || '')}">
+        <div class="inv-two2"><div><label class="inv-lab">GSTIN</label><input class="inv-in" id="nc-gst" placeholder="29AABC..."></div>
+          <div><label class="inv-lab">State (Place of Supply)</label><select class="inv-in" id="nc-state">${STATES.map(s => `<option value="${s[0]}" ${s[0] === CO_STATE ? 'selected' : ''}>[${s[0]}] ${s[1]}</option>`).join('')}</select></div></div>
+        <label class="inv-lab">Billing address</label><textarea class="inv-in" id="nc-baddr" rows="2"></textarea>
+        <label class="inv-lab">Shipping address (optional)</label><textarea class="inv-in" id="nc-saddr" rows="2"></textarea>
+        <div class="inv-two2"><div><label class="inv-lab">Email</label><input class="inv-in" id="nc-email"></div><div><label class="inv-lab">Phone</label><input class="inv-in" id="nc-phone"></div></div>
+      </div>
+      <div class="inv-modal-act"><button class="cp-btn" data-x>Cancel</button><button class="cp-btn cp-btn-go" data-ok>Save &amp; select</button></div>`);
+    const g = (id) => m.querySelector('#' + id);
+    g('nc-gst').oninput = () => { const code = gstStateCode(g('nc-gst').value); if (code) g('nc-state').value = code; };
+    m.querySelector('[data-x]').onclick = () => m.remove();
+    m.querySelector('[data-ok]').onclick = () => {
+      const name = g('nc-name').value.trim(); if (!name) { toast('Enter a name'); return; }
+      const c = { id: uid('cust-'), name, gstin: g('nc-gst').value.trim().toUpperCase(), stateCode: g('nc-state').value, billAddr: g('nc-baddr').value.trim(), shipAddr: g('nc-saddr').value.trim(), email: g('nc-email').value.trim(), phone: g('nc-phone').value.trim() };
+      const list = loadCusts().filter(x => x.name.toLowerCase() !== name.toLowerCase()); list.unshift(c); storeCusts(list);
+      m.remove(); applyCustomer(c); toast('Customer saved');
+    };
   }
 
   function rowHtml(it, i) {

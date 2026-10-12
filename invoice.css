@@ -105,3 +105,29 @@
 .inv-rec-act .cp-btn { padding: 5px 9px; font-size: 12px; }
 .so-del { border: none; background: #fef2f2; color: #b91c1c; width: 30px; border-radius: 7px; cursor: pointer; }
 .so-empty { text-align: center; color: #94a3b8; padding: 24px; }
+
+/* ===== Inno Invoice Gen — premium UI ===== */
+.inv-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; background: linear-gradient(120deg,#0b1f4e,#1e3a8a 55%,#2563eb); color: #fff; border-radius: 18px; padding: 18px 22px; box-shadow: 0 10px 28px rgba(30,58,138,.28); margin-bottom: 16px; }
+.inv-hero-l { display: flex; align-items: center; gap: 14px; }
+.inv-hero-logo { height: 46px; background: #fff; padding: 6px 10px; border-radius: 10px; }
+.inv-hero h2 { margin: 0; font-size: 22px; color: #fff; letter-spacing: .2px; }
+.inv-hero p { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,.85); }
+.inv-hero-r { text-align: right; }
+.inv-hero-no { font-size: 20px; font-weight: 900; margin-top: 6px; color: #fff; }
+.inv-card-h .inv-step { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #1e3a8a; color: #fff; font-size: 12px; font-weight: 800; margin-right: 8px; }
+
+.inv-cust-pick { display: flex; gap: 10px; align-items: flex-start; }
+.inv-cust-box { position: relative; flex: 1; }
+.inv-cust-in { margin-bottom: 0; font-size: 15px; padding: 12px 14px; }
+.inv-cust-dd { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e3e8f0; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.14); z-index: 30; overflow: hidden; max-height: 280px; overflow-y: auto; }
+.inv-cust-row { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; border: none; background: #fff; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.inv-cust-row:hover { background: #eff6ff; }
+.inv-cust-row b { font-size: 13.5px; }
+.inv-cust-row span { font-size: 11px; color: #64748b; }
+.inv-cust-new { color: #1e3a8a; font-weight: 700; }
+.inv-cust-info { margin-top: 10px; font-size: 12.5px; color: #475569; background: #f1f5f9; border-radius: 10px; padding: 9px 12px; }
+.inv-wide2 { grid-column: 1 / -1; }
+.inv-taxmode { font-size: 12.5px; font-weight: 700; color: #1e3a8a; background: #eff6ff; border: 1px solid #dbe4f5; border-radius: 10px; padding: 8px 12px; }
+.inv-two2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.inv-form .inv-lab { margin-top: 10px; }
+@media (max-width: 760px) { .inv-two2 { grid-template-columns: 1fr; } .inv-cust-pick { flex-direction: column; } .inv-cust-pick .cp-btn { width: 100%; } }
