@@ -106,14 +106,20 @@
 .so-del { border: none; background: #fef2f2; color: #b91c1c; width: 30px; border-radius: 7px; cursor: pointer; }
 .so-empty { text-align: center; color: #94a3b8; padding: 24px; }
 
-/* ===== Inno Invoice Gen — premium UI ===== */
-.inv-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; background: linear-gradient(120deg,#0b1f4e,#1e3a8a 55%,#2563eb); color: #fff; border-radius: 18px; padding: 18px 22px; box-shadow: 0 10px 28px rgba(30,58,138,.28); margin-bottom: 16px; }
-.inv-hero-l { display: flex; align-items: center; gap: 14px; }
-.inv-hero-logo { height: 46px; background: #fff; padding: 6px 10px; border-radius: 10px; }
-.inv-hero h2 { margin: 0; font-size: 22px; color: #fff; letter-spacing: .2px; }
-.inv-hero p { margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,.85); }
-.inv-hero-r { text-align: right; }
-.inv-hero-no { font-size: 20px; font-weight: 900; margin-top: 6px; color: #fff; }
+/* ===== Inno Invoice Gen — premium UI (clean white header, like Smart Calculator) ===== */
+.inv-header { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  background: #fff; border: 1px solid #e6eaf0; border-radius: 16px; padding: 16px 24px; box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); margin-bottom: 16px; }
+.inv-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,#1e3a8a,#3b82f6,#f59e0b); }
+.inv-header-left { display: flex; align-items: center; gap: 20px; }
+.inv-header-logo { height: 46px; object-fit: contain; }
+.inv-header-divider { width: 1px; height: 42px; background: linear-gradient(to bottom, transparent, #e2e8f0, transparent); }
+.inv-h-title { font-size: 16px; font-weight: 400; letter-spacing: 2px; color: #94a3b8; line-height: 1.1; }
+.inv-h-bold { font-weight: 900; color: #1e3a8a; font-size: 22px; letter-spacing: 1px; }
+.inv-h-sub { font-size: 9px; letter-spacing: 3px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
+.inv-header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.inv-h-no { font-size: 20px; font-weight: 900; color: #1e3a8a; letter-spacing: .5px; }
+.inv-h-co { font-size: 10px; color: #94a3b8; }
+.inv-header .inv-chip { margin-left: 0; }
 .inv-card-h .inv-step { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #1e3a8a; color: #fff; font-size: 12px; font-weight: 800; margin-right: 8px; }
 
 .inv-cust-pick { display: flex; gap: 10px; align-items: flex-start; }
@@ -131,3 +137,21 @@
 .inv-two2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .inv-form .inv-lab { margin-top: 10px; }
 @media (max-width: 760px) { .inv-two2 { grid-template-columns: 1fr; } .inv-cust-pick { flex-direction: column; } .inv-cust-pick .cp-btn { width: 100%; } }
+
+/* consistency pass — match Smart Calculator's clean look */
+.inv-card { border-radius: 16px; box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); }
+.inv-card-h { text-transform: uppercase; letter-spacing: .5px; font-size: 12px; color: #475569; }
+.inv-in, .inv-fields input, .inv-fields select { transition: border-color .15s, box-shadow .15s; }
+.inv-in:focus, .inv-fields input:focus, .inv-fields select:focus, .inv-gst input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.inv-topbtns .cp-btn { border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+.inv-topbtns .cp-btn:hover { background: #eff6ff; border-color: #bfdbfe; }
+.inv-wrap { padding-top: 10px; }
+
+@media (max-width: 640px) {
+  .inv-header { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+  .inv-header-left { gap: 12px; }
+  .inv-header-logo { height: 38px; }
+  .inv-h-bold { font-size: 19px; }
+  .inv-header-right { align-items: flex-start; text-align: left; width: 100%; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .inv-h-co { width: 100%; }
+}

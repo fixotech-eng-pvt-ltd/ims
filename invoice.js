@@ -104,9 +104,20 @@
     const taxMode = model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)';
     host.innerHTML = `
       <div class="inv-wrap">
-        <div class="inv-hero">
-          <div class="inv-hero-l"><img src="${CO.logo}" onerror="this.style.display='none'" class="inv-hero-logo"><div><h2>Inno Invoice Gen</h2><p>${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</p></div></div>
-          <div class="inv-hero-r"><span class="inv-chip ${(STATUS[model.status] || STATUS.draft).cls}">${(STATUS[model.status] || STATUS.draft).label}</span><div class="inv-hero-no">${esc(model.invNo)}</div></div>
+        <div class="inv-header">
+          <div class="inv-header-left">
+            <img src="${CO.logo}" onerror="this.style.display='none'" class="inv-header-logo">
+            <div class="inv-header-divider"></div>
+            <div class="inv-header-titles">
+              <div class="inv-h-title">INNO <span class="inv-h-bold">INVOICE GEN</span></div>
+              <div class="inv-h-sub">GST Tax Invoicing</div>
+            </div>
+          </div>
+          <div class="inv-header-right">
+            <span class="inv-chip ${(STATUS[model.status] || STATUS.draft).cls}">${(STATUS[model.status] || STATUS.draft).label}</span>
+            <div class="inv-h-no">${esc(model.invNo)}</div>
+            <div class="inv-h-co">${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</div>
+          </div>
         </div>
         <div class="inv-topbtns">
           <button class="cp-btn small" id="inv-new">＋ New invoice</button>
