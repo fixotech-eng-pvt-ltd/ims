@@ -70,6 +70,30 @@
   }
   const blank = () => ({ desc: '', sku: '', hsn: '', qty: '', unit: 'NOS', rate: '' });
 
+  // ---------- working sessions (like the Smart Calculator's Order 1/2/3) ----------
+  // Multiple invoices open at once; auto-saved so a reload (or accidental refresh)
+  // never loses work — only "Clear" empties the current one.
+  const SESS = 'fixo_inno_sessions';
+  let sessions = [], activeIdx = 0;
+  function loadSessions() {
+    try { const s = JSON.parse(localStorage.getItem(SESS) || 'null'); if (s && Array.isArray(s.sessions) && s.sessions.filter(Boolean).length) { sessions = s.sessions.filter(Boolean); activeIdx = Math.min(s.activeIdx || 0, sessions.length - 1); model = sessions[activeIdx]; return; } } catch (e) {}
+    sessions = [fresh()]; activeIdx = 0; model = sessions[activeIdx];
+  }
+  function persistSessions() { try { if (model) sessions[activeIdx] = model; if (!sessions.length) return; localStorage.setItem(SESS, JSON.stringify({ sessions, activeIdx })); } catch (e) {} }
+  function newSession() { persistSessions(); sessions.push(fresh()); activeIdx = sessions.length - 1; model = sessions[activeIdx]; render(); persistSessions(); }
+  function switchSession(i) { if (i === activeIdx) return; persistSessions(); activeIdx = i; model = sessions[activeIdx]; render(); }
+  function closeSession(i) {
+    persistSessions();
+    if (sessions.length <= 1) { sessions = [fresh()]; activeIdx = 0; }
+    else { sessions.splice(i, 1); activeIdx = Math.min(i, sessions.length - 1); }
+    model = sessions[activeIdx]; render(); persistSessions();
+  }
+  function clearSession() {
+    if (!confirm('Clear this invoice and start fresh? (Saved invoice records are not affected.)')) return;
+    sessions[activeIdx] = fresh(); model = sessions[activeIdx]; render(); persistSessions();
+  }
+  function sessLabel(m) { const c = (m.billName || '').trim(); return c ? c.slice(0, 18) : (m.invNo || 'Invoice'); }
+
   function totals(m) {
     const sub = m.items.reduce((s, it) => s + num(it.qty) * num(it.rate), 0);
     const disc = Math.round(sub * num(m.discountPct) / 100 * 100) / 100;
@@ -100,8 +124,10 @@
   function render() {
     const host = document.getElementById('invoice-app'); if (!host) return;
     seedCusts();
-    if (!model) model = fresh();
+    if (!sessions.length) loadSessions();
+    model = sessions[activeIdx];
     const taxMode = model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)';
+    const sessTabs = sessions.map((s, i) => `<div class="inv-sess-tab ${i === activeIdx ? 'active' : ''}" data-si="${i}"><span class="inv-sess-no">${esc(s.invNo || ('Invoice ' + (i + 1)))}</span><span class="inv-sess-sub">${esc(sessLabel(s) === (s.invNo || '') ? 'New' : sessLabel(s))}</span>${sessions.length > 1 ? `<span class="inv-sess-close" data-close="${i}" title="Close">×</span>` : ''}</div>`).join('');
     host.innerHTML = `
       <div class="inv-wrap">
         <div class="inv-header">
@@ -119,10 +145,15 @@
             <div class="inv-h-co">${esc(CO.name)} · GSTIN ${esc(CO.gstin)}</div>
           </div>
         </div>
+        <div class="inv-sess-bar">
+          <div class="inv-sess-tabs" id="inv-sess-tabs">${sessTabs}</div>
+          <button class="inv-sess-add" id="inv-sess-add" title="New invoice session">＋</button>
+        </div>
         <div class="inv-topbtns">
-          <button class="cp-btn small" id="inv-new">＋ New invoice</button>
           <button class="cp-btn small" id="inv-save">💾 Save</button>
           <button class="cp-btn small" id="inv-saved">📋 Invoice records</button>
+          <button class="cp-btn small" id="inv-tally">🧮 Tally code</button>
+          <button class="cp-btn small inv-clear" id="inv-clear">🗑 Clear</button>
         </div>
 
         <div class="inv-card">
@@ -210,9 +241,14 @@
     document.getElementById('f-same').onchange = e => { model.sameShip = e.target.checked; render(); };
     attachCustomerPicker();
     document.getElementById('inv-newcust').onclick = () => newCustomer();
-    document.getElementById('inv-new').onclick = () => { model = fresh(); render(); };
+    document.getElementById('inv-sess-add').onclick = () => newSession();
+    document.getElementById('inv-sess-tabs').querySelectorAll('.inv-sess-tab').forEach(t => {
+      t.onclick = (e) => { if (e.target.dataset.close != null) { closeSession(+e.target.dataset.close); return; } switchSession(+t.dataset.si); };
+    });
     document.getElementById('inv-save').onclick = () => saveInvoice();
     document.getElementById('inv-saved').onclick = openSaved;
+    document.getElementById('inv-tally').onclick = () => openTally([model], 'Tally code — ' + (model.invNo || 'this invoice'));
+    document.getElementById('inv-clear').onclick = () => clearSession();
     document.getElementById('inv-verify').onclick = openEditor;
     document.getElementById('inv-draft').onclick = () => setStatus('draft', true);
     document.getElementById('inv-send').onclick = () => setStatus('sent', true);
@@ -343,29 +379,36 @@
   function openSaved() {
     const m = modal(`<h3>Invoice records</h3>
       <div class="inv-rec-bar" id="inv-rec-bar"></div>
+      <div class="inv-rec-tally"><button class="cp-btn small" id="inv-rec-tally-all">🧮 Export all to Tally</button><button class="cp-btn small" id="inv-rec-tally-view">🧮 Tally — this view</button></div>
       <div class="modal-body" id="inv-rec-list"></div>
       <div class="inv-modal-act"><button class="cp-btn" data-x>Close</button></div>`);
     m.querySelector('[data-x]').onclick = () => m.remove();
+    const isDone = (r) => (r.status || 'draft') !== 'draft';
+    const viewList = () => { let list = loadSaved(); if (recFilter === 'draft') list = list.filter(r => !isDone(r)); else if (recFilter === 'completed') list = list.filter(r => isDone(r)); return list; };
+    m.querySelector('#inv-rec-tally-all').onclick = () => { const all = loadSaved(); if (!all.length) return toast('No invoices to export'); openTally(all.map(r => r.model), 'Tally code — all invoices (' + all.length + ')'); };
+    m.querySelector('#inv-rec-tally-view').onclick = () => { const list = viewList(); if (!list.length) return toast('Nothing in this view'); openTally(list.map(r => r.model), 'Tally code — ' + recFilter + ' (' + list.length + ')'); };
     const drawBar = () => {
       const all = loadSaved();
-      const count = (k) => k === 'all' ? all.length : all.filter(r => (r.status || 'draft') === k).length;
+      const count = (k) => k === 'all' ? all.length : k === 'draft' ? all.filter(r => !isDone(r)).length : all.filter(r => isDone(r)).length;
       const f = (k, lbl) => `<button class="inv-rec-f ${recFilter === k ? 'active' : ''}" data-f="${k}">${lbl} <em>${count(k)}</em></button>`;
-      m.querySelector('#inv-rec-bar').innerHTML = f('all', 'All') + f('draft', '📝 Draft') + f('sent', '📤 Sent') + f('approved', '✓ Approved') + f('declined', '✕ Not approved');
+      m.querySelector('#inv-rec-bar').innerHTML = f('draft', '📝 Drafts') + f('completed', '✓ Completed') + f('all', 'All');
       m.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { recFilter = b.dataset.f; drawBar(); drawList(); });
     };
     const drawList = () => {
-      let list = loadSaved(); if (recFilter !== 'all') list = list.filter(r => (r.status || 'draft') === recFilter);
+      const list = viewList();
       const el = m.querySelector('#inv-rec-list');
       el.innerHTML = list.length ? list.map(r => { const st = STATUS[r.status || 'draft'] || STATUS.draft; return `<div class="inv-rec-row">
         <div class="inv-rec-main"><b>${esc(r.customer || 'Invoice')}</b> <span class="inv-chip ${st.cls}">${st.label}</span><span class="inv-rec-sub">${esc(r.invNo)} · ${esc(r.savedAt)} · ₹${money(r.total)}</span></div>
         <div class="inv-rec-act">
           <button class="cp-btn so-open" data-id="${r.id}">Open</button>
+          <button class="cp-btn" data-tally="${r.id}" title="Tally code">🧮</button>
           <button class="cp-btn" data-sent="${r.id}" title="Mark sent">📤</button>
           <button class="cp-btn inv-ok" data-appr="${r.id}" title="Approved">✓</button>
           <button class="cp-btn inv-no" data-decl="${r.id}" title="Not approved">✕</button>
           <button class="so-del" data-id="${r.id}">×</button>
         </div></div>`; }).join('') : '<div class="so-empty">No invoices in this view.</div>';
-      el.querySelectorAll('.so-open').forEach(b => b.onclick = () => { const r = loadSaved().find(x => x.id === b.dataset.id); if (r) { model = JSON.parse(JSON.stringify(r.model)); m.remove(); render(); toast('Reopened ' + (r.customer || '')); } });
+      el.querySelectorAll('.so-open').forEach(b => b.onclick = () => { const r = loadSaved().find(x => x.id === b.dataset.id); if (r) { sessions[activeIdx] = JSON.parse(JSON.stringify(r.model)); model = sessions[activeIdx]; persistSessions(); m.remove(); render(); toast('Reopened ' + (r.customer || '')); } });
+      el.querySelectorAll('[data-tally]').forEach(b => b.onclick = () => { const r = loadSaved().find(x => x.id === b.dataset.tally); if (r) openTally([r.model], 'Tally code — ' + (r.invNo || '')); });
       el.querySelectorAll('.so-del').forEach(b => b.onclick = () => { storeSaved(loadSaved().filter(x => x.id !== b.dataset.id)); drawBar(); drawList(); });
       const setRec = (id, st) => { const all = loadSaved(); const r = all.find(x => x.id === id); if (r) { r.status = st; if (r.model) { r.model.status = st; if (st === 'sent' && !r.model.sentAt) r.model.sentAt = new Date().toLocaleString('en-IN'); if (st === 'approved') r.model.approvedAt = new Date().toLocaleString('en-IN'); } storeSaved(all); if (model && model.id === id) { model.status = st; } drawBar(); drawList(); toast('Marked ' + (STATUS[st] || {}).label); } };
       el.querySelectorAll('[data-sent]').forEach(b => b.onclick = () => setRec(b.dataset.sent, 'sent'));
@@ -453,7 +496,76 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     m.querySelector('[data-print]').onclick = () => { commit(); draw(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
 
+  // ---------- Tally export (copy/paste XML — no live connection) ----------
+  // Generates standard Tally "Import Data" Sales vouchers. The user pastes the
+  // XML into Tally (Gateway → Import Data → Vouchers) or saves the .xml file and
+  // imports it. Accounting voucher: Party Dr, Sales Cr (taxable), GST ledgers Cr.
+  function tallyDate(d) { const m = String(d || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (!m) { const t = new Date(); return t.getFullYear() + String(t.getMonth() + 1).padStart(2, '0') + String(t.getDate()).padStart(2, '0'); } let y = m[3]; if (y.length === 2) y = '20' + y; return y + m[2].padStart(2, '0') + m[1].padStart(2, '0'); }
+  function xesc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function ledgerEntry(name, deemedPos, amount) { return `<ALLLEDGERENTRIES.LIST><LEDGERNAME>${xesc(name)}</LEDGERNAME><ISDEEMEDPOSITIVE>${deemedPos ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE><AMOUNT>${amount.toFixed(2)}</AMOUNT></ALLLEDGERENTRIES.LIST>`; }
+  function tallyVoucher(mo) {
+    const t = totals(mo); const party = mo.billName || 'Cash'; const dt = tallyDate(mo.invDate);
+    const narr = mo.items.filter(i => (i.desc || '').trim()).map(i => `${num(i.qty)} ${i.unit || ''} ${i.desc} @ ${money(i.rate)}`).join('; ');
+    let tax = '';
+    if (mo.type === 'state') { tax = ledgerEntry('Output CGST', false, t.cgst) + ledgerEntry('Output SGST', false, t.sgst); }
+    else { tax = ledgerEntry('Output IGST', false, t.igst); }
+    const round = +(t.grand - (t.taxable + t.cgst + t.sgst + t.igst)).toFixed(2);
+    // Balance the voucher: party Dr = grand; Sales + taxes + round-off = grand.
+    const roundEntry = round ? ledgerEntry('Round Off', round < 0, round) : '';
+    return `  <TALLYMESSAGE xmlns:UDF="TallyUDF">
+   <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Accounting Voucher View">
+    <DATE>${dt}</DATE>
+    <EFFECTIVEDATE>${dt}</EFFECTIVEDATE>
+    <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+    <VOUCHERNUMBER>${xesc(mo.invNo)}</VOUCHERNUMBER>
+    <PARTYLEDGERNAME>${xesc(party)}</PARTYLEDGERNAME>
+    <PARTYNAME>${xesc(party)}</PARTYNAME>
+    ${mo.orderNo ? `<REFERENCE>${xesc(mo.orderNo)}</REFERENCE>` : ''}
+    <PLACEOFSUPPLY>${xesc(stateName(mo.posCode))}</PLACEOFSUPPLY>
+    ${mo.billGst ? `<PARTYGSTIN>${xesc(mo.billGst)}</PARTYGSTIN>` : ''}
+    <NARRATION>${xesc(narr)}</NARRATION>
+${ledgerEntry(party, true, -t.grand)}
+${ledgerEntry('Sales', false, t.taxable)}
+${tax}${roundEntry ? '\n' + roundEntry : ''}
+   </VOUCHER>
+  </TALLYMESSAGE>`;
+  }
+  function tallyEnvelope(models) {
+    const vouchers = models.filter(Boolean).map(tallyVoucher).join('\n');
+    return `<ENVELOPE>
+ <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>${xesc(CO.name)}</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>
+   <REQUESTDATA>
+${vouchers}
+   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>`;
+  }
+  function openTally(models, title) {
+    const xml = tallyEnvelope(models);
+    const m = modal(`<h3>${xesc(title || 'Tally code')}</h3>
+      <p class="inv-tally-note">Copy this and paste into Tally (Gateway of Tally → Import Data → Vouchers), or download the .xml and import it. Ledgers used: the customer name, <b>Sales</b>, <b>Output CGST/SGST/IGST</b> — create them once in Tally if they don't exist.</p>
+      <textarea class="inv-tally-box" id="inv-tally-xml" readonly spellcheck="false">${xesc(xml)}</textarea>
+      <div class="inv-modal-act">
+        <button class="cp-btn cp-btn-go" id="inv-tally-copy">📋 Copy</button>
+        <button class="cp-btn" id="inv-tally-dl">⬇ Download .xml</button>
+        <button class="cp-btn" data-x>Close</button>
+      </div>`, 'inv-modal-wide');
+    m.querySelector('[data-x]').onclick = () => m.remove();
+    m.querySelector('#inv-tally-copy').onclick = () => { const ta = m.querySelector('#inv-tally-xml'); ta.select(); try { navigator.clipboard.writeText(xml); } catch (e) { document.execCommand('copy'); } toast('Tally code copied'); };
+    m.querySelector('#inv-tally-dl').onclick = () => { const blob = new Blob([xml], { type: 'application/xml' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tally-' + (models.length === 1 ? (models[0].invNo || 'invoice') : 'invoices') + '.xml'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Downloaded'); };
+  }
+
   function modal(inner, cls) { const el = document.createElement('div'); el.className = 'inv-overlay'; el.innerHTML = `<div class="inv-modal ${cls || ''}">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
+
+  // Keep the working sessions alive across reloads/accidental refresh — they only
+  // clear when the user clicks Clear. Autosave every 1.5s + on page unload.
+  loadSessions();
+  setInterval(() => { if (sessions.length) persistSessions(); }, 1500);
+  window.addEventListener('beforeunload', () => { if (sessions.length) persistSessions(); });
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-open-app="screen-invoice"]').forEach(b => b.addEventListener('click', () => setTimeout(render, 0)));
