@@ -188,8 +188,27 @@
 
 .inv-h-prov { font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: .3px; }
 
-/* ---------- convert source note ---------- */
+/* ---------- convert source note + chain strip ---------- */
 .inv-src-note { margin: 10px 0 0; padding: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; font-size: 12.5px; color: #1e40af; }
+.inv-chain { margin: 10px 0 0; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.inv-chain-node { padding: 4px 10px; border-radius: 8px; background: #fff; border: 1px solid #dfe4ee; color: #475569; cursor: pointer; }
+.inv-chain-node b { color: #1e293b; }
+.inv-chain-node:hover { background: #eff6ff; border-color: #bfdbfe; }
+.inv-chain-node.cur { background: #1e3a8a; border-color: #1e3a8a; color: #fff; }
+.inv-chain-node.cur b { color: #fff; }
+.inv-chain-arr { color: #94a3b8; font-weight: 700; }
+.cp-btn.inv-bypass { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+.cp-btn.inv-bypass:hover { background: #ffedd5; }
+
+/* ---------- admin: Inno data console ---------- */
+.adm-inno-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+.adm-inno-stat { text-align: left; padding: 14px 16px !important; cursor: pointer; border: 1px solid #e8edf5; }
+.adm-inno-stat b { display: block; font-size: 22px; font-weight: 900; color: #1e3a8a; }
+.adm-inno-stat span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }
+.adm-inno-stat:hover { background: #eff6ff; border-color: #bfdbfe; }
+.adm-inno-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-inno-replace { display: block; margin: 4px 0 8px; font-size: 13px; color: #475569; }
+.adm-inno-replace input { margin-right: 6px; }
 
 /* ---------- reports app ---------- */
 .rp-fy { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }

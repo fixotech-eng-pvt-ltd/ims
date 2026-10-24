@@ -19,6 +19,7 @@
         <button class="fx-tab ${tab === 'testing' ? 'active' : ''}" data-t="testing">🧪 Testing Mode</button>
         <button class="fx-tab ${tab === 'access' ? 'active' : ''}" data-t="access">👥 Access Control</button>
         <button class="fx-tab ${tab === 'monitor' ? 'active' : ''}" data-t="monitor">📊 Monitoring</button>
+        ${window.FIXO_DOC ? `<button class="fx-tab ${tab === 'inno' ? 'active' : ''}" data-t="inno">🏗️ Inno Data</button>` : ''}
         <button class="fx-tab ${tab === 'help' ? 'active' : ''}" data-t="help">🛠️ FixTech Help ${errOpen ? `<span class="fx-badge">${errOpen}</span>` : ''}</button>
       </div>
       <div id="admin-body"></div>`;
@@ -27,7 +28,69 @@
     if (tab === 'testing') renderTesting(body);
     else if (tab === 'access') renderAccess(body);
     else if (tab === 'monitor') renderMonitor(body);
+    else if (tab === 'inno') renderInno(body);
     else renderHelp(body);
+  }
+
+  // ---- Inno Structures data console (records · backup · real-data import) ----
+  function renderInno(body) {
+    const D = window.FIXO_DOC; if (!D) { body.innerHTML = '<div class="fx-empty"><p>Inno engine not loaded.</p></div>'; return; }
+    const s = D.innoSummary();
+    const stat = (lbl, n, id) => `<button class="fx-card adm-inno-stat" data-view="${id}"><b>${n}</b><span>${esc(lbl)}</span></button>`;
+    body.innerHTML = `
+      <div class="fx-card" style="padding:18px">
+        <h3 style="margin:0 0 4px">Inno Structures — live data</h3>
+        <p class="fx-meta">Everything created in Quotation, Sales Order and Invoice is recorded here. Back it up, or import the real Zoho history so the reports reflect actual figures.</p>
+        <div class="adm-inno-stats">
+          ${stat('Customers', s.customers, 'cust')}${stat('Inventory items', s.inventory, 'inv')}
+          ${stat('Quotations', s.quotes, 'QT')}${stat('Sales Orders', s.sorders, 'SO')}${stat('Invoices', s.invoices, 'INV')}
+        </div>
+        <div class="adm-inno-act">
+          <button class="cp-btn cp-btn-go" id="adm-inno-export">⬇ Export backup (JSON)</button>
+          <button class="cp-btn" id="adm-inno-import">⬆ Import data (JSON)</button>
+          <input type="file" id="adm-inno-file" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <div class="fx-card" id="adm-inno-view" style="padding:14px;margin-top:12px"><p class="fx-meta">Pick a tile above to list its records.</p></div>`;
+
+    body.querySelector('#adm-inno-export').onclick = () => {
+      const data = D.exportAll(); const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'fixo-inno-backup-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      L().activity('admin', 'inno_export', s);
+    };
+    const fileInp = body.querySelector('#adm-inno-file');
+    body.querySelector('#adm-inno-import').onclick = () => openImport(body);
+    fileInp.onchange = () => { const f = fileInp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { try { doImport(JSON.parse(rd.result), body); } catch (e) { alert('Could not read file: ' + e.message); } }; rd.readAsText(f); };
+    body.querySelectorAll('[data-view]').forEach(b => b.onclick = () => showRecords(b.dataset.view, body));
+  }
+  function openImport(body) {
+    const D = window.FIXO_DOC;
+    const el = document.createElement('div'); el.className = 'inv-overlay';
+    el.innerHTML = `<div class="inv-modal big"><div class="inv-ed-head"><h3>Import Inno data</h3><button class="cp-btn" data-x>Close</button></div>
+      <p class="fx-meta">Paste a Fixotech backup, or exported Zoho data mapped to this shape. Keys: <code>customers, inventory, quotes, sorders, invoices</code>. Each document: <code>{docNo, customer, status, savedAt, model:{billName, billGst, invDate, posCode, gstRate, items:[{desc,hsn,qty,unit,rate}], source}}</code>. Numbers continue after the highest imported FIS number.</p>
+      <label class="adm-inno-replace"><input type="checkbox" id="imp-replace"> Replace existing (otherwise merge)</label>
+      <textarea class="inv-tally-box" id="imp-json" placeholder='{ "customers": [...], "invoices": [...] }'></textarea>
+      <div class="inv-modal-act"><button class="cp-btn" id="imp-file-btn">📁 Choose file…</button><button class="cp-btn cp-btn-go" id="imp-go">Import</button><button class="cp-btn" data-x>Cancel</button></div></div>`;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => el.remove());
+    el.querySelector('#imp-file-btn').onclick = () => body.querySelector('#adm-inno-file').click();
+    el.querySelector('#imp-go').onclick = () => { const txt = el.querySelector('#imp-json').value.trim(); if (!txt) { alert('Paste JSON or choose a file'); return; } let obj; try { obj = JSON.parse(txt); } catch (e) { alert('Invalid JSON: ' + e.message); return; } const rep = el.querySelector('#imp-replace').checked; el.remove(); doImport(obj, body, rep); };
+  }
+  function doImport(obj, body, replace) {
+    const D = window.FIXO_DOC;
+    try { const res = D.importAll(obj, !!replace); L().activity('admin', 'inno_import', res);
+      try { ['FIXO_INVOICE', 'FIXO_QUOTE', 'FIXO_SO', 'FIXO_REPORTS'].forEach(k => { if (window[k] && window[k].render) { /* refresh if visible */ } }); } catch (e) {}
+      alert('Imported ✓\nCustomers ' + res.customers + ' · Inventory ' + res.inventory + ' · Quotations ' + res.quotes + ' · Sales Orders ' + res.sorders + ' · Invoices ' + res.invoices);
+      renderInno(body);
+    } catch (e) { alert('Import failed: ' + e.message); }
+  }
+  function showRecords(view, body) {
+    const D = window.FIXO_DOC; const host = body.querySelector('#adm-inno-view');
+    let rows = '', head = '';
+    if (view === 'cust') { head = '<th>Name</th><th>GSTIN</th><th>State</th>'; rows = D.loadCusts().map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.gstin || '')}</td><td>${esc(c.stateCode || '')}</td></tr>`).join(''); }
+    else if (view === 'inv') { head = '<th>Item</th><th>SKU</th><th>HSN</th><th>Rate</th><th>Category</th>'; rows = D.invList().map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.sku || '')}</td><td>${esc(i.hsn || '')}</td><td>₹${D.money(i.rate)}</td><td>${esc(i.category || '')}</td></tr>`).join(''); }
+    else { head = '<th>No</th><th>Customer</th><th>Status</th><th>Total</th><th>Source</th>'; rows = D.loadStore(D.SAVED_KEYS[view]).map(r => `<tr><td>${esc(r.docNo || r.invNo || '')}</td><td>${esc(r.customer || '')}</td><td>${esc(r.status || '')}</td><td>₹${D.money(r.total || 0)}</td><td>${esc(r.source ? r.source.docNo : '')}</td></tr>`).join(''); }
+    host.innerHTML = `<div style="overflow:auto"><table class="fx-tbl"><thead><tr>${head}</tr></thead><tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#94a3b8">No records.</td></tr>'}</tbody></table></div>`;
   }
 
   // ---- Testing Mode (global; only admin controls it) ----

@@ -18,7 +18,8 @@
       { label: '✕ Declined', status: 'declined', cls: 'inv-no' }
     ],
     tally: false,
-    convert: { toType: 'SO', label: '➡ Convert to Sales Order', icon: '➡' }
+    convert: { toType: 'SO', label: '➡ Convert to Sales Order', icon: '➡' },
+    bypass: { toType: 'INV', label: '⏩ Bypass → Invoice' }   // skip the sales-order step when needed
   });
   window.FIXO_QUOTE = app;
 })();

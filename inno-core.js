@@ -161,6 +161,68 @@
       <div class="modal-body">${sec('🧮 Quotations', d.QT)}${sec('📦 Sales Orders', d.SO)}${sec('🧾 Invoices', d.INV)}</div>`, 'big').querySelector('[data-x]').onclick = function () { this.closest('.inv-overlay').remove(); };
   }
 
+  // ---------- document interconnection (Quotation → Sales Order → Invoice) ----------
+  function recByNo(no) { for (const t of ['QT', 'SO', 'INV']) { const r = loadStore(SAVED_KEYS[t]).find(x => dn(x.model || x) === no); if (r) return { type: t, rec: r }; } return null; }
+  function childOf(no) { for (const t of ['SO', 'INV']) { const r = loadStore(SAVED_KEYS[t]).find(x => x.source && x.source.docNo === no); if (r) return { type: t, docNo: dn(r.model || r), rec: r }; } return null; }
+  // The full QT→SO→INV chain any saved document belongs to (ordered).
+  function fullChain(no) {
+    let root = no, cur = recByNo(no), g = 0;
+    while (cur && cur.rec.source && cur.rec.source.docNo && g++ < 12) { root = cur.rec.source.docNo; cur = recByNo(root); }
+    const chain = []; let curNo = root; g = 0;
+    while (curNo && g++ < 12) { const c = recByNo(curNo); if (!c) break; chain.push({ type: c.type, docNo: curNo, status: c.rec.status || 'draft' }); const ch = childOf(curNo); curNo = ch ? ch.docNo : null; }
+    return chain;
+  }
+  function downstreamFor(no) { const ch = childOf(no); return ch ? { type: ch.type, docNo: ch.docNo } : null; }
+
+  // ---------- backup / restore / real-data import (one place, all Inno data) ----------
+  function innoSummary() {
+    const s = (k) => loadStore(k).length;
+    return { customers: loadCusts().length, inventory: invList().length, quotes: s(SAVED_KEYS.QT), sorders: s(SAVED_KEYS.SO), invoices: s(SAVED_KEYS.INV) };
+  }
+  function exportAll() {
+    return { app: 'fixo-inno', version: 2, exportedAt: new Date().toISOString(),
+      customers: loadCusts(), inventory: invList(),
+      quotes: loadStore(SAVED_KEYS.QT), sorders: loadStore(SAVED_KEYS.SO), invoices: loadStore(SAVED_KEYS.INV),
+      seq: (function () { try { return JSON.parse(localStorage.getItem(SEQFY) || '{}'); } catch (e) { return {}; } })() };
+  }
+  const putStore = (key, arr) => { try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(key); } catch (e) {} };
+  // Normalise an imported document record so reports/board/chain all work.
+  function normDoc(r, type) {
+    const m = r.model || r; const no = r.docNo || r.invNo || m.docNo || m.invNo || '';
+    const model = Object.assign({}, m);
+    model.docType = model.docType || type; model.docNo = no; model.invNo = no;
+    model.items = (model.items || []).map(it => Object.assign({ desc: '', sku: '', hsn: '', qty: '', unit: 'NOS', rate: '', itemId: '' }, it));
+    if (!model.invDate) model.invDate = r.date || r.savedAt || today();
+    if (model.type == null) model.type = model.gstStateCode && model.gstStateCode !== CO_STATE ? 'inter' : (model.posCode && model.posCode !== CO_STATE ? 'inter' : 'state');
+    if (model.gstRate == null) model.gstRate = 18;
+    if (!model.posCode) model.posCode = CO_STATE;
+    if (!model.placeOfSupply) model.placeOfSupply = posLabel(model.posCode);
+    if (model.discountPct == null) model.discountPct = 0;
+    const t = totals(model);
+    return { id: r.id || uid('doc-'), docType: type, docNo: no, invNo: no, customer: r.customer || model.billName || '', savedAt: r.savedAt || model.invDate || today(), total: r.total != null ? r.total : t.grand, status: r.status || model.status || 'draft', source: r.source || model.source || null, model };
+  }
+  // After import, advance the FY counters past the highest imported number so new
+  // documents never collide with historical FIS numbers.
+  function reseqFromData() {
+    const seq = {};
+    const scan = (type) => loadStore(SAVED_KEYS[type]).forEach(r => { const no = dn(r.model || r); const m = String(no).match(/^FIS(\d{2}\/\d{2})-(?:QT|SO)?(\d+)$/); if (m) { const key = type + '|' + m[1]; const n = parseInt(m[2], 10) || 0; if (n > (seq[key] || 0)) seq[key] = n; } });
+    ['QT', 'SO', 'INV'].forEach(scan);
+    try { const cur = JSON.parse(localStorage.getItem(SEQFY) || '{}'); Object.keys(cur).forEach(k => { if ((cur[k] || 0) > (seq[k] || 0)) seq[k] = cur[k]; }); localStorage.setItem(SEQFY, JSON.stringify(seq)); } catch (e) {}
+  }
+  function importAll(data, replace) {
+    if (!data || typeof data !== 'object') throw new Error('Invalid data');
+    const mergeArr = (key, incoming, idf) => { const cur = replace ? [] : loadStore(key); const byId = {}; cur.forEach(x => byId[idf(x)] = x); (incoming || []).forEach(x => byId[idf(x)] = x); return Object.values(byId); };
+    if (data.customers) { const cur = replace ? [] : loadCusts(); const byId = {}; cur.forEach(c => byId[c.id || c.name] = c); data.customers.forEach(c => byId[c.id || c.name] = Object.assign({ id: uid('cust-') }, c)); storeCusts(Object.values(byId)); }
+    if (data.inventory) { const cur = replace ? [] : invList(); const byId = {}; cur.forEach(i => byId[i.id || i.name] = i); data.inventory.forEach(i => byId[i.id || i.name] = Object.assign({ id: uid('itm-'), category: 'Product', unit: 'NOS' }, i)); storeInv(Object.values(byId)); }
+    const docs = (arr, type) => (arr || []).map(r => normDoc(r, type));
+    if (data.quotes) putStore(SAVED_KEYS.QT, mergeArr(SAVED_KEYS.QT, docs(data.quotes, 'QT'), x => x.id));
+    if (data.sorders) putStore(SAVED_KEYS.SO, mergeArr(SAVED_KEYS.SO, docs(data.sorders, 'SO'), x => x.id));
+    if (data.invoices) putStore(SAVED_KEYS.INV, mergeArr(SAVED_KEYS.INV, docs(data.invoices, 'INV'), x => x.id));
+    if (replace && data.seq) { try { localStorage.setItem(SEQFY, JSON.stringify(data.seq)); } catch (e) {} }
+    reseqFromData();
+    return innoSummary();
+  }
+
   // ---------- Tally export (copy/paste XML — no live connection) ----------
   function tallyDate(d) { const m = String(d || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (!m) { const t = new Date(); return t.getFullYear() + String(t.getMonth() + 1).padStart(2, '0') + String(t.getDate()).padStart(2, '0'); } let y = m[3]; if (y.length === 2) y = '20' + y; return y + m[2].padStart(2, '0') + m[1].padStart(2, '0'); }
   function xesc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -340,9 +402,12 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       model.status = st; saveDoc(true); render(); toast('Marked ' + ((STATUS[st] || {}).label || st));
     }
 
-    // ----- convert: QT → SO → INV -----
-    function convertDoc(srcModel) {
-      const toType = cfg.convert.toType; const target = APPS[toType]; if (!target) { toast('Target app not loaded'); return; }
+    // ----- convert: QT → SO → INV (or bypass straight to Invoice) -----
+    function convertDoc(srcModel, toTypeArg) {
+      const toType = toTypeArg || (cfg.convert && cfg.convert.toType); const target = APPS[toType]; if (!target) { toast('Target app not loaded'); return; }
+      // Interconnection guard: warn if this source was already carried forward.
+      const existing = downstreamFor(dn(srcModel));
+      if (existing && !confirm(cfg.noun + ' ' + dn(srcModel) + ' is already linked to ' + existing.docNo + '. Create another ' + target.cfg.noun.toLowerCase() + ' anyway?')) return;
       const copy = JSON.parse(JSON.stringify(srcModel));
       copy.id = uid('doc-'); copy.docType = toType; copy.docNo = nextDocNo(toType); copy.invNo = copy.docNo;
       copy.status = 'draft'; copy.sentAt = ''; copy.approvedAt = '';
@@ -531,7 +596,15 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       const taxMode = model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)';
       const provNo = peekDocNo(cfg.type);
       const sessTabs = sessions.map((s, i) => `<div class="inv-sess-tab ${i === activeIdx ? 'active' : ''}" data-si="${i}"><span class="inv-sess-no">${esc(dn(s) || 'Draft')}</span><span class="inv-sess-sub">${esc((s.billName || '').trim() ? (s.billName || '').trim().slice(0, 18) : 'New')}</span>${sessions.length > 1 ? `<span class="inv-sess-close" data-close="${i}" title="Close">×</span>` : ''}</div>`).join('');
-      const stageBtns = cfg.stages.map(s => `<button class="cp-btn ${s.cls || ''}" data-stage="${s.status}">${s.label}</button>`).join('') + (cfg.convert ? `<button class="cp-btn inv-ok" id="${cfg.type}-convert">${esc(cfg.convert.label)}</button>` : '');
+      const stageBtns = cfg.stages.map(s => `<button class="cp-btn ${s.cls || ''}" data-stage="${s.status}">${s.label}</button>`).join('')
+        + (cfg.convert ? `<button class="cp-btn inv-ok" id="${cfg.type}-convert">${esc(cfg.convert.label)}</button>` : '')
+        + (cfg.bypass ? `<button class="cp-btn inv-bypass" id="${cfg.type}-bypass">${esc(cfg.bypass.label)}</button>` : '');
+      // interconnection strip: the whole Quotation → Sales Order → Invoice chain
+      const chain = dn(model) ? fullChain(dn(model)) : null;
+      const TYPEN = { QT: 'Quotation', SO: 'Sales Order', INV: 'Invoice' };
+      const chainStrip = (chain && chain.length > 1)
+        ? `<div class="inv-chain">${chain.map((c, i) => `${i ? '<span class="inv-chain-arr">→</span>' : ''}<span class="inv-chain-node ${dn(model) === c.docNo ? 'cur' : ''}" data-chain="${esc(c.docNo)}" data-ctype="${c.type}" title="${esc(TYPEN[c.type])}">${esc(TYPEN[c.type])} <b>${esc(c.docNo)}</b></span>`).join('')}</div>`
+        : (model.source ? `<div class="inv-src-note">↳ Created from ${esc(TYPEN[model.source.type] || model.source.type)} <b>${esc(model.source.docNo)}</b></div>` : '');
       host.innerHTML = `
         <div class="inv-wrap">
           <div class="inv-header">
@@ -547,7 +620,7 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
             ${cfg.tally ? `<button class="cp-btn small" id="inv-tally">🧮 Tally code</button>` : ''}
             <button class="cp-btn small inv-clear" id="inv-clear">🗑 Clear</button>
           </div>
-          ${model.source ? `<div class="inv-src-note">↳ Created from ${esc(model.source.type === 'QT' ? 'Quotation' : model.source.type === 'SO' ? 'Sales Order' : 'Invoice')} <b>${esc(model.source.docNo)}</b></div>` : ''}
+          ${chainStrip}
 
           <div class="inv-card"><div class="inv-card-h"><span class="inv-step">1</span> Customer</div>
             <div class="inv-cust-pick"><div class="inv-cust-box"><input id="f-customer" class="inv-in inv-cust-in" placeholder="Select or add a customer…" value="${esc(model.billName)}" autocomplete="off"><div class="inv-cust-dd" id="inv-cust-dd" hidden></div></div><button class="cp-btn" id="inv-newcust">＋ New customer</button></div>
@@ -611,6 +684,9 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       document.getElementById('inv-verify').onclick = openEditor;
       host.querySelectorAll('[data-stage]').forEach(b => b.onclick = () => setStatus(b.dataset.stage));
       if (cfg.convert) { const cb = document.getElementById(cfg.type + '-convert'); if (cb) cb.onclick = () => { if (saveDoc(true)) convertDoc(model); }; }
+      if (cfg.bypass) { const bb = document.getElementById(cfg.type + '-bypass'); if (bb) bb.onclick = () => { if (saveDoc(true)) convertDoc(model, cfg.bypass.toType); }; }
+      // click any node in the chain strip to open that document
+      host.querySelectorAll('[data-chain]').forEach(n => n.onclick = () => { const t = n.dataset.ctype, no = n.dataset.chain; const app = APPS[t]; const rec = loadStore(SAVED_KEYS[t]).find(r => dn(r.model || r) === no); if (app && rec) { app.loadDoc(rec.model); nav(app.cfg.screen); } });
       updateStageHint();
       document.getElementById('inv-add').onclick = () => { model.items.push(blank()); renderRows(); renderTotals(); };
       document.getElementById('inv-pick').onclick = pickProduct;
@@ -636,5 +712,6 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     const b = document.querySelector('[data-open-app="' + screen + '"]'); if (b) b.click();
   }
 
-  window.FIXO_DOC = { make, finYear, peekDocNo, nextDocNo, invList, allDocs, docsForItem, openInventory, totals, SAVED_KEYS, loadStore, CO, money: money, esc: esc };
+  window.FIXO_DOC = { make, finYear, peekDocNo, nextDocNo, invList, allDocs, docsForItem, openInventory, totals, SAVED_KEYS, loadStore, CO, money: money, esc: esc,
+    fullChain, downstreamFor, innoSummary, exportAll, importAll, loadCusts };
 })();
