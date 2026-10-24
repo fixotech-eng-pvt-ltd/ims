@@ -347,6 +347,8 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       copy.id = uid('doc-'); copy.docType = toType; copy.docNo = nextDocNo(toType); copy.invNo = copy.docNo;
       copy.status = 'draft'; copy.sentAt = ''; copy.approvedAt = '';
       copy.source = { type: cfg.type, docNo: dn(srcModel), id: srcModel.id };
+      // Mark the source as moved forward so reports show where each deal stands.
+      try { const sList = loadSaved(); const sr = sList.find(x => x.id === srcModel.id); if (sr) { sr.status = cfg.type === 'SO' ? 'invoiced' : 'approved'; if (sr.model) sr.model.status = sr.status; storeSaved(sList); if (model && model.id === srcModel.id) model.status = sr.status; } } catch (e) {}
       target.loadDoc(copy, true);
       toast(cfg.noun + ' → ' + target.cfg.noun + ' ' + copy.docNo);
       nav(target.cfg.screen);
