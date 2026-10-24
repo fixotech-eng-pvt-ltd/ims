@@ -82,6 +82,30 @@
     <div class="factory-body" id="invoice-app"></div>
   </div>
 
+  <div id="screen-quote" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Smart Quotation Calculator</span>
+    </div>
+    <div class="factory-body" id="quote-app"></div>
+  </div>
+
+  <div id="screen-so" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Sales OQ</span>
+    </div>
+    <div class="factory-body" id="so-app"></div>
+  </div>
+
+  <div id="screen-reports" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Reports</span>
+    </div>
+    <div class="factory-body" id="reports-app"></div>
+  </div>
+
   <!-- ============ HOME: APP LAUNCHER ============ -->
   <div id="screen-home" class="screen">
     <div class="home-wm" aria-hidden="true"></div>
@@ -132,8 +156,20 @@
           <span class="fh-app-ic">🛒</span>
           <span class="fh-app-name">Trading</span>
         </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-quote" title="Inno Smart Quotation Calculator">
+          <span class="fh-app-ic">🧮</span>
+          <span class="fh-app-name">Quotation Calc</span>
+        </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-so" title="Inno Sales OQ">
+          <span class="fh-app-ic">📦</span>
+          <span class="fh-app-name">Sales OQ</span>
+        </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-invoice" title="Inno Invoice Gen">
           <img src="assets/app-icons/inno-invoice-gen.png" alt="Inno Invoice Gen" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🧾'}))">
+        </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-reports" title="Inno Reports">
+          <span class="fh-app-ic">📊</span>
+          <span class="fh-app-name">Reports</span>
         </button>
       </div>
       <div class="hm-empty" id="office-empty" hidden>No apps for this company yet.</div>
@@ -531,7 +567,11 @@
   <script src="trading.js"></script>
   <script src="inno-logo-data.js"></script>
   <script src="inno-stamp-data.js"></script>
+  <script src="inno-core.js"></script>
   <script src="invoice.js"></script>
+  <script src="quotation.js"></script>
+  <script src="sales-order.js"></script>
+  <script src="reports.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).
