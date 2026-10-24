@@ -20,10 +20,14 @@
     address: 'NO 4, J.P.R Building, Lakshmipura Main Road, Bangalore, Karnataka 560090, India',
     gstin: '29AAKFF5695E1ZY',
     // Embedded (data-URI) so the logo always renders in the PDF editor, print & offline.
-    logo: (typeof window !== 'undefined' && window.INNO_LOGO_DATA) ? window.INNO_LOGO_DATA : 'assets/brand/inno-logo.png'
+    logo: (typeof window !== 'undefined' && window.INNO_LOGO_DATA) ? window.INNO_LOGO_DATA : 'assets/brand/inno-logo.png',
+    // Authorised-signature stamp, embedded so it prints on every document.
+    stamp: (typeof window !== 'undefined' && window.INNO_STAMP_DATA) ? window.INNO_STAMP_DATA : 'inno-stamp.png'
   };
   const STATUS = { draft: { label: 'Draft', cls: 'st-draft' }, sent: { label: 'Sent to client', cls: 'st-sent' }, approved: { label: 'Approved', cls: 'st-ok' }, declined: { label: 'Not approved', cls: 'st-no' } };
   const SAVED = 'fixo_inno_invoices', SEQ = 'fixo_inno_inv_seq', CUSTS = 'fixo_inno_customers';
+  const INV = 'fixo_inno_inventory';           // shared items / inventory master
+  const SEQFY = 'fixo_inno_seq_fy';             // per-FY, per-doc-type running numbers
   const CO_STATE = '29';   // Karnataka — company's place of supply
   // Indian states (code → name) for Place of Supply.
   const STATES = [['37','Andhra Pradesh'],['12','Arunachal Pradesh'],['18','Assam'],['10','Bihar'],['04','Chandigarh'],['22','Chhattisgarh'],['07','Delhi'],['30','Goa'],['24','Gujarat'],['06','Haryana'],['02','Himachal Pradesh'],['01','Jammu & Kashmir'],['20','Jharkhand'],['29','Karnataka'],['32','Kerala'],['23','Madhya Pradesh'],['27','Maharashtra'],['14','Manipur'],['17','Meghalaya'],['15','Mizoram'],['13','Nagaland'],['21','Odisha'],['34','Puducherry'],['03','Punjab'],['08','Rajasthan'],['11','Sikkim'],['33','Tamil Nadu'],['36','Telangana'],['16','Tripura'],['09','Uttar Pradesh'],['05','Uttarakhand'],['19','West Bengal']];
@@ -34,7 +38,34 @@
   const storeCusts = (a) => { try { localStorage.setItem(CUSTS, JSON.stringify(a.slice(0, 500))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(CUSTS); } catch (e) {} };
   const loadSaved = () => { try { return JSON.parse(localStorage.getItem(SAVED) || '[]') || []; } catch (e) { return []; } };
   const storeSaved = (a) => { try { localStorage.setItem(SAVED, JSON.stringify(a.slice(0, 200))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(SAVED); } catch (e) {} };
-  function nextInvNo() { const n = (parseInt(localStorage.getItem(SEQ) || '100', 10) || 100) + 1; localStorage.setItem(SEQ, String(n)); return 'FIS0' + n; }
+  // ---------- financial-year document numbering ----------
+  // Indian FY runs Apr 1 → Mar 31. finYear(date) → "26/27" (rolls over each April).
+  // Invoice   FIS26/27-001     Quotation  FIS26/27-QT001     Sales Order FIS26/27-SO001
+  function finYear(d) {
+    const dt = d instanceof Date ? d : new Date();
+    const y = dt.getFullYear(), start = dt.getMonth() >= 3 ? y : y - 1;   // month 3 = April
+    const p2 = (n) => String(n % 100).padStart(2, '0');
+    return p2(start) + '/' + p2(start + 1);
+  }
+  const DOC_TAG = { INV: '', QT: 'QT', SO: 'SO' };   // invoice has no letter tag
+  function loadSeqFy() { try { return JSON.parse(localStorage.getItem(SEQFY) || '{}') || {}; } catch (e) { return {}; } }
+  // Peek the next number without consuming it (for live display); commit on save.
+  function peekDocNo(type, fy) { fy = fy || finYear(); const all = loadSeqFy(); const n = (all[type + '|' + fy] || 0) + 1; return 'FIS' + fy + '-' + DOC_TAG[type] + String(n).padStart(3, '0'); }
+  function nextDocNo(type, fy) { fy = fy || finYear(); const all = loadSeqFy(); const key = type + '|' + fy; const n = (all[key] || 0) + 1; all[key] = n; try { localStorage.setItem(SEQFY, JSON.stringify(all)); } catch (e) {} return 'FIS' + fy + '-' + DOC_TAG[type] + String(n).padStart(3, '0'); }
+  function nextInvNo() { return nextDocNo('INV'); }
+
+  // ---------- inventory / items master (products + raw materials) ----------
+  // One master used across quotation / sales-order / invoice. Editable, searchable,
+  // persisted. Custom items (incl. custom SKU) are saved here and reusable.
+  const loadInv = () => { try { return JSON.parse(localStorage.getItem(INV) || 'null'); } catch (e) { return null; } };
+  const storeInv = (a) => { try { localStorage.setItem(INV, JSON.stringify(a.slice(0, 2000))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(INV); } catch (e) {} };
+  function seedInventory() {
+    if (loadInv()) return;
+    const seeded = PRODUCTS.map((p, i) => ({ id: uid('itm-'), name: p.name, sku: '', hsn: p.hsn, unit: p.unit, rate: p.rate, category: p.cat || 'Product', stock: '', notes: '' }));
+    storeInv(seeded);
+  }
+  function invList() { const l = loadInv(); return Array.isArray(l) ? l : []; }
+  function upsertInvItem(it) { const l = invList(); const i = l.findIndex(x => x.id === it.id); if (i >= 0) l[i] = it; else l.unshift(it); storeInv(l); return it; }
 
   // Seeded catalogue (from the FIS invoice + brochure). rate ₹, HSN/SAC, unit.
   const PRODUCTS = [
@@ -68,7 +99,7 @@
       tcNote: 'Prices are subject to change depends upon the changes in the material rates.'
     };
   }
-  const blank = () => ({ desc: '', sku: '', hsn: '', qty: '', unit: 'NOS', rate: '' });
+  const blank = () => ({ desc: '', sku: '', hsn: '', qty: '', unit: 'NOS', rate: '', itemId: '' });
 
   // ---------- working sessions (like the Smart Calculator's Order 1/2/3) ----------
   // Multiple invoices open at once; auto-saved so a reload (or accidental refresh)
@@ -124,6 +155,7 @@
   function render() {
     const host = document.getElementById('invoice-app'); if (!host) return;
     seedCusts();
+    seedInventory();
     if (!sessions.length) loadSessions();
     model = sessions[activeIdx];
     const taxMode = model.type === 'state' ? 'CGST + SGST (intra-state)' : 'IGST (inter-state)';
@@ -152,6 +184,7 @@
         <div class="inv-topbtns">
           <button class="cp-btn small" id="inv-save">💾 Save</button>
           <button class="cp-btn small" id="inv-saved">📋 Invoice records</button>
+          <button class="cp-btn small" id="inv-inventory">📦 Inventory</button>
           <button class="cp-btn small" id="inv-tally">🧮 Tally code</button>
           <button class="cp-btn small inv-clear" id="inv-clear">🗑 Clear</button>
         </div>
@@ -202,8 +235,8 @@
         </div>
 
         <div class="inv-card">
-          <div class="inv-card-h"><span class="inv-step">3</span> Items <button class="cp-btn small" id="inv-add">+ Add row</button><button class="cp-btn small" id="inv-pick">🔎 Pick product</button></div>
-          <datalist id="inv-prods">${PRODUCTS.map(p => `<option value="${esc(p.name)}">`).join('')}</datalist>
+          <div class="inv-card-h"><span class="inv-step">3</span> Items <button class="cp-btn small" id="inv-add">+ Add row</button><button class="cp-btn small" id="inv-pick">🔎 Pick from inventory</button></div>
+          <datalist id="inv-prods">${invList().map(p => `<option value="${esc(p.name)}">`).join('')}</datalist>
           <div class="inv-items-wrap"><table class="inv-tbl"><thead><tr><th>#</th><th>Item &amp; Description</th><th>SKU</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th></tr></thead><tbody id="inv-rows"></tbody></table></div>
         </div>
 
@@ -247,6 +280,7 @@
     });
     document.getElementById('inv-save').onclick = () => saveInvoice();
     document.getElementById('inv-saved').onclick = openSaved;
+    document.getElementById('inv-inventory').onclick = openInventory;
     document.getElementById('inv-tally').onclick = () => openTally([model], 'Tally code — ' + (model.invNo || 'this invoice'));
     document.getElementById('inv-clear').onclick = () => clearSession();
     document.getElementById('inv-verify').onclick = openEditor;
@@ -327,8 +361,8 @@
       const i = +tr.dataset.i;
       const sync = () => { const it = model.items[i]; if (!it) return; it.desc = tr.querySelector('.r-desc').value; it.sku = tr.querySelector('.r-sku').value; it.hsn = tr.querySelector('.r-hsn').value; it.qty = tr.querySelector('.r-qty').value; it.unit = tr.querySelector('.r-unit').value; it.rate = tr.querySelector('.r-rate').value; tr.querySelector('.r-amt').textContent = '₹' + money(num(it.qty) * num(it.rate)); renderTotals(); };
       tr.querySelectorAll('input').forEach(inp => inp.oninput = sync);
-      // auto-fill HSN/rate/unit when a known product name is chosen
-      tr.querySelector('.r-desc').addEventListener('change', () => { const p = PRODUCTS.find(x => x.name.toLowerCase() === model.items[i].desc.toLowerCase()); if (p) { model.items[i].hsn = p.hsn; model.items[i].unit = p.unit; if (!num(model.items[i].rate)) model.items[i].rate = p.rate; renderRows(); renderTotals(); } });
+      // auto-fill HSN/rate/unit/SKU + link when a known inventory item is chosen
+      tr.querySelector('.r-desc').addEventListener('change', () => { const it = model.items[i]; const p = invList().find(x => x.name.toLowerCase() === (it.desc || '').toLowerCase()); if (p) { it.hsn = p.hsn; it.unit = p.unit; it.sku = p.sku || it.sku; it.itemId = p.id; if (!num(it.rate)) it.rate = p.rate; renderRows(); renderTotals(); } });
       tr.querySelector('.r-del').onclick = () => { model.items.splice(i, 1); if (!model.items.length) model.items.push(blank()); renderRows(); renderTotals(); };
     });
   }
@@ -346,10 +380,65 @@
       <div class="inv-words">${esc(inWords(t.grand))}</div>`;
   }
 
+  // Add a chosen inventory item into the invoice (reuse an empty row if present).
+  function addItemToInvoice(p) {
+    const empty = model.items.find(it => !it.desc);
+    const it = empty || (model.items.push(blank()), model.items[model.items.length - 1]);
+    it.desc = p.name; it.sku = p.sku || ''; it.hsn = p.hsn; it.unit = p.unit || 'NOS'; it.rate = p.rate; it.qty = num(it.qty) || 1; it.itemId = p.id;
+    renderRows(); renderTotals();
+  }
   function pickProduct() {
-    const m = modal(`<h3>Pick a product</h3><input class="inv-in" id="pp-s" placeholder="Search…" style="margin-bottom:8px"><div class="inv-pick-list" id="pp-list"></div><div class="inv-modal-act"><button class="cp-btn" data-x>Close</button></div>`);
-    const draw = (q) => { const list = PRODUCTS.filter(p => !q || p.name.toLowerCase().includes(q.toLowerCase())); m.querySelector('#pp-list').innerHTML = list.map(p => `<button class="inv-pick-row" data-p="${esc(p.name)}"><b>${esc(p.name)}</b><span>HSN ${esc(p.hsn)} · ${esc(p.unit)} · ₹${p.rate}</span></button>`).join(''); m.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { const p = PRODUCTS.find(x => x.name === b.dataset.p); const empty = model.items.find(it => !it.desc); const it = empty || (model.items.push(blank()), model.items[model.items.length - 1]); it.desc = p.name; it.hsn = p.hsn; it.unit = p.unit; it.rate = p.rate; it.qty = it.qty || 1; m.remove(); renderRows(); renderTotals(); }); };
+    const m = modal(`<div class="inv-ed-head"><h3>Pick from inventory</h3><button class="cp-btn small" id="pp-new">＋ New item</button><button class="cp-btn" data-x>Close</button></div>
+      <input class="inv-in" id="pp-s" placeholder="Search name / SKU / HSN…" style="margin:4px 0 8px"><div class="inv-pick-list" id="pp-list"></div>`);
+    const draw = (q) => {
+      q = (q || '').toLowerCase();
+      const list = invList().filter(p => !q || (p.name + ' ' + (p.sku || '') + ' ' + (p.hsn || '') + ' ' + (p.category || '')).toLowerCase().includes(q));
+      m.querySelector('#pp-list').innerHTML = list.length ? list.map(p => `<button class="inv-pick-row" data-id="${p.id}"><b>${esc(p.name)}</b><span>${p.sku ? 'SKU ' + esc(p.sku) + ' · ' : ''}HSN ${esc(p.hsn)} · ${esc(p.unit)} · ₹${money(p.rate)} · ${esc(p.category || 'Product')}${p.stock !== '' && p.stock != null ? ' · stock ' + esc(p.stock) : ''}</span></button>`).join('') : '<div class="so-empty">No match. Use ＋ New item to add it.</div>';
+      m.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { const p = invList().find(x => x.id === b.dataset.id); if (p) { addItemToInvoice(p); m.remove(); } });
+    };
     draw(''); m.querySelector('#pp-s').oninput = e => draw(e.target.value); m.querySelector('[data-x]').onclick = () => m.remove();
+    m.querySelector('#pp-new').onclick = () => { m.remove(); editInvItem(null, (saved) => { if (saved) addItemToInvoice(saved); }); };
+  }
+
+  // ---------- inventory management (edit-save-search) ----------
+  function editInvItem(item, after) {
+    const it = item || { id: uid('itm-'), name: '', sku: '', hsn: '', unit: 'NOS', rate: '', category: 'Product', stock: '', notes: '' };
+    const m = modal(`<h3>${item ? 'Edit' : 'New'} item</h3>
+      <div class="inv-fields" style="grid-template-columns:1fr 1fr">
+        <label class="inv-wide2">Name<input id="it-name" value="${esc(it.name)}" placeholder="Item / product name"></label>
+        <label>SKU (custom)<input id="it-sku" value="${esc(it.sku)}" placeholder="e.g. FIS-STRUT-41"></label>
+        <label>HSN/SAC<input id="it-hsn" value="${esc(it.hsn)}"></label>
+        <label>Unit<input id="it-unit" value="${esc(it.unit || 'NOS')}"></label>
+        <label>Rate ₹<input id="it-rate" type="number" value="${esc(it.rate)}"></label>
+        <label>Category<select id="it-cat"><option ${it.category === 'Product' ? 'selected' : ''}>Product</option><option ${it.category === 'Raw Material' ? 'selected' : ''}>Raw Material</option><option ${it.category === 'Service' ? 'selected' : ''}>Service</option></select></label>
+        <label>Stock qty<input id="it-stock" value="${esc(it.stock)}" placeholder="optional"></label>
+        <label class="inv-wide2">Notes<input id="it-notes" value="${esc(it.notes || '')}"></label>
+      </div>
+      <div class="inv-modal-act"><button class="cp-btn cp-btn-go" data-save>💾 Save item</button><button class="cp-btn" data-x>Cancel</button></div>`);
+    m.querySelector('[data-x]').onclick = () => { m.remove(); if (after) after(null); };
+    m.querySelector('[data-save]').onclick = () => {
+      const name = m.querySelector('#it-name').value.trim(); if (!name) { toast('Name is required'); return; }
+      const saved = { id: it.id, name, sku: m.querySelector('#it-sku').value.trim(), hsn: m.querySelector('#it-hsn').value.trim(), unit: m.querySelector('#it-unit').value.trim() || 'NOS', rate: num(m.querySelector('#it-rate').value), category: m.querySelector('#it-cat').value, stock: m.querySelector('#it-stock').value.trim(), notes: m.querySelector('#it-notes').value.trim() };
+      upsertInvItem(saved); toast('Item saved'); m.remove(); if (after) after(saved);
+    };
+  }
+  function openInventory() {
+    const m = modal(`<div class="inv-ed-head"><h3>Inventory / Items master</h3><button class="cp-btn small cp-btn-go" id="inv-m-new">＋ New item</button><button class="cp-btn" data-x>Close</button></div>
+      <input class="inv-in" id="inv-m-s" placeholder="Search name / SKU / HSN / category…" style="margin:4px 0 10px">
+      <div class="modal-body" id="inv-m-list"></div>`, 'big');
+    m.querySelector('[data-x]').onclick = () => { m.remove(); if (document.getElementById('invoice-app')) render(); };
+    const draw = () => {
+      const q = (m.querySelector('#inv-m-s').value || '').toLowerCase();
+      const list = invList().filter(p => !q || (p.name + ' ' + (p.sku || '') + ' ' + (p.hsn || '') + ' ' + (p.category || '')).toLowerCase().includes(q));
+      m.querySelector('#inv-m-list').innerHTML = list.length ? list.map(p => `<div class="inv-rec-row">
+        <div class="inv-rec-main"><b>${esc(p.name)}</b> <span class="inv-chip st-draft">${esc(p.category || 'Product')}</span><span class="inv-rec-sub">${p.sku ? 'SKU ' + esc(p.sku) + ' · ' : ''}HSN ${esc(p.hsn) || '—'} · ${esc(p.unit)} · ₹${money(p.rate)}${p.stock !== '' && p.stock != null ? ' · stock ' + esc(p.stock) : ''}</span></div>
+        <div class="inv-rec-act"><button class="cp-btn so-open" data-edit="${p.id}">Edit</button><button class="cp-btn" data-use="${p.id}" title="Add to invoice">➕</button><button class="so-del" data-del="${p.id}">×</button></div></div>`).join('') : '<div class="so-empty">No items. Click ＋ New item.</div>';
+      m.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editInvItem(invList().find(x => x.id === b.dataset.edit), () => draw()));
+      m.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this item from inventory?')) { storeInv(invList().filter(x => x.id !== b.dataset.del)); draw(); } });
+      m.querySelectorAll('[data-use]').forEach(b => b.onclick = () => { const p = invList().find(x => x.id === b.dataset.use); if (p && document.getElementById('inv-rows')) { addItemToInvoice(p); toast('Added to invoice'); } });
+    };
+    m.querySelector('#inv-m-s').oninput = draw; m.querySelector('#inv-m-new').onclick = () => editInvItem(null, (s) => { if (s) draw(); });
+    draw();
   }
 
   // ---------- save / reopen / status ----------
@@ -426,14 +515,15 @@
     const taxHead = m.type === 'state' ? '<th>CGST</th><th>SGST</th>' : '<th>IGST</th>';
     const rows = m.items.filter(it => (it.desc || '').trim()).map((it, i) => {
       const amt = num(it.qty) * num(it.rate); const afterDisc = amt - amt * num(m.discountPct) / 100;
+      const txCell = (pct, val) => `<td class="r cell-tax"><span class="tx-pct">${pct}%</span><br><span class="tx-val">${money(val)}</span></td>`;
       const taxCell = m.type === 'state'
-        ? `<td class="r">${half}%<br>${money(afterDisc * half / 100)}</td><td class="r">${half}%<br>${money(afterDisc * half / 100)}</td>`
-        : `<td class="r">${m.gstRate}%<br>${money(afterDisc * m.gstRate / 100)}</td>`;
-      return `<tr><td class="c">${i + 1}</td><td>${esc(it.desc)}${it.sku ? `<div class="sku">SKU : ${esc(it.sku)}</div>` : ''}</td><td class="c">${esc(it.hsn)}</td><td class="c">${esc(it.qty)} ${esc(it.unit || '')}</td><td class="r">${money(it.rate)}</td>${taxCell}<td class="r b">${money(amt)}</td></tr>`;
+        ? txCell(half, afterDisc * half / 100) + txCell(half, afterDisc * half / 100)
+        : txCell(m.gstRate, afterDisc * m.gstRate / 100);
+      return `<tr><td class="c">${i + 1}</td><td class="cell-desc">${esc(it.desc)}${it.sku ? `<div class="sku">SKU : <span class="sku-v">${esc(it.sku)}</span></div>` : ''}</td><td class="c cell-hsn">${esc(it.hsn)}</td><td class="c cell-qty">${esc(it.qty)} ${esc(it.unit || '')}</td><td class="r cell-rate">${money(it.rate)}</td>${taxCell}<td class="r b cell-amt">${money(amt)}</td></tr>`;
     }).join('');
     const taxTot = m.type === 'state'
-      ? `<tr><td>CGST${half} (${half}%)</td><td class="r">${money(t.cgst)}</td></tr><tr><td>SGST${half} (${half}%)</td><td class="r">${money(t.sgst)}</td></tr>`
-      : `<tr><td>IGST (${m.gstRate}%)</td><td class="r">${money(t.igst)}</td></tr>`;
+      ? `<tr><td>CGST (${half}%)</td><td class="r"><span id="tt-cgst">${money(t.cgst)}</span></td></tr><tr><td>SGST (${half}%)</td><td class="r"><span id="tt-sgst">${money(t.sgst)}</span></td></tr>`
+      : `<tr><td>IGST (${m.gstRate}%)</td><td class="r"><span id="tt-igst">${money(t.igst)}</span></td></tr>`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice ${esc(m.invNo)}</title><style>
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:10mm}
 body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;margin:0;padding:8mm}
@@ -446,7 +536,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4p
 .sku{font-size:9px;color:#555}.tot{display:flex;justify-content:flex-end;padding:8px 12px}.tot table{width:300px}
 .tot td{border:none;padding:3px 6px}.tot .g td{border-top:1px solid #333;font-weight:bold;font-size:13px;color:#1e3a8a}
 .words{padding:6px 12px;font-style:italic;border-top:1px solid #333}.foot{display:flex;justify-content:space-between;padding:10px 12px;border-top:1px solid #333}
-.tc{font-size:9.5px;color:#333}.sign{text-align:right}.sign b{font-size:11px}
+.tc{font-size:9.5px;color:#333}.sign{text-align:right}.sign b{font-size:11px}.stampimg{height:118px;object-fit:contain;display:block;margin:0 0 0 auto}
 .wm{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-size:68px;font-weight:900;color:rgba(220,0,0,.12);letter-spacing:4px;pointer-events:none;z-index:5;white-space:nowrap}
 ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contenteditable]:hover{background:rgba(59,130,246,.06)}' : ''}
 </style></head><body><div class="doc">${isDraft ? '<div class="wm">DRAFT — FOR APPROVAL</div>' : ''}<div class="layer"${editable ? ' contenteditable="true" spellcheck="false"' : ''}>
@@ -460,20 +550,43 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     <div><div class="lab">Ship To</div><b>${esc(ship.name)}</b><div>${esc(ship.addr)}</div>${ship.gst ? `<div>GSTIN ${esc(ship.gst)}</div>` : ''}</div></div>
   <table class="items pi-irows"><thead><tr><th>#</th><th>Item &amp; Description</th><th>HSN/SAC</th><th>Qty</th><th>Rate</th>${taxHead}<th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="tot"><table>
-    <tr><td>Sub Total</td><td class="r">${money(t.sub)}</td></tr>
-    ${t.disc ? `<tr><td>Discount (${m.discountPct}%)</td><td class="r">(-) ${money(t.disc)}</td></tr>` : ''}
-    ${taxTot}<tr class="g"><td>Total</td><td class="r">₹${money(t.grand)}</td></tr></table></div>
+    <tr><td>Sub Total</td><td class="r"><span id="tt-sub">${money(t.sub)}</span></td></tr>
+    <tr id="tt-disc-row" style="display:${t.disc ? '' : 'none'}"><td>Discount (${m.discountPct}%)</td><td class="r">(-) <span id="tt-disc">${money(t.disc)}</span></td></tr>
+    ${taxTot}<tr class="g"><td>Total</td><td class="r"><span id="tt-grand">₹${money(t.grand)}</span></td></tr></table></div>
   <div class="words"><b>Total In Words :</b> ${esc(inWords(t.grand))}</div>
   <div class="foot"><div class="tc"><b>Notes:</b> ${esc(m.notes)}<br><b>Terms &amp; Conditions</b><br>Delivery Charges : ${esc(m.tcDelivery)}<br>Payment Method : ${esc(m.tcPayment)}<br>Note : ${esc(m.tcNote)}</div>
-    <div class="sign"><b>${esc(CO.name)}</b><br><br><br>Authorized Signature</div></div>
-</div></div></body></html>`;
+    <div class="sign"><img src="${CO.stamp}" class="stampimg" onerror="this.outerHTML='<b>${esc(CO.name)}</b><br><br><br>Authorized Signature'"></div></div>
+</div></div>${editable ? `<script>(function(){
+  var GST=${m.gstRate},DISC=${num(m.discountPct)},TYPE=${JSON.stringify(m.type)};
+  function n(v){var x=parseFloat(String(v==null?'':v).replace(/[^0-9.\\-]/g,''));return isNaN(x)?0:x;}
+  function f(x){return (x||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  var tb=document.querySelector('table.items tbody');
+  function recalc(){
+    if(!tb)return; var sub=0;
+    [].slice.call(tb.rows).forEach(function(tr){
+      var qe=tr.querySelector('.cell-qty'),re=tr.querySelector('.cell-rate');
+      var q=n(qe&&qe.innerText),r=n(re&&re.innerText),amt=q*r,after=amt-amt*DISC/100; sub+=amt;
+      var ac=tr.querySelector('.cell-amt'); if(ac)ac.innerText=f(amt);
+      var tx=tr.querySelectorAll('.cell-tax .tx-val');
+      if(TYPE==='state'){ if(tx[0])tx[0].innerText=f(after*(GST/2)/100); if(tx[1])tx[1].innerText=f(after*(GST/2)/100); }
+      else if(tx[0]){ tx[0].innerText=f(after*GST/100); }
+    });
+    var disc=sub*DISC/100,taxable=sub-disc,cgst=0,sgst=0,igst=0;
+    if(TYPE==='state'){cgst=sgst=taxable*(GST/2)/100;}else{igst=taxable*GST/100;}
+    var grand=Math.round(taxable+cgst+sgst+igst);
+    var S=function(id,v){var e=document.getElementById(id);if(e)e.innerText=v;};
+    S('tt-sub',f(sub));S('tt-disc',f(disc));S('tt-cgst',f(cgst));S('tt-sgst',f(sgst));S('tt-igst',f(igst));S('tt-grand','₹'+f(grand));
+    var dr=document.getElementById('tt-disc-row'); if(dr)dr.style.display=disc?'':'none';
+  }
+  document.addEventListener('input',function(e){var t=e.target; if(t&&t.closest&&t.closest('table.items'))recalc();});
+})();</script>` : ''}</body></html>`;
   }
   function openEditor() {
     if (!model.items.some(it => (it.desc || '').trim())) { toast('Add at least one item'); return; }
     let draftView = false;
     const m = modal(`<div class="inv-ed-head"><h3>Verify &amp; Edit — ${esc(model.invNo)}</h3>
         <div class="inv-ed-seg"><button class="inv-ed-tab active" data-view="final">🧾 Final invoice</button><button class="inv-ed-tab" data-view="draft">📄 Approval draft</button></div>
-        <span class="inv-ed-hint">✎ Click any cell to edit — changes are saved.</span><button class="cp-btn" data-x>Close</button></div>
+        <span class="inv-ed-hint">✎ Click any cell to edit — totals recalculate live; Save changes to keep them.</span><button class="cp-btn" data-x>Close</button></div>
       <iframe id="inv-frame" class="inv-frame"></iframe>
       <div class="inv-modal-act"><button class="cp-btn btn-save-edit" data-save>💾 Save changes</button><button class="cp-btn cp-btn-go" data-print>🖨 Print / Save PDF</button></div>`, 'big');
     const fr = m.querySelector('#inv-frame');
@@ -484,15 +597,21 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
         const d = fr.contentDocument || fr.contentWindow.document;
         const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
         const rows = [...d.querySelectorAll('table.items tbody tr')];
-        if (rows.length) model.items = rows.map(tr => { const td = tr.querySelectorAll('td'); const q = grab(td[3]); const qty = num(q); const unit = q.replace(/[0-9.,\s]/g, '') || 'NOS'; return { desc: (td[1].innerText || '').split('\n')[0].trim(), sku: (grab(td[1]).match(/SKU\s*:\s*(\S+)/) || [, ''])[1], hsn: grab(td[2]), qty: qty, unit: unit, rate: num(grab(td[4])) }; }).filter(it => it.desc);
-        // persist edits everywhere: live model + the saved record (if this invoice was saved)
+        if (rows.length) model.items = rows.map(tr => {
+          const descCell = tr.querySelector('.cell-desc');
+          const q = grab(tr.querySelector('.cell-qty'));
+          const skuEl = tr.querySelector('.sku-v');
+          return { desc: (descCell ? (descCell.innerText || '') : '').split('\n')[0].trim(), sku: skuEl ? grab(skuEl) : '', hsn: grab(tr.querySelector('.cell-hsn')), qty: num(q), unit: q.replace(/[0-9.,\s]/g, '') || 'NOS', rate: num(grab(tr.querySelector('.cell-rate'))), itemId: '' };
+        }).filter(it => it.desc);
+        // persist edits everywhere: live session + the saved record (if this invoice was saved)
         if (loadSaved().some(r => r.id === model.id)) saveInvoice(true);
+        try { persistSessions(); } catch (e) {}
         render();
       } catch (e) {}
     };
     m.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { commit(); draftView = b.dataset.view === 'draft'; m.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('active', x === b)); draw(); });
     m.querySelector('[data-x]').onclick = () => { commit(); m.remove(); };
-    m.querySelector('[data-save]').onclick = () => { commit(); toast('Changes saved'); };
+    m.querySelector('[data-save]').onclick = () => { commit(); draw(); toast('Changes saved'); };
     m.querySelector('[data-print]').onclick = () => { commit(); draw(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
 

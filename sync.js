@@ -29,6 +29,7 @@
     blob('fixo_trading_requests', 'trading_requests', o => ({ status: o.status || 'pending', by: o.by || '' })),
     blob('fixo_inno_invoices', 'inno_invoices', o => ({ inv_no: o.invNo || '', customer: o.customer || '', total: o.total || 0, status: o.status || 'draft' })),
     blob('fixo_inno_customers', 'inno_customers', o => ({ name: o.name || '', gstin: o.gstin || '' })),
+    blob('fixo_inno_inventory', 'inno_inventory', o => ({ name: o.name || '', sku: o.sku || '', hsn: o.hsn || '', rate: o.rate || 0, category: o.category || '' })),
     blob('fixo_chatiq_chats', 'chatiq_chats', o => ({ title: o.title || '' })),
     blob('fixo_saved_orders', 'saved_orders', o => ({ quote_no: o.quoteNo || o.qtnNo || '', client_name: o.client || '', total: o.total || 0 })),
     blob('fixo_saved_proformas', 'saved_proformas', o => ({ pi_no: o.piNo || '', client_name: o.client || '', total: o.total || 0 })),
