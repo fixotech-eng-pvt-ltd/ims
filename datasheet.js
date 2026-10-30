@@ -331,36 +331,47 @@
     const clientLine = (m.customer || m.projectName || m.location)
       ? `<div class="ds-client-line">${m.customer ? '<b>Customer:</b> ' + esc(m.customer) : ''}${m.projectName ? ' &nbsp; <b>Project:</b> ' + esc(m.projectName) : ''}${m.location ? ' &nbsp; <b>Location:</b> ' + esc(m.location) : ''}</div>` : '';
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Technical Data Sheet — ${esc(tmpl.label)}</title><style>
-*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:10mm}
-body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px;margin:0;padding:8mm}
-.doc{border:2px solid #000;padding:12px 18px 16px;position:relative}
-.wm{position:absolute;top:55%;left:50%;width:58%;transform:translate(-50%,-50%);opacity:.06;pointer-events:none;z-index:0}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:9mm}
+body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1a2233;font-size:12.5px;margin:0;padding:7mm}
+.doc{border:1.5px solid #15316b;border-radius:6px;padding:16px 22px 18px;position:relative;box-shadow:0 1px 0 #15316b inset}
+.doc::before{content:"";position:absolute;left:-1.5px;right:-1.5px;top:-1.5px;height:5px;background:linear-gradient(90deg,#15316b,#2a66c4 55%,#1f9d57);border-radius:6px 6px 0 0}
+.wm{position:absolute;top:54%;left:50%;width:54%;transform:translate(-50%,-50%);opacity:.045;pointer-events:none;z-index:0;filter:grayscale(1)}
 .layer{position:relative;z-index:1}
-.hdr{width:100%;display:block;border-bottom:1.5px solid #000;padding-bottom:8px}
-.hdr img{width:100%;max-height:86px;object-fit:contain;display:block}
-.hdrfallback{font-size:22px;font-weight:800;text-align:center}.hdrfallback small{display:block;font-size:11px;font-weight:bold}
-.pcat{font-weight:bold;text-decoration:underline;margin:12px 0 2px;font-size:13px}
-h1{text-align:center;font-size:20px;text-decoration:underline;margin:2px 0 8px;letter-spacing:.5px}
-.ds-client-line{font-size:11px;margin:0 0 8px;color:#222}
-table.spec{width:100%;border-collapse:collapse}
-table.spec td{padding:6px 6px;vertical-align:top;font-size:12.5px}
-.ds-k{width:33%;color:#111}.ds-c{width:4%;text-align:center}.ds-v{width:63%;font-weight:600}
-.ds-irow:first-child .ds-v{font-weight:800}
-.signblock{margin-top:22px}.ds-stamp{width:92px;height:92px;display:block}
-.ds-stamp-img{height:84px;display:block;object-fit:contain}
-.foot{margin-top:6px}.foot .b{font-weight:600}
-${editable ? '.layer[contenteditable] td:hover{background:rgba(59,130,246,.08)}' : ''}
+.hdr{width:100%;display:block;padding:4px 0 10px;border-bottom:2px solid #15316b}
+.hdr img{width:100%;max-height:84px;object-fit:contain;display:block}
+.hdrfallback{font-size:22px;font-weight:800;text-align:center;color:#15316b}.hdrfallback small{display:block;font-size:11px;font-weight:bold;color:#444}
+.titlewrap{text-align:center;margin:14px 0 4px}
+.pcat{display:inline-block;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#15316b;background:#eef3fb;border:1px solid #d4e0f4;border-radius:14px;padding:3px 14px;float:left}
+h1{text-align:center;font-size:21px;font-weight:800;color:#15316b;margin:0;letter-spacing:.6px}
+.titleline{width:120px;height:3px;background:linear-gradient(90deg,#2a66c4,#1f9d57);margin:6px auto 0;border-radius:2px}
+.ds-client-line{clear:both;font-size:11px;margin:12px 0 10px;color:#2a3550;background:#f6f8fc;border:1px solid #e6ecf6;border-radius:6px;padding:7px 12px;line-height:1.7}
+.ds-client-line b{color:#15316b}
+table.spec{width:100%;border-collapse:collapse;border:1px solid #e3e9f3;border-radius:6px;overflow:hidden}
+table.spec td{padding:7px 10px;vertical-align:top;font-size:12.5px;border-bottom:1px solid #eef2f8}
+table.spec tr:last-child td{border-bottom:none}
+tr.ds-irow:nth-child(even){background:#f8fafd}
+.ds-k{width:33%;color:#5b6b86;font-weight:600}.ds-c{width:3%;text-align:center;color:#9aa8c0}.ds-v{width:64%;font-weight:600;color:#17233c}
+tr.ds-irow:first-child{background:#eef3fb}
+tr.ds-irow:first-child .ds-k{color:#15316b;font-weight:700}.ds-irow:first-child .ds-v{font-weight:800;color:#15316b}
+.signblock{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px}
+.foot{font-size:12px}.foot .lbl{color:#5b6b86}.foot .b{font-weight:700;color:#17233c}
+.sign{text-align:center;min-width:200px}
+.sign .for{font-size:11px;color:#15316b;font-weight:700;margin-bottom:2px}
+.ds-stamp-img{height:62px;display:inline-block;object-fit:contain}
+.ds-stamp{width:64px;height:64px;display:inline-block}
+.sign .role{font-size:10.5px;color:#5b6b86;border-top:1px solid #c7d2e6;margin-top:3px;padding-top:3px}
+${editable ? '.layer[contenteditable] td:hover{background:rgba(42,102,196,.08)}' : ''}
 </style></head><body><div class="doc">
   <img src="${WM}" class="wm" onerror="this.style.display='none'">
   <div class="layer"${ed}>
   <div class="hdr"><img src="${HEADER}" onerror="this.outerHTML='<div class=&quot;hdrfallback&quot;>FIXOTECH<small>ENGINEERING SYSTEMS PVT. LTD. &nbsp;·&nbsp; ISO 9001:2015 CERTIFIED COMPANY</small></div>'"></div>
   <div class="pcat">${esc(tmpl.label)}</div>
-  <h1>Technical Data Sheet</h1>
+  <div class="titlewrap"><h1>Technical Data Sheet</h1><div class="titleline"></div></div>
   ${clientLine}
   <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v">${esc(m.productName)}</td></tr>${rows}</table>
   <div class="signblock">
-    <div class="stampwrap">${stampBlock()}</div>
-    <div class="foot"><div>Bangalore</div><div class="b">Date : - ${esc(m.date)}</div></div>
+    <div class="foot"><div><span class="lbl">Place:</span> <b>Bangalore</b></div><div><span class="lbl">Date:</span> <b>${esc(m.date)}</b></div></div>
+    <div class="sign"><div class="for">For FIXOTECH ENGINEERING SYSTEMS PVT. LTD.</div><div class="stampwrap">${stampBlock()}</div><div class="role">Authorised Signatory</div></div>
   </div>
   </div>
 </div></body></html>`;
