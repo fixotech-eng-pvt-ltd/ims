@@ -12,8 +12,13 @@
   const toast = (m) => (window.FIXO && FIXO.toast ? FIXO.toast(m) : console.log(m));
   const uid = (p) => (p || 'ds') + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const today = () => new Date().toLocaleDateString('en-GB').replace(/\//g, '-');   // dd-mm-yyyy
+  // Banner that prints ON the data sheet (team-supplied logo + cert badges).
   const HEADER = (typeof window !== 'undefined' && window.ENGG_HEADER_DATA) ? window.ENGG_HEADER_DATA : 'assets/brand/engg-header.png';
+  // The normal engineering logo for the APP's own top bar (not the printed sheet).
+  const ENGG_LOGO = 'https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg';
   const WM = 'assets/watermark-f.png';
+  // The real company stamp used on the quotation / proforma (from images.js).
+  function stampData() { try { return (typeof SEAL_IMG !== 'undefined' && SEAL_IMG) ? SEAL_IMG : null; } catch (e) { return null; } }
 
   // ---------- Material / Finish (identical to the Smart Calculator) ----------
   const MATERIALS = {
@@ -212,7 +217,7 @@
     host.innerHTML = `
       <div class="inv-wrap ds-wrap">
         <div class="inv-header">
-          <div class="inv-header-left"><img src="${HEADER}" onerror="this.style.display='none'" class="inv-header-logo" style="height:46px">
+          <div class="inv-header-left"><img src="${ENGG_LOGO}" onerror="this.style.display='none'" class="inv-header-logo">
             <div class="inv-header-divider"></div>
             <div class="inv-header-titles"><div class="inv-h-title">DATA <span class="inv-h-bold">SHEET PREP</span></div><div class="inv-h-sub">Technical Data Sheet</div></div></div>
           <div class="inv-header-right"><div class="inv-h-co">FIXOTECH ENGINEERING SYSTEMS PVT. LTD.</div></div>
@@ -315,6 +320,10 @@
       <text x="60" y="58" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a3a8f">FIXOTECH</text>
       <text x="60" y="72" text-anchor="middle" font-size="7.5" fill="#1a3a8f">Authorised</text></svg>`;
   }
+  function stampBlock() {
+    const s = stampData();
+    return s ? `<img src="${s}" class="ds-stamp-img" alt="Authorised stamp">` : roundStamp();
+  }
   function dataSheetHtml(m, editable) {
     const tmpl = tmplOf(m);
     const rows = tmpl.fields.map(f => `<tr class="ds-irow"><td class="ds-k">${esc(f.label)}</td><td class="ds-c">:</td><td class="ds-v">${esc(m.values[f.key] == null ? '' : m.values[f.key])}</td></tr>`).join('');
@@ -338,6 +347,7 @@ table.spec td{padding:6px 6px;vertical-align:top;font-size:12.5px}
 .ds-k{width:33%;color:#111}.ds-c{width:4%;text-align:center}.ds-v{width:63%;font-weight:600}
 .ds-irow:first-child .ds-v{font-weight:800}
 .signblock{margin-top:22px}.ds-stamp{width:92px;height:92px;display:block}
+.ds-stamp-img{height:84px;display:block;object-fit:contain}
 .foot{margin-top:6px}.foot .b{font-weight:600}
 ${editable ? '.layer[contenteditable] td:hover{background:rgba(59,130,246,.08)}' : ''}
 </style></head><body><div class="doc">
@@ -349,7 +359,7 @@ ${editable ? '.layer[contenteditable] td:hover{background:rgba(59,130,246,.08)}'
   ${clientLine}
   <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v">${esc(m.productName)}</td></tr>${rows}</table>
   <div class="signblock">
-    <div class="stampwrap">${roundStamp()}</div>
+    <div class="stampwrap">${stampBlock()}</div>
     <div class="foot"><div>Bangalore</div><div class="b">Date : - ${esc(m.date)}</div></div>
   </div>
   </div>
