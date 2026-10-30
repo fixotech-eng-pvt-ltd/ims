@@ -252,33 +252,37 @@
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Technical Data Sheet — ${esc(prod.label)}</title><style>
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:12mm}
 body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px;margin:0;padding:10mm}
-.doc{border:2px solid #000;padding:14px 20px 22px;position:relative;min-height:260mm}
-.wm{position:absolute;top:50%;left:50%;width:62%;transform:translate(-50%,-50%);opacity:.07;pointer-events:none;z-index:0}
-.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #000;padding-bottom:8px}
-.top .lg{display:flex;align-items:center;gap:10px}.top img{height:38px}
-.co b{font-size:17px;letter-spacing:.5px}.co div{font-size:10px;font-weight:bold;letter-spacing:.3px}
-.cert{font-size:9px;border:1px solid #333;padding:4px 8px;text-align:center;line-height:1.5}
-.pcat{font-weight:bold;text-decoration:underline;margin:12px 0 2px;font-size:13px}
-h1{text-align:center;font-size:19px;text-decoration:underline;margin:4px 0 10px;letter-spacing:.5px}
+.doc{border:2px solid #000;padding:16px 22px 18px;position:relative}
+.wm{position:absolute;top:52%;left:50%;width:60%;transform:translate(-50%,-50%);opacity:.06;pointer-events:none;z-index:0}
+.layer{position:relative;z-index:1;display:flex;flex-direction:column;min-height:253mm}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #000;padding-bottom:10px;gap:14px}
+.top .lg img{height:60px;max-width:360px;object-fit:contain}
+.top .lgfallback{font-size:20px;font-weight:800;letter-spacing:.5px;line-height:1.15}.top .lgfallback small{display:block;font-size:10px;font-weight:bold}
+.cert{font-size:9px;border:1px solid #333;padding:5px 10px;text-align:center;line-height:1.6;white-space:nowrap}
+.pcat{font-weight:bold;text-decoration:underline;margin:14px 0 2px;font-size:13px}
+h1{text-align:center;font-size:20px;text-decoration:underline;margin:2px 0 10px;letter-spacing:.5px}
 .ds-client-line{font-size:11px;margin:0 0 10px;color:#222}
-table.spec{width:100%;border-collapse:collapse;position:relative;z-index:1}
-table.spec td{padding:7px 6px;vertical-align:top;font-size:12.5px}
-.ds-k{width:34%;color:#111}.ds-c{width:4%;text-align:center}.ds-v{width:62%;font-weight:600}
+table.spec{width:100%;border-collapse:collapse}
+table.spec td{padding:6.5px 6px;vertical-align:top;font-size:12.5px}
+.ds-k{width:33%;color:#111}.ds-c{width:4%;text-align:center}.ds-v{width:63%;font-weight:600}
 .ds-irow:first-child .ds-v{font-weight:800}
-.foot{position:absolute;bottom:16px;left:20px}.foot .b{font-weight:600}
-.stampwrap{position:absolute;bottom:40px;left:20px}.ds-stamp{width:96px;height:96px}
+.signblock{margin-top:auto;padding-top:18px}
+.ds-stamp{width:96px;height:96px;display:block}
+.foot{margin-top:6px}.foot .b{font-weight:600}
 ${editable ? '.layer[contenteditable] td:hover{background:rgba(59,130,246,.08)}' : ''}
 </style></head><body><div class="doc">
   <img src="${WM}" class="wm" onerror="this.style.display='none'">
-  <div class="layer"${ed} style="position:relative;z-index:1">
-  <div class="top"><div class="lg"><img src="${ENGG_LOGO}" onerror="this.style.display='none'"><div class="co"><b>FIXOTECH</b><div>ENGINEERING SYSTEMS PVT. LTD.</div><div style="font-weight:normal">ISO 9001 : 2015 CERTIFIED COMPANY</div></div></div>
+  <div class="layer"${ed}>
+  <div class="top"><div class="lg"><img src="${ENGG_LOGO}" onerror="this.outerHTML='<div class=&quot;lgfallback&quot;>FIXOTECH<small>ENGINEERING SYSTEMS PVT. LTD.</small><small style=&quot;font-weight:normal&quot;>ISO 9001:2015 CERTIFIED COMPANY</small></div>'"></div>
     <div class="cert"><b>NVT&nbsp;QC</b> &nbsp;·&nbsp; <b>NABCB</b><br>ISO 9001:2015 Certified</div></div>
   <div class="pcat">${esc(prod.label)}</div>
   <h1>Technical Data Sheet</h1>
   ${clientLine}
   <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v">${esc(m.productName)}</td></tr>${rows}</table>
-  <div class="stampwrap">${roundStamp()}</div>
-  <div class="foot"><div>Bangalore</div><div class="b">Date : - ${esc(m.date)}</div></div>
+  <div class="signblock">
+    <div class="stampwrap">${roundStamp()}</div>
+    <div class="foot"><div>Bangalore</div><div class="b">Date : - ${esc(m.date)}</div></div>
+  </div>
   </div>
 </div></body></html>`;
   }
