@@ -340,11 +340,11 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1a2233;font
 .hdr{width:100%;display:block;padding:4px 0 10px;border-bottom:2px solid #15316b}
 .hdr img{width:100%;max-height:84px;object-fit:contain;display:block}
 .hdrfallback{font-size:22px;font-weight:800;text-align:center;color:#15316b}.hdrfallback small{display:block;font-size:11px;font-weight:bold;color:#444}
-.titlewrap{text-align:center;margin:14px 0 4px}
-.pcat{display:inline-block;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#15316b;background:#eef3fb;border:1px solid #d4e0f4;border-radius:14px;padding:3px 14px;float:left}
+.titlewrap{text-align:center;margin:12px 0 10px}
+.pcat{display:inline-block;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#15316b;background:#eef3fb;border:1px solid #d4e0f4;border-radius:14px;padding:3px 14px;margin:0 0 8px}
 h1{text-align:center;font-size:21px;font-weight:800;color:#15316b;margin:0;letter-spacing:.6px}
 .titleline{width:120px;height:3px;background:linear-gradient(90deg,#2a66c4,#1f9d57);margin:6px auto 0;border-radius:2px}
-.ds-client-line{clear:both;font-size:11px;margin:12px 0 10px;color:#2a3550;background:#f6f8fc;border:1px solid #e6ecf6;border-radius:6px;padding:7px 12px;line-height:1.7}
+.ds-client-line{font-size:11px;margin:0 0 12px;color:#2a3550;background:#f6f8fc;border:1px solid #e6ecf6;border-radius:6px;padding:8px 12px;line-height:1.7}
 .ds-client-line b{color:#15316b}
 table.spec{width:100%;border-collapse:collapse;border:1px solid #e3e9f3;border-radius:6px;overflow:hidden}
 table.spec td{padding:7px 10px;vertical-align:top;font-size:12.5px;border-bottom:1px solid #eef2f8}
@@ -365,9 +365,9 @@ ${editable ? '.layer[contenteditable] td:hover{background:rgba(42,102,196,.08)}'
   <img src="${WM}" class="wm" onerror="this.style.display='none'">
   <div class="layer"${ed}>
   <div class="hdr"><img src="${HEADER}" onerror="this.outerHTML='<div class=&quot;hdrfallback&quot;>FIXOTECH<small>ENGINEERING SYSTEMS PVT. LTD. &nbsp;·&nbsp; ISO 9001:2015 CERTIFIED COMPANY</small></div>'"></div>
-  <div class="pcat">${esc(tmpl.label)}</div>
   <div class="titlewrap"><h1>Technical Data Sheet</h1><div class="titleline"></div></div>
   ${clientLine}
+  <div class="pcat">${esc(tmpl.label)}</div>
   <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v">${esc(m.productName)}</td></tr>${rows}</table>
   <div class="signblock">
     <div class="foot"><div><span class="lbl">Place:</span> <b>Bangalore</b></div><div><span class="lbl">Date:</span> <b>${esc(m.date)}</b></div></div>
