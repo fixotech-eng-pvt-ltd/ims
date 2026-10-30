@@ -40,3 +40,9 @@ Fixotech-App/
 Fixotech-App-NEW/
 
 *.mp4
+
+# Raw Zoho exports (decrypted source data) — only the processed inno-seed.js is shipped
+Inno Database/
+
+# Real customer/financial seed — kept out of Git; it is bundled into public/ and the EXE instead
+inno-seed.js

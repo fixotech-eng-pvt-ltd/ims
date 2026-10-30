@@ -24,7 +24,13 @@
     const out = { count: 0, taxable: 0, tax: 0, grand: 0, byMonth: FY_MONTHS.map(() => ({ count: 0, taxable: 0, tax: 0, grand: 0 })), byStatus: {} };
     records(type).forEach(r => {
       if (recFy(r) !== fy) return;
-      const t = r.model ? totals(r.model) : { taxable: 0, tax: 0, grand: r.total || 0 };
+      // Use the stored (authoritative, e.g. Zoho) total as the grand; derive the
+      // taxable/GST split from the document's GST rate so figures match reality.
+      const comp = r.model ? totals(r.model) : null;
+      const grand = r.total != null ? r.total : (comp ? comp.grand : 0);
+      const rate = (r.model && r.model.gstRate) || 18;
+      const taxable = grand / (1 + rate / 100);
+      const t = { grand: grand, taxable: taxable, tax: grand - taxable };
       const mi = finMonth(recDate(r)); out.count++; out.taxable += t.taxable; out.tax += t.tax; out.grand += t.grand;
       const b = out.byMonth[mi]; b.count++; b.taxable += t.taxable; b.tax += t.tax; b.grand += t.grand;
       const st = r.status || 'draft'; out.byStatus[st] = (out.byStatus[st] || 0) + 1;
@@ -32,6 +38,32 @@
     return out;
   }
   const quarters = (a) => QUARTERS.map(q => { const s = { label: q[0], span: q[1], count: 0, taxable: 0, tax: 0, grand: 0 }; for (let i = q[2]; i < q[2] + 3; i++) { s.count += a.byMonth[i].count; s.taxable += a.byMonth[i].taxable; s.tax += a.byMonth[i].tax; s.grand += a.byMonth[i].grand; } return s; });
+
+  // Compact Indian money for the KPI tiles so big numbers stay tidy (₹1.37 Cr).
+  function compact(n) { n = Number(n || 0); if (n >= 1e7) return '₹' + (n / 1e7).toFixed(2) + ' Cr'; if (n >= 1e5) return '₹' + (n / 1e5).toFixed(2) + ' L'; return '₹' + money(n); }
+  const recGrand = (r) => r.total != null ? r.total : (r.model ? totals(r.model).grand : 0);
+  const splitTax = (r, grand) => { const rate = (r.model && r.model.gstRate) || 18; const taxable = grand / (1 + rate / 100); return { taxable, tax: grand - taxable }; };
+
+  // Weekly buckets within the FY (week 1 = first week of April); only weeks with data.
+  function weekBuckets(type, fy) {
+    const startYear = 2000 + (+String(fy).split('/')[0]); const fyStart = new Date(startYear, 3, 1);
+    const map = {};
+    records(type).forEach(r => { if (recFy(r) !== fy) return; const d = recDate(r); const wk = Math.floor((d - fyStart) / (7 * 86400000)); if (wk < 0) return;
+      const grand = recGrand(r); const sp = splitTax(r, grand);
+      if (!map[wk]) map[wk] = { wk, count: 0, taxable: 0, tax: 0, grand: 0, start: new Date(fyStart.getTime() + wk * 7 * 86400000) };
+      const b = map[wk]; b.count++; b.taxable += sp.taxable; b.tax += sp.tax; b.grand += grand; });
+    return Object.values(map).sort((a, b) => a.wk - b.wk);
+  }
+  // One row per financial year (for the Yearly view).
+  function yearBuckets() { return fyList().slice().reverse().map(y => { const a = agg('INV', y); return { label: 'FY ' + y, count: a.count, taxable: a.taxable, tax: a.tax, grand: a.grand }; }); }
+
+  // Unified buckets for the chosen period view.
+  function periodBuckets(view, inv, fy) {
+    if (view === 'Weekly') return { head: 'Week', rows: weekBuckets('INV', fy).map(b => ({ label: 'W' + (b.wk + 1), sub: b.start.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), count: b.count, taxable: b.taxable, tax: b.tax, grand: b.grand })) };
+    if (view === 'Quarterly') return { head: 'Quarter', rows: quarters(inv).map(q => ({ label: q.label, sub: q.span, count: q.count, taxable: q.taxable, tax: q.tax, grand: q.grand })) };
+    if (view === 'Yearly') return { head: 'Financial Year', rows: yearBuckets().map(y => ({ label: y.label, sub: '', count: y.count, taxable: y.taxable, tax: y.tax, grand: y.grand })) };
+    return { head: 'Month', rows: inv.byMonth.map((b, i) => ({ label: FY_MONTHS[i], sub: '', count: b.count, taxable: b.taxable, tax: b.tax, grand: b.grand })) };
+  }
 
   // Link each quotation → its sales order → its invoice (via source refs) for the
   // "where is every deal" board. Also surface SOs / invoices created directly.
@@ -90,14 +122,17 @@
       return `<tr><td>${esc(x.r.customer || '—')}</td><td>${c(x.r.qt)}</td><td>${c(x.r.so)}</td><td>${c(x.r.inv)}</td><td><span class="inv-chip ${x.s.cls}">${x.s.t}</span></td></tr>`;
     }).join('') : '<tr><td colspan="5" class="c rp-mini">No deals yet this financial year.</td></tr>';
 
-    // ----- period section (Monthly / Quarterly) -----
-    const qs = quarters(inv);
-    const periodBars = view === 'Quarterly'
-      ? (() => { const mx = Math.max(1, ...qs.map(q => q.grand)); return qs.map(q => `<div class="rp-bar"><div class="rp-bar-track"><div class="rp-bar-fill" style="height:${Math.round(q.grand / mx * 100)}%" title="${money0(q.grand)}"></div></div><div class="rp-bar-lbl">${q.label}</div></div>`).join(''); })()
-      : (() => { const mx = Math.max(1, ...inv.byMonth.map(b => b.grand)); return inv.byMonth.map((b, i) => `<div class="rp-bar"><div class="rp-bar-track"><div class="rp-bar-fill" style="height:${Math.round(b.grand / mx * 100)}%" title="${money0(b.grand)}"></div></div><div class="rp-bar-lbl">${FY_MONTHS[i]}</div></div>`).join(''); })();
-    const periodTable = view === 'Quarterly'
-      ? qs.map(q => `<tr><td>${q.label} <span class="rp-mini">${q.span}</span></td><td class="c">${q.count}</td><td class="r">${money(q.taxable)}</td><td class="r">${money(q.tax)}</td><td class="r b">${money(q.grand)}</td></tr>`).join('')
-      : inv.byMonth.map((b, i) => `<tr><td>${FY_MONTHS[i]}</td><td class="c">${b.count}</td><td class="r">${money(b.taxable)}</td><td class="r">${money(b.tax)}</td><td class="r b">${money(b.grand)}</td></tr>`).join('');
+    // ----- period section (Weekly / Monthly / Quarterly / Yearly) -----
+    const period = periodBuckets(view, inv, fy);
+    const pRows = period.rows;
+    const pTot = pRows.reduce((s, b) => ({ count: s.count + b.count, taxable: s.taxable + b.taxable, tax: s.tax + b.tax, grand: s.grand + b.grand }), { count: 0, taxable: 0, tax: 0, grand: 0 });
+    const mx = Math.max(1, ...pRows.map(b => b.grand));
+    const periodBars = pRows.length
+      ? pRows.map(b => `<div class="rp-bar"><div class="rp-bar-track"><div class="rp-bar-fill" style="height:${Math.round(b.grand / mx * 100)}%" title="${money0(b.grand)}"></div></div><div class="rp-bar-lbl">${esc(b.label)}</div></div>`).join('')
+      : '<div class="rp-mini" style="padding:20px">No data for this period.</div>';
+    const periodTable = pRows.length
+      ? pRows.map(b => `<tr><td>${esc(b.label)}${b.sub ? ' <span class="rp-mini">' + esc(b.sub) + '</span>' : ''}</td><td class="c">${b.count}</td><td class="r">${money(b.taxable)}</td><td class="r">${money(b.tax)}</td><td class="r b">₹${money(b.grand)}</td></tr>`).join('')
+      : `<tr><td colspan="5" class="c rp-mini">No ${esc(view.toLowerCase())} data.</td></tr>`;
 
     host.innerHTML = `
       <div class="inv-wrap">
@@ -133,22 +168,22 @@
         </div>
 
         <div class="rp-tiles">
-          ${tile('Invoiced (incl. GST)', money0(inv.grand), inv.count + ' invoice' + (inv.count === 1 ? '' : 's'))}
-          ${tile('Taxable value', money0(inv.taxable), 'GST ' + money0(inv.tax))}
-          ${tile('Quotations', money0(qt.grand), qt.count + ' quote' + (qt.count === 1 ? '' : 's'))}
-          ${tile('Sales Orders', money0(so.grand), so.count + ' order' + (so.count === 1 ? '' : 's'))}
+          ${tile('Invoiced (incl. GST)', compact(inv.grand), inv.count + ' invoice' + (inv.count === 1 ? '' : 's'))}
+          ${tile('Taxable value', compact(inv.taxable), 'GST ' + compact(inv.tax))}
+          ${tile('Quotations', compact(qt.grand), qt.count + ' quote' + (qt.count === 1 ? '' : 's'))}
+          ${tile('Sales Orders', compact(so.grand), so.count + ' order' + (so.count === 1 ? '' : 's'))}
           ${tile('Quote → Invoice', conv + '%', 'conversion')}
         </div>
 
         <div class="inv-card">
-          <div class="inv-card-h">Invoiced value — FY ${esc(fy)}
-            <span class="rp-seg"><button class="rp-seg-b ${view === 'Monthly' ? 'active' : ''}" data-view="Monthly">Monthly</button><button class="rp-seg-b ${view === 'Quarterly' ? 'active' : ''}" data-view="Quarterly">Quarterly</button></span></div>
+          <div class="inv-card-h">Invoiced value ${view === 'Yearly' ? '(all years)' : '— FY ' + esc(fy)}
+            <span class="rp-seg">${['Weekly', 'Monthly', 'Quarterly', 'Yearly'].map(v => `<button class="rp-seg-b ${view === v ? 'active' : ''}" data-view="${v}">${v}</button>`).join('')}</span></div>
           <div class="rp-bars">${periodBars}</div>
         </div>
 
-        <div class="inv-card"><div class="inv-card-h">${view} breakdown</div>
-          <div class="inv-items-wrap"><table class="inv-tbl rp-tbl"><thead><tr><th>${view === 'Quarterly' ? 'Quarter' : 'Month'}</th><th>Invoices</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead>
-          <tbody>${periodTable}<tr class="rp-tot"><td><b>Total</b></td><td class="c b">${inv.count}</td><td class="r b">${money(inv.taxable)}</td><td class="r b">${money(inv.tax)}</td><td class="r b">₹${money(inv.grand)}</td></tr></tbody></table></div>
+        <div class="inv-card"><div class="inv-card-h">${esc(view)} breakdown</div>
+          <div class="inv-items-wrap"><table class="inv-tbl rp-tbl"><thead><tr><th>${esc(period.head)}</th><th>Invoices</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead>
+          <tbody>${periodTable}<tr class="rp-tot"><td><b>Total</b></td><td class="c b">${pTot.count}</td><td class="r b">${money(pTot.taxable)}</td><td class="r b">${money(pTot.tax)}</td><td class="r b">₹${money(pTot.grand)}</td></tr></tbody></table></div>
         </div>
       </div>`;
 

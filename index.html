@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="progress.css">
   <link rel="stylesheet" href="trading.css">
   <link rel="stylesheet" href="invoice.css">
+  <link rel="stylesheet" href="datasheet.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -106,6 +107,14 @@
     <div class="factory-body" id="reports-app"></div>
   </div>
 
+  <div id="screen-inno-inventory" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Inventory Management</span>
+    </div>
+    <div class="factory-body" id="inno-inv-app"></div>
+  </div>
+
   <!-- ============ HOME: APP LAUNCHER ============ -->
   <div id="screen-home" class="screen">
     <div class="home-wm" aria-hidden="true"></div>
@@ -144,6 +153,9 @@
           <img src="assets/app-icons/indent-prep.png" alt="FixoTech Indent Prep" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🗂️'}))">
           <span class="fh-app-name">Indent Prep</span>
         </button>
+        <button class="hm-app" data-company="engg" data-open-app="screen-datasheet" title="Fixotech Data Sheet Prep">
+          <img src="assets/app-icons/Fixotech%20Data%20Sheet%20Prep.png" alt="Fixotech Data Sheet Prep" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📄'}))">
+        </button>
         <button class="hm-app" data-company="engg" data-open-app="screen-chatiq" title="Fixotech ChatIQ">
           <img src="assets/app-icons/smart-iq.png" alt="Fixotech ChatIQ" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'💬'}))">
         </button>
@@ -164,6 +176,9 @@
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-invoice" title="Inno Invoice Gen">
           <img src="assets/app-icons/inno-invoice-gen.png" alt="Inno Invoice Gen" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'🧾'}))">
+        </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-inno-inventory" title="Inno Inventory Management System">
+          <img src="assets/app-icons/Inno%20Inventory%20Managment%20System.png" alt="Inno Inventory Management System" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📦'}))">
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-reports" title="Inno Reports">
           <img src="assets/app-icons/Inno%20Reports.png" alt="Inno Reports" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📊'}))">
@@ -412,6 +427,14 @@
     <div id="chatiq-app"></div>
   </div>
 
+  <div id="screen-datasheet" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Data Sheet Prep</span>
+    </div>
+    <div class="factory-body" id="datasheet-app"></div>
+  </div>
+
   <div id="screen-dispatch-records" class="screen">
     <div class="app-topbar">
       <button class="app-back" data-goto="screen-home">← Home</button>
@@ -547,6 +570,7 @@
   <script src="customers-seed.js"></script>
   <script src="app.js"></script>
   <script src="clients.js"></script>
+  <script src="datasheet.js"></script>
   <script src="shell.js"></script>
   <script src="testing-mode.js"></script>
   <script src="verify.js"></script>
@@ -564,11 +588,13 @@
   <script src="trading.js"></script>
   <script src="inno-logo-data.js"></script>
   <script src="inno-stamp-data.js"></script>
+  <script src="inno-seed.js"></script>
   <script src="inno-core.js"></script>
   <script src="invoice.js"></script>
   <script src="quotation.js"></script>
   <script src="sales-order.js"></script>
   <script src="reports.js"></script>
+  <script src="inno-inventory.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).

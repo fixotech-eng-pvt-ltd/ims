@@ -210,6 +210,12 @@
 .adm-inno-replace { display: block; margin: 4px 0 8px; font-size: 13px; color: #475569; }
 .adm-inno-replace input { margin-right: 6px; }
 
+/* ---------- inventory management: stock summary + low-stock ---------- */
+.inv-stock-sum { display: flex; gap: 10px; flex-wrap: wrap; margin: 2px 0 10px; }
+.inv-stock-sum .rp-chip { min-width: 110px; }
+.inv-rec-row.inv-low { background: #fffbeb; border-radius: 10px; }
+.inv-rec-row.inv-low .inv-rec-sub b { color: #d97706; }
+
 /* ---------- reports app ---------- */
 .rp-fy { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }
 .rp-fy select { border: 1px solid #dfe4ee; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 600; color: #1e293b; }
@@ -218,8 +224,11 @@
 .rp-tile-v { font-size: 20px; font-weight: 900; color: #1e3a8a; letter-spacing: -.3px; }
 .rp-tile-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-top: 4px; }
 .rp-tile-s { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-.rp-bars { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding: 8px 4px 0; }
-.rp-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.rp-tile-v { white-space: nowrap; }
+.rp-bars { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding: 8px 4px 0; overflow-x: auto; }
+.rp-bar { flex: 1 0 auto; min-width: 30px; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.rp-tbl td.r, .rp-tbl th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+.rp-tbl td.c, .rp-tbl th:nth-child(2) { text-align: center; }
 .rp-bar-track { flex: 1; width: 60%; max-width: 34px; background: #f1f5f9; border-radius: 6px 6px 0 0; display: flex; align-items: flex-end; overflow: hidden; }
 .rp-bar-fill { width: 100%; background: linear-gradient(180deg, #3b82f6, #1e3a8a); border-radius: 6px 6px 0 0; min-height: 2px; transition: height .3s; }
 .rp-bar-lbl { font-size: 10px; color: #64748b; font-weight: 600; }

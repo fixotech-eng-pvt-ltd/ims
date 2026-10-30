@@ -1508,7 +1508,7 @@ function openCustomProductModal(preset) {
         </div>
       </div>
 
-      <div class="cpm-grid"><div style="grid-column:1/-1"><label class="cpm-lab" id="cp-qty-lab">Quantity</label><input class="fx-in" id="cp-qty" type="number" min="0" step="1" value="${_escTab(cur.qty)}"></div></div>
+      <div class="cpm-grid"><div style="grid-column:1/-1"><label class="cpm-lab" id="cp-qty-lab">Quantity</label><input class="fx-in" id="cp-qty" type="number" min="0" step="any" value="${_escTab(cur.qty)}"></div></div>
 
       <div class="cpm-preview" id="cp-preview"></div>
     </div>
@@ -1899,7 +1899,7 @@ function renderWorkspace() {
         <div class="footer-left">
           <div class="qty-group">
             <label>${p.type === 'linear' ? 'Meters' : 'Quantity'}</label>
-            <input type="number" value="${item.qty}" min="0" data-qty="${item.id}" class="qty-input">
+            <input type="number" value="${item.qty}" min="0" step="any" data-qty="${item.id}" class="qty-input">
           </div>
         </div>
         <div class="footer-right">
@@ -1935,7 +1935,7 @@ function renderWorkspace() {
       const id = parseInt(e.target.dataset.qty);
       const item = workspaceItems.find(i => i.id === id);
       if (!item) return;
-      item.qty = Math.max(0, parseInt(e.target.value) || 0);
+      item.qty = Math.max(0, num(e.target.value));   // allow decimals (e.g. 0.5, 82.5)
       updateCardDisplay(item);
     });
   });
@@ -2132,7 +2132,7 @@ function renderQuotePanel() {
       <button class="qi-remove" data-qremove="${item.id}">&times;</button>
       <div class="qi-details">${details.join(' | ')}</div>
       <div class="qi-edit-row">
-        <div class="qi-field"><label>Qty (${unit})</label><input type="number" min="0" step="1" value="${item.qty}" data-qqty="${item.id}" class="qi-input"></div>
+        <div class="qi-field"><label>Qty (${unit})</label><input type="number" min="0" step="any" value="${item.qty}" data-qqty="${item.id}" class="qi-input"></div>
         <div class="qi-field"><label>Rate ₹</label><input type="number" min="0" step="0.01" value="${item.quoteRate}" data-qrate="${item.id}" class="qi-input"></div>
       </div>
       <div class="qi-bottom"><span class="qi-qty">${item.qty ? 'Amount' : 'Rate only'}</span><span class="qi-cost">${item.qty ? '₹' + item.totalCost.toLocaleString('en-IN') : '₹' + Number(item.quoteRate || 0).toLocaleString('en-IN') + ' /unit'}</span></div>`;
@@ -2157,7 +2157,7 @@ function renderQuotePanel() {
     inp.addEventListener('input', (e) => {
       const item = quoteItems.find(i => i.id === e.target.dataset.qqty);
       if (!item) return;
-      item.qty = Math.max(0, parseInt(e.target.value) || 0);
+      item.qty = Math.max(0, num(e.target.value));   // allow decimals (e.g. 0.5)
       refreshItem(item, e.target.closest('.quote-item'));
     });
   });

@@ -16,7 +16,7 @@
       { label: '✓ Client approved', status: 'approved', cls: 'inv-ok' },
       { label: '✕ Not approved', status: 'declined', cls: 'inv-no' }
     ],
-    tally: true, convert: null
+    tally: true, convert: null, stockControl: true
   });
   window.FIXO_INVOICE = app;   // back-compat
 })();

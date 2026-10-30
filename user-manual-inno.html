@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixotech Inno Structures — User Manual</title>
+<style>
+  :root { --accent:#1e3a8a; --accent2:#3b82f6; --ink:#111827; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI",Arial,Helvetica,sans-serif; color:var(--ink); margin:0; line-height:1.55; font-size:14px; }
+  .page { max-width:900px; margin:0 auto; padding:28px 34px; }
+  h1 { color:var(--accent); font-size:30px; margin:0 0 4px; }
+  h2 { color:var(--accent); font-size:21px; margin:34px 0 6px; border-bottom:2px solid var(--accent); padding-bottom:5px; page-break-after:avoid; }
+  h3 { color:#0f1f4d; font-size:16px; margin:18px 0 4px; page-break-after:avoid; }
+  p { margin:6px 0; }
+  ol, ul { margin:6px 0 10px; padding-left:22px; }
+  li { margin:4px 0; }
+  .cover { text-align:center; padding:70px 20px 40px; border-bottom:3px solid var(--accent); margin-bottom:10px; }
+  .cover .logo { font-size:40px; font-weight:800; color:var(--accent); letter-spacing:1px; }
+  .cover .sub { color:var(--muted); font-size:15px; margin-top:6px; }
+  .cover .big { font-size:26px; font-weight:700; margin-top:30px; }
+  .meta { color:var(--muted); font-size:13px; margin-top:8px; }
+  .toc { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:16px 0; }
+  .toc a { color:var(--accent); text-decoration:none; }
+  .toc ol { columns:2; }
+  .tip { background:#eff6ff; border-left:4px solid var(--accent2); border-radius:0 8px 8px 0; padding:9px 14px; margin:10px 0; font-size:13.5px; }
+  .warn { background:#fffbeb; border-left:4px solid #d97706; border-radius:0 8px 8px 0; padding:9px 14px; margin:10px 0; font-size:13.5px; }
+  .faq { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:4px 16px; margin:10px 0; }
+  .faq b { color:var(--accent); }
+  .btn { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:1px 7px; font-size:12.5px; font-weight:600; color:var(--accent); white-space:nowrap; }
+  .flow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  .flow .node { background:var(--accent); color:#fff; border-radius:8px; padding:8px 16px; font-weight:700; }
+  .flow .arr { color:var(--accent2); font-weight:800; font-size:20px; }
+  .steps { counter-reset:s; list-style:none; padding-left:0; }
+  .steps > li { counter-increment:s; position:relative; padding:4px 0 4px 34px; margin:6px 0; }
+  .steps > li::before { content:counter(s); position:absolute; left:0; top:3px; width:23px; height:23px; background:var(--accent); color:#fff; border-radius:50%; text-align:center; line-height:23px; font-size:12.5px; font-weight:700; }
+  .pill { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#fff; background:var(--accent2); border-radius:20px; padding:2px 10px; vertical-align:middle; }
+  footer { margin-top:30px; border-top:1px solid var(--line); padding-top:10px; color:var(--muted); font-size:12px; }
+  @media print { h2 { page-break-before:always; } h2#intro { page-break-before:avoid; } .no-print { display:none; } body { font-size:12.5px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="logo">FIXOTECH INNO STRUCTURES</div>
+    <div class="sub">LLP · GST billing &amp; documents</div>
+    <div class="big">Inno Suite — User Manual</div>
+    <div class="meta">Quotation → Sales Order → Invoice · Inventory · Reports</div>
+    <div class="meta no-print">Tip: open this file in Chrome and press <b>Ctrl + P → Save as PDF</b>.</div>
+  </div>
+
+  <h2 id="intro" style="page-break-before:avoid">Getting started</h2>
+  <ol class="steps">
+    <li><b>Log in</b> with the shared ID and password.</li>
+    <li>At the top, choose <b>FIXOTECH Inno Structures</b> — the Inno apps appear.</li>
+    <li>Open <b>Office Side</b>. You'll see five apps: <b>Quotation Calculator</b>, <b>Sales OQ</b>, <b>Invoice Gen</b>, <b>Inventory Management</b> and <b>Reports</b>.</li>
+  </ol>
+  <h3>How the documents connect</h3>
+  <div class="flow"><span class="node">Quotation</span><span class="arr">→</span><span class="node">Sales Order</span><span class="arr">→</span><span class="node">Invoice</span></div>
+  <p>Make a <b>Quotation</b>, convert it to a <b>Sales Order</b> once accepted, then convert that to a <b>Tax Invoice</b>. Each document keeps a link back to the one it came from, and you can click along the chain. You can also <b>bypass</b> straight from a Quotation to an Invoice, or start any document on its own.</p>
+  <div class="tip"><b>Everything is interlinked and auto-saved.</b> Customers and inventory items are shared by all five apps — change an item once and it updates everywhere. Drafts survive a refresh; only <b>🗑 Clear</b> empties one.</div>
+
+  <div class="toc">
+    <b>What's inside</b>
+    <ol>
+      <li><a href="#common">The shared toolbar</a></li>
+      <li><a href="#quote">Quotation Calculator</a></li>
+      <li><a href="#so">Sales OQ (Sales Order)</a></li>
+      <li><a href="#inv">Invoice Gen</a></li>
+      <li><a href="#stock">Inventory Management</a></li>
+      <li><a href="#reports">Reports</a></li>
+      <li><a href="#numbering">Document numbering</a></li>
+      <li><a href="#tally">Tally export</a></li>
+      <li><a href="#admin">Admin — Inno Data</a></li>
+      <li><a href="#faq">FAQ &amp; troubleshooting</a></li>
+    </ol>
+  </div>
+
+  <h2 id="common">1 · The shared toolbar</h2>
+  <p>Quotation, Sales OQ and Invoice Gen work the same way. Across the top you'll find:</p>
+  <ul>
+    <li><b>Session tabs</b> + <span class="btn">＋</span> — keep several documents open at once (like the calculator's Order 1/2/3).</li>
+    <li><span class="btn">💾 Save</span> — save the current document to its records.</li>
+    <li><span class="btn">📋 … records</span> — the history: all saved quotations / sales orders / invoices, split into <b>Drafts</b> and <b>Completed</b>.</li>
+    <li><span class="btn">🔢 Numbering</span> — set the next document number (see section 7).</li>
+    <li><span class="btn">📦 Inventory</span> — the shared item master.</li>
+    <li><span class="btn">🧮 Tally code</span> — export for Tally (Invoice &amp; Sales Order only).</li>
+    <li><span class="btn">🗑 Clear</span> — empty the current draft (records are safe).</li>
+  </ul>
+  <h3>Filling a document (common steps)</h3>
+  <ol class="steps">
+    <li><b>Customer.</b> Type the name — saved customers auto-suggest; click one to fill GSTIN, address and place-of-supply. New customer? Click <span class="btn">＋ New customer</span>, fill the details and Save.</li>
+    <li><b>Details.</b> Check the number, date, PO, place of supply, GST % and discount. Place of supply decides CGST+SGST (within Karnataka) vs IGST (other states) automatically.</li>
+    <li><b>Items.</b> Click <span class="btn">🔎 Pick from inventory</span> to add a saved item, or type a name (it auto-fills HSN, rate, SKU). Set Qty; the amount and totals update live. <span class="btn">+ Add row</span> for more.</li>
+    <li><b>Preview &amp; print.</b> Press <span class="btn">🖨 Verify &amp; Print</span>. In the preview you can <b>click any cell to edit — totals recalculate live</b> — then <b>💾 Save changes</b> and <b>Print / Save PDF</b>. Every PDF carries the logo and authorised stamp.</li>
+    <li><b>Move it forward</b> with the status buttons and the convert button at the bottom.</li>
+  </ol>
+
+  <h2 id="quote">2 · Quotation Calculator <span class="pill">Step 1</span></h2>
+  <p>Create a price quotation (number like <b>FIS26/27-QT001</b>).</p>
+  <ol class="steps">
+    <li>Fill customer, details and items (section 1).</li>
+    <li>Use the status buttons: <span class="btn">Save as Draft</span>, <span class="btn">Save &amp; Send</span>, <span class="btn">✓ Accepted</span> or <span class="btn">✕ Declined</span>.</li>
+    <li>Once accepted, press <span class="btn">➡ Convert to Sales Order</span> — a Sales Order is created and linked. Need to skip a step? Use <span class="btn">⏩ Bypass → Invoice</span>.</li>
+  </ol>
+
+  <h2 id="so">3 · Sales OQ — Sales Order <span class="pill">Step 2</span></h2>
+  <p>The confirmed order (number like <b>FIS26/27-SO001</b>), usually created from a quotation.</p>
+  <ol class="steps">
+    <li>Check the details carried over from the quotation (shown as a link at the top).</li>
+    <li>Press <span class="btn">✓ Confirm order</span> when the customer confirms.</li>
+    <li>Press <span class="btn">➡ Convert to Invoice</span> to raise the tax invoice.</li>
+    <li>See all past orders any time with <span class="btn">📋 Sales Order records</span> (your order history), filtered by Drafts / Completed.</li>
+  </ol>
+
+  <h2 id="inv">4 · Invoice Gen — Tax Invoice <span class="pill">Step 3</span></h2>
+  <p>The GST tax invoice (number like <b>FIS26/27-001</b>).</p>
+  <ol class="steps">
+    <li>Create from a Sales Order (or on its own), check items and GST.</li>
+    <li>Use <span class="btn">🖨 Verify &amp; Print</span> for the final invoice / approval copy.</li>
+    <li>Status: <span class="btn">Save as Draft</span>, <span class="btn">Save &amp; Send</span>, <span class="btn">✓ Client approved</span>, <span class="btn">✕ Not approved</span>.</li>
+    <li>When an invoice is <b>approved</b>, the sold quantities are <b>automatically removed from inventory stock</b>.</li>
+    <li>Export to Tally with <span class="btn">🧮 Tally code</span> (section 8).</li>
+  </ol>
+
+  <h2 id="stock">5 · Inventory Management <span class="pill">Shared</span></h2>
+  <p>One item master used by every Inno app. Open the standalone <b>Inventory Management</b> app, or the <span class="btn">📦 Inventory</span> button inside any document — it's the same data.</p>
+  <ol class="steps">
+    <li>See the summary: total <b>Items</b>, <b>Low stock</b> count and <b>Stock value</b>.</li>
+    <li>Filter by <b>All / Low stock / Products / Raw materials / Services</b>, or search by name, SKU, HSN or category.</li>
+    <li><span class="btn">＋ New item</span> to add one: name, custom SKU, HSN, unit, rate, category, <b>stock on hand</b> and <b>reorder point</b>.</li>
+    <li><b>Edit</b> any item — changes show instantly in every app. <b>📄</b> shows every quotation / sales order / invoice that used that item.</li>
+    <li>Items at or below their reorder point are flagged <b>⚠ Low</b>.</li>
+    <li>Use <b>Export / Import</b> to back up or load items.</li>
+  </ol>
+  <div class="tip">Selling an item on an approved invoice reduces its stock automatically, so <b>Stock on hand</b> stays accurate.</div>
+
+  <h2 id="reports">6 · Reports</h2>
+  <p>Your whole business at a glance.</p>
+  <ul>
+    <li><b>Operations snapshot</b> — today's invoiced value, quotes and orders; what's pending; and Won / Lost / In-progress.</li>
+    <li><b>Deal / project board</b> — every sale across Quotation → Sales Order → Invoice with its current stage.</li>
+    <li><b>KPI tiles</b> — invoiced value, taxable value, GST, quotations, sales orders and quote→invoice conversion.</li>
+    <li><b>Period views</b> — switch between <b>Weekly, Monthly, Quarterly and Yearly</b> with a chart and breakdown table.</li>
+    <li><b>Financial Year</b> selector (top) to look at a past year.</li>
+    <li><span class="btn">🖨 PDF report</span> and <span class="btn">📊 Presentation</span> — both include monthly and quarterly figures and the deal board.</li>
+  </ul>
+
+  <h2 id="numbering">7 · Document numbering</h2>
+  <p>Numbers follow the financial year and roll over every April: Quotation <b>FIS26/27-QT001</b>, Sales Order <b>FIS26/27-SO001</b>, Invoice <b>FIS26/27-001</b>.</p>
+  <ol class="steps">
+    <li>You're rarely starting at 001, so press <span class="btn">🔢 Numbering</span> and set the <b>next</b> number for each type (e.g. next Invoice = 142).</li>
+    <li>New documents continue from there. You can still type any number directly on a document — the counter jumps past it so numbers never repeat.</li>
+  </ol>
+
+  <h2 id="tally">8 · Tally export</h2>
+  <p>No live connection needed — you copy a code and paste it into Tally.</p>
+  <ol class="steps">
+    <li>Press <span class="btn">🧮 Tally code</span> on an invoice (or in records, use <b>Export all to Tally</b> / <b>Tally — this view</b>).</li>
+    <li>Click <b>Copy</b> (or <b>Download .xml</b>).</li>
+    <li>In Tally: <b>Gateway of Tally → Import Data → Vouchers</b>, paste/import the file.</li>
+  </ol>
+  <div class="tip">The code uses the customer and the ledgers <b>Sales</b> and <b>Output CGST / SGST / IGST</b>. Create those ledgers once in Tally and every import maps cleanly.</div>
+
+  <h2 id="admin">9 · Admin — Inno Data</h2>
+  <p>In the Admin panel, the <b>🏗️ Inno Data</b> tab shows live counts of customers, inventory, quotations, sales orders and invoices, with a record viewer. From here the administrator can <b>Export</b> a full backup or <b>Import</b> data (for example historical records).</p>
+
+  <h2 id="faq">10 · FAQ &amp; troubleshooting</h2>
+  <div class="faq"><p><b>Q. I refreshed and lost my invoice.</b><br>It's kept — check the session tabs at the top. Only <b>🗑 Clear</b> empties a draft, and saved documents are always in <b>📋 records</b>.</p></div>
+  <div class="faq"><p><b>Q. My numbers don't start at 001.</b><br>Use <b>🔢 Numbering</b> to set the next number for each type. Or just type the correct number on the document — the counter follows it.</p></div>
+  <div class="faq"><p><b>Q. The report figures look small / only yearly.</b><br>Use the <b>Weekly / Monthly / Quarterly / Yearly</b> buttons on the "Invoiced value" card, and the Financial Year selector at the top.</p></div>
+  <div class="faq"><p><b>Q. Can I edit an invoice's numbers in the PDF?</b><br>Yes — in <b>Verify &amp; Print</b>, click any cell; totals recalculate live. Press <b>💾 Save changes</b> to keep them.</p></div>
+  <div class="faq"><p><b>Q. Where do I see all orders for one product?</b><br>Inventory → open the item's <b>📄</b> to see every quotation, sales order and invoice that used it.</p></div>
+  <div class="faq"><p><b>Q. Stock isn't reducing.</b><br>Stock drops when an invoice is <b>approved</b> (the sale is final), and only once per invoice. Imported historical invoices don't change current stock.</p></div>
+
+  <footer>
+    Fixotech Inno Structures LLP — Internal user manual. For data backup / import, use Admin → Inno Data.
+  </footer>
+</div>
+</body>
+</html>

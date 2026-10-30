@@ -38,6 +38,27 @@
   function loadSeqFy() { try { return JSON.parse(localStorage.getItem(SEQFY) || '{}') || {}; } catch (e) { return {}; } }
   function peekDocNo(type, fy) { fy = fy || finYear(); const all = loadSeqFy(); const n = (all[type + '|' + fy] || 0) + 1; return 'FIS' + fy + '-' + DOC_TAG[type] + String(n).padStart(3, '0'); }
   function nextDocNo(type, fy) { fy = fy || finYear(); const all = loadSeqFy(); const key = type + '|' + fy; const n = (all[key] || 0) + 1; all[key] = n; try { localStorage.setItem(SEQFY, JSON.stringify(all)); } catch (e) {} return 'FIS' + fy + '-' + DOC_TAG[type] + String(n).padStart(3, '0'); }
+  // The next number that WILL be used for a type this FY (count already used + 1).
+  function seqNext(type, fy) { fy = fy || finYear(); return (loadSeqFy()[type + '|' + fy] || 0) + 1; }
+  // Set the counter so the next document is number `nextN` (editable — teams rarely start at 001).
+  function setSeq(type, nextN, fy) { fy = fy || finYear(); const all = loadSeqFy(); all[type + '|' + fy] = Math.max(0, Math.floor(num(nextN)) - 1); try { localStorage.setItem(SEQFY, JSON.stringify(all)); } catch (e) {} }
+  // When a user manually types a FIS number, advance the counter past it so future
+  // auto-numbers never collide.
+  function bumpSeqToDocNo(no) { const m = String(no || '').match(/^FIS(\d{2}\/\d{2})-(QT|SO)?(\d+)$/); if (!m) return; const key = (m[2] || 'INV') + '|' + m[1]; const all = loadSeqFy(); const n = parseInt(m[3], 10) || 0; if (n > (all[key] || 0)) { all[key] = n; try { localStorage.setItem(SEQFY, JSON.stringify(all)); } catch (e) {} } }
+  function openNumbering(after) {
+    const fy = finYear();
+    const m = modal(`<h3>🔢 Document numbering — FY ${esc(fy)}</h3>
+      <p class="inv-tally-note">Set the <b>next</b> number for each document type. Saved documents keep their numbers — this only affects new ones, and you can still edit any number directly on the document.</p>
+      <div class="inv-fields" style="grid-template-columns:1fr 1fr 1fr">
+        <label>Next Quotation (QT)<input id="nb-QT" type="number" min="1" value="${seqNext('QT', fy)}"></label>
+        <label>Next Sales Order (SO)<input id="nb-SO" type="number" min="1" value="${seqNext('SO', fy)}"></label>
+        <label>Next Invoice<input id="nb-INV" type="number" min="1" value="${seqNext('INV', fy)}"></label>
+      </div>
+      <div class="inv-rec-sub" style="margin:6px 0">Preview: ${['QT', 'SO', 'INV'].map(t => 'FIS' + fy + '-' + DOC_TAG[t] + '…').join(' · ')}</div>
+      <div class="inv-modal-act"><button class="cp-btn cp-btn-go" data-ok>💾 Save numbering</button><button class="cp-btn" data-x>Cancel</button></div>`);
+    m.querySelector('[data-x]').onclick = () => m.remove();
+    m.querySelector('[data-ok]').onclick = () => { ['QT', 'SO', 'INV'].forEach(t => { const v = Math.max(1, Math.floor(num(m.querySelector('#nb-' + t).value)) || 1); setSeq(t, v, fy); }); toast('Numbering updated'); m.remove(); if (after) after(); };
+  }
 
   // ---------- inventory / items master (shared by all apps) ----------
   const PRODUCTS = [
@@ -62,6 +83,19 @@
   function seedInventory() { if (loadInv()) return; storeInv(PRODUCTS.map(p => ({ id: uid('itm-'), name: p.name, sku: '', hsn: p.hsn, unit: p.unit, rate: p.rate, category: p.cat || 'Product', stock: '', notes: '' }))); }
   function invList() { const l = loadInv(); return Array.isArray(l) ? l : []; }
   function upsertInvItem(it) { const l = invList(); const i = l.findIndex(x => x.id === it.id); if (i >= 0) l[i] = it; else l.unshift(it); storeInv(l); return it; }
+  const isLow = (it) => { const s = num(it.stock), r = num(it.reorder); return it.reorder !== '' && it.reorder != null && it.stock !== '' && it.stock != null && s <= r; };
+  // Reduce stock-on-hand when goods are sold (invoice approved). Matches by linked
+  // itemId first, else by item name. Returns the number of lines adjusted.
+  function applyStockForDoc(m) {
+    const l = invList(); let n = 0;
+    (m.items || []).forEach(it => {
+      if (!(it.desc || '').trim()) return;
+      const inv = l.find(x => (it.itemId && x.id === it.itemId) || x.name.toLowerCase() === (it.desc || '').toLowerCase());
+      if (inv && inv.stock !== '' && inv.stock != null) { inv.stock = String(Math.round((num(inv.stock) - num(it.qty)) * 1000) / 1000); n++; }
+    });
+    if (n) storeInv(l);
+    return n;
+  }
 
   function seedCusts() {
     if (localStorage.getItem('fixo_inno_cust_seed') === '1') return;
@@ -97,7 +131,7 @@
 
   // ---------- shared inventory management (edit-save-search + linked docs) ----------
   function editInvItem(item, after) {
-    const it = item || { id: uid('itm-'), name: '', sku: '', hsn: '', unit: 'NOS', rate: '', category: 'Product', stock: '', notes: '' };
+    const it = item || { id: uid('itm-'), name: '', sku: '', hsn: '', unit: 'NOS', rate: '', category: 'Product', stock: '', reorder: '', notes: '' };
     const m = modal(`<h3>${item ? 'Edit' : 'New'} item</h3>
       <div class="inv-fields" style="grid-template-columns:1fr 1fr">
         <label class="inv-wide2">Name<input id="it-name" value="${esc(it.name)}" placeholder="Item / product name"></label>
@@ -106,35 +140,61 @@
         <label>Unit<input id="it-unit" value="${esc(it.unit || 'NOS')}"></label>
         <label>Rate ₹<input id="it-rate" type="number" value="${esc(it.rate)}"></label>
         <label>Category<select id="it-cat"><option ${it.category === 'Product' ? 'selected' : ''}>Product</option><option ${it.category === 'Raw Material' ? 'selected' : ''}>Raw Material</option><option ${it.category === 'Service' ? 'selected' : ''}>Service</option></select></label>
-        <label>Stock qty<input id="it-stock" value="${esc(it.stock)}" placeholder="optional"></label>
+        <label>Stock on hand<input id="it-stock" value="${esc(it.stock)}" placeholder="qty"></label>
+        <label>Reorder point<input id="it-reorder" value="${esc(it.reorder || '')}" placeholder="low-stock level"></label>
         <label class="inv-wide2">Notes<input id="it-notes" value="${esc(it.notes || '')}"></label>
       </div>
       <div class="inv-modal-act"><button class="cp-btn cp-btn-go" data-save>💾 Save item</button><button class="cp-btn" data-x>Cancel</button></div>`);
     m.querySelector('[data-x]').onclick = () => { m.remove(); if (after) after(null); };
     m.querySelector('[data-save]').onclick = () => {
       const name = m.querySelector('#it-name').value.trim(); if (!name) { toast('Name is required'); return; }
-      const saved = { id: it.id, name, sku: m.querySelector('#it-sku').value.trim(), hsn: m.querySelector('#it-hsn').value.trim(), unit: m.querySelector('#it-unit').value.trim() || 'NOS', rate: num(m.querySelector('#it-rate').value), category: m.querySelector('#it-cat').value, stock: m.querySelector('#it-stock').value.trim(), notes: m.querySelector('#it-notes').value.trim() };
+      const saved = { id: it.id, name, sku: m.querySelector('#it-sku').value.trim(), hsn: m.querySelector('#it-hsn').value.trim(), unit: m.querySelector('#it-unit').value.trim() || 'NOS', rate: num(m.querySelector('#it-rate').value), category: m.querySelector('#it-cat').value, stock: m.querySelector('#it-stock').value.trim(), reorder: m.querySelector('#it-reorder').value.trim(), notes: m.querySelector('#it-notes').value.trim() };
       upsertInvItem(saved); toast('Item saved'); m.remove(); if (after) after(saved);
     };
   }
-  function openInventory() {
-    const m = modal(`<div class="inv-ed-head"><h3>Inventory / Items master</h3><button class="cp-btn small cp-btn-go" id="inv-m-new">＋ New item</button><button class="cp-btn" data-x>Close</button></div>
+  let invFilter = 'all';
+  // Shared inventory panel — used by the in-document modal AND the standalone
+  // Inno Inventory Management app. Same store (fixo_inno_inventory), so any edit
+  // here is instantly reflected everywhere (fully interlinked).
+  function mountInventory(scope, opts) {
+    opts = opts || {};
+    scope.innerHTML = `<div id="inv-m-sum" class="inv-stock-sum"></div>
+      <div class="inv-rec-bar" id="inv-m-bar"></div>
       <input class="inv-in" id="inv-m-s" placeholder="Search name / SKU / HSN / category…" style="margin:4px 0 10px">
-      <div class="modal-body" id="inv-m-list"></div>`, 'big');
-    m.querySelector('[data-x]').onclick = () => { m.remove(); if (ACTIVE && ACTIVE.rerender) ACTIVE.rerender(); };
-    const draw = () => {
-      const q = (m.querySelector('#inv-m-s').value || '').toLowerCase();
-      const list = invList().filter(p => !q || (p.name + ' ' + (p.sku || '') + ' ' + (p.hsn || '') + ' ' + (p.category || '')).toLowerCase().includes(q));
-      m.querySelector('#inv-m-list').innerHTML = list.length ? list.map(p => { const d = docsForItem(p); const nDocs = d.QT.length + d.SO.length + d.INV.length; return `<div class="inv-rec-row">
-        <div class="inv-rec-main"><b>${esc(p.name)}</b> <span class="inv-chip st-draft">${esc(p.category || 'Product')}</span><span class="inv-rec-sub">${p.sku ? 'SKU ' + esc(p.sku) + ' · ' : ''}HSN ${esc(p.hsn) || '—'} · ${esc(p.unit)} · ₹${money(p.rate)}${p.stock !== '' && p.stock != null ? ' · stock ' + esc(p.stock) : ''} · 📄 ${nDocs} doc${nDocs === 1 ? '' : 's'}</span></div>
-        <div class="inv-rec-act"><button class="cp-btn so-open" data-edit="${p.id}">Edit</button><button class="cp-btn" data-docs="${p.id}" title="Quotations / Sales Orders / Invoices">📄</button><button class="cp-btn" data-use="${p.id}" title="Add to current document">➕</button><button class="so-del" data-del="${p.id}">×</button></div></div>`; }).join('') : '<div class="so-empty">No items. Click ＋ New item.</div>';
-      m.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editInvItem(invList().find(x => x.id === b.dataset.edit), () => draw()));
-      m.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this item from inventory?')) { storeInv(invList().filter(x => x.id !== b.dataset.del)); draw(); } });
-      m.querySelectorAll('[data-docs]').forEach(b => b.onclick = () => openItemDocs(invList().find(x => x.id === b.dataset.docs)));
-      m.querySelectorAll('[data-use]').forEach(b => b.onclick = () => { const p = invList().find(x => x.id === b.dataset.use); if (p && ACTIVE && ACTIVE.addItem) { ACTIVE.addItem(p); toast('Added to ' + ACTIVE.cfg.noun.toLowerCase()); } else { toast('Open an invoice/quotation first'); } });
+      <div class="${opts.listClass || 'modal-body'}" id="inv-m-list"></div>`;
+    const q1 = (s) => scope.querySelector(s);
+    const drawSum = () => {
+      const all = invList(); const low = all.filter(isLow);
+      const val = all.reduce((s, p) => s + num(p.stock) * num(p.rate), 0);
+      q1('#inv-m-sum').innerHTML = `<div class="rp-chip c-info"><span class="rp-chip-v">${all.length}</span><span class="rp-chip-l">Items</span></div>
+        <div class="rp-chip ${low.length ? 'c-warn' : 'c-ok'}"><span class="rp-chip-v">${low.length}</span><span class="rp-chip-l">Low stock</span></div>
+        <div class="rp-chip c-ok"><span class="rp-chip-v">₹${money(val)}</span><span class="rp-chip-l">Stock value</span></div>`;
+      const f = (k, lbl) => `<button class="inv-rec-f ${invFilter === k ? 'active' : ''}" data-f="${k}">${lbl}</button>`;
+      q1('#inv-m-bar').innerHTML = f('all', 'All') + f('low', '⚠ Low stock (' + low.length + ')') + f('Product', 'Products') + f('Raw Material', 'Raw materials') + f('Service', 'Services');
+      scope.querySelectorAll('#inv-m-bar [data-f]').forEach(b => b.onclick = () => { invFilter = b.dataset.f; drawSum(); draw(); });
     };
-    m.querySelector('#inv-m-s').oninput = draw; m.querySelector('#inv-m-new').onclick = () => editInvItem(null, (s) => { if (s) draw(); });
-    draw();
+    const draw = () => {
+      const q = (q1('#inv-m-s').value || '').toLowerCase();
+      let list = invList().filter(p => !q || (p.name + ' ' + (p.sku || '') + ' ' + (p.hsn || '') + ' ' + (p.category || '')).toLowerCase().includes(q));
+      if (invFilter === 'low') list = list.filter(isLow); else if (invFilter !== 'all') list = list.filter(p => (p.category || 'Product') === invFilter);
+      const useBtn = opts.showUse === false ? '' : '<button class="cp-btn" data-use="ID" title="Add to current document">➕</button>';
+      q1('#inv-m-list').innerHTML = list.length ? list.map(p => { const d = docsForItem(p); const nDocs = d.QT.length + d.SO.length + d.INV.length; const low = isLow(p); const hasStock = p.stock !== '' && p.stock != null; return `<div class="inv-rec-row${low ? ' inv-low' : ''}">
+        <div class="inv-rec-main"><b>${esc(p.name)}</b> <span class="inv-chip st-draft">${esc(p.category || 'Product')}</span>${low ? '<span class="inv-chip st-no">⚠ Low</span>' : ''}<span class="inv-rec-sub">${p.sku ? 'SKU ' + esc(p.sku) + ' · ' : ''}HSN ${esc(p.hsn) || '—'} · ${esc(p.unit)} · ₹${money(p.rate)}${hasStock ? ' · stock <b>' + esc(p.stock) + '</b>' : ''}${p.reorder !== '' && p.reorder != null ? ' (reorder ' + esc(p.reorder) + ')' : ''} · 📄 ${nDocs}</span></div>
+        <div class="inv-rec-act"><button class="cp-btn so-open" data-edit="${p.id}">Edit</button><button class="cp-btn" data-docs="${p.id}" title="Quotations / Sales Orders / Invoices">📄</button>${useBtn.replace('ID', p.id)}<button class="so-del" data-del="${p.id}">×</button></div></div>`; }).join('') : '<div class="so-empty">No items in this view.</div>';
+      scope.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editInvItem(invList().find(x => x.id === b.dataset.edit), () => { drawSum(); draw(); }));
+      scope.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this item from inventory?')) { storeInv(invList().filter(x => x.id !== b.dataset.del)); drawSum(); draw(); } });
+      scope.querySelectorAll('[data-docs]').forEach(b => b.onclick = () => openItemDocs(invList().find(x => x.id === b.dataset.docs)));
+      scope.querySelectorAll('[data-use]').forEach(b => b.onclick = () => { const p = invList().find(x => x.id === b.dataset.use); if (p && ACTIVE && ACTIVE.addItem) { ACTIVE.addItem(p); toast('Added to ' + ACTIVE.cfg.noun.toLowerCase()); } else { toast('Open an invoice/quotation first'); } });
+    };
+    q1('#inv-m-s').oninput = draw;
+    drawSum(); draw();
+    return { refresh: () => { drawSum(); draw(); } };
+  }
+  function openInventory() {
+    const m = modal(`<div class="inv-ed-head"><h3>📦 Inventory Management</h3><button class="cp-btn small cp-btn-go" id="inv-m-new">＋ New item</button><button class="cp-btn" data-x>Close</button></div><div id="inv-m-body"></div>`, 'big');
+    m.querySelector('[data-x]').onclick = () => { m.remove(); if (ACTIVE && ACTIVE.rerender) ACTIVE.rerender(); };
+    const panel = mountInventory(m.querySelector('#inv-m-body'), { showUse: true });
+    m.querySelector('#inv-m-new').onclick = () => editInvItem(null, (s) => { if (s) panel.refresh(); });
   }
 
   // ---------- cross-document product search ----------
@@ -199,7 +259,8 @@
     if (!model.placeOfSupply) model.placeOfSupply = posLabel(model.posCode);
     if (model.discountPct == null) model.discountPct = 0;
     const t = totals(model);
-    return { id: r.id || uid('doc-'), docType: type, docNo: no, invNo: no, customer: r.customer || model.billName || '', savedAt: r.savedAt || model.invDate || today(), total: r.total != null ? r.total : t.grand, status: r.status || model.status || 'draft', source: r.source || model.source || null, model };
+    const id = r.id || (no ? 'doc-' + type + '-' + no.replace(/[^A-Za-z0-9]/g, '') : uid('doc-'));
+    return { id, docType: type, docNo: no, invNo: no, customer: r.customer || model.billName || '', savedAt: r.savedAt || model.invDate || today(), total: r.total != null ? r.total : t.grand, status: r.status || model.status || 'draft', source: r.source || model.source || null, model };
   }
   // After import, advance the FY counters past the highest imported number so new
   // documents never collide with historical FIS numbers.
@@ -391,6 +452,7 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     function saveDoc(silent) {
       if (!model.items.some(it => (it.desc || '').trim())) { if (!silent) toast('Add at least one item'); return false; }
       ensureNo();
+      bumpSeqToDocNo(dn(model));   // if the number was typed manually, keep the counter ahead
       const list = loadSaved().filter(r => r.id !== model.id);
       list.unshift({ id: model.id, docType: cfg.type, docNo: dn(model), invNo: dn(model), customer: model.billName, savedAt: new Date().toLocaleString('en-IN'), total: totals(model).grand, status: model.status || 'draft', source: model.source || null, model: JSON.parse(JSON.stringify(model)) });
       storeSaved(list); if (!silent) toast(cfg.noun + ' saved'); return true;
@@ -399,7 +461,10 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       if (!model.items.some(it => (it.desc || '').trim())) { toast('Add items first'); return; }
       if (st === 'sent' && !model.sentAt) model.sentAt = new Date().toLocaleString('en-IN');
       if (st === 'approved') model.approvedAt = new Date().toLocaleString('en-IN');
-      model.status = st; saveDoc(true); render(); toast('Marked ' + ((STATUS[st] || {}).label || st));
+      model.status = st;
+      // Inventory control: when goods are invoiced (approved), reduce stock once.
+      if (cfg.stockControl && st === 'approved' && !model.stockApplied) { const n = applyStockForDoc(model); model.stockApplied = true; if (n) toast('Stock updated for ' + n + ' item' + (n === 1 ? '' : 's')); }
+      saveDoc(true); render(); toast('Marked ' + ((STATUS[st] || {}).label || st));
     }
 
     // ----- convert: QT → SO → INV (or bypass straight to Invoice) -----
@@ -616,6 +681,7 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
           <div class="inv-topbtns">
             <button class="cp-btn small" id="inv-save">💾 Save</button>
             <button class="cp-btn small" id="inv-saved">📋 ${esc(cfg.noun)} records</button>
+            <button class="cp-btn small" id="inv-numbering">🔢 Numbering</button>
             <button class="cp-btn small" id="inv-inventory">📦 Inventory</button>
             ${cfg.tally ? `<button class="cp-btn small" id="inv-tally">🧮 Tally code</button>` : ''}
             <button class="cp-btn small inv-clear" id="inv-clear">🗑 Clear</button>
@@ -679,6 +745,7 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
       document.getElementById('inv-save').onclick = () => saveDoc();
       document.getElementById('inv-saved').onclick = openSaved;
       document.getElementById('inv-inventory').onclick = openInventory;
+      document.getElementById('inv-numbering').onclick = () => openNumbering(() => render());
       if (cfg.tally) document.getElementById('inv-tally').onclick = () => openTally([model], 'Tally code — ' + (dn(model) || 'this ' + cfg.noun.toLowerCase()));
       document.getElementById('inv-clear').onclick = () => clearSession();
       document.getElementById('inv-verify').onclick = openEditor;
@@ -712,6 +779,19 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     const b = document.querySelector('[data-open-app="' + screen + '"]'); if (b) b.click();
   }
 
+  // One-time seed from the bundled real Zoho history (customers, items, invoices).
+  function seedFromBundle() {
+    try {
+      if (!window.INNO_SEED) return;
+      if (localStorage.getItem('fixo_inno_seed_v1') === '1') return;
+      importAll(window.INNO_SEED, false);
+      localStorage.setItem('fixo_inno_seed_v1', '1');
+      localStorage.setItem('fixo_inno_cust_seed', '1');   // real customers now present
+    } catch (e) { console.error('Inno seed import failed', e); }
+  }
+  seedFromBundle();
+
   window.FIXO_DOC = { make, finYear, peekDocNo, nextDocNo, invList, allDocs, docsForItem, openInventory, totals, SAVED_KEYS, loadStore, CO, money: money, esc: esc,
-    fullChain, downstreamFor, innoSummary, exportAll, importAll, loadCusts };
+    fullChain, downstreamFor, innoSummary, exportAll, importAll, loadCusts, applyStockForDoc, isLow,
+    mountInventory, openInventory, editInvItem, seqNext, setSeq, openNumbering };
 })();

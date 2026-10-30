@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixotech Engineering — User Manual</title>
+<style>
+  :root { --accent:#1e3a8a; --accent2:#3b82f6; --ink:#111827; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI",Arial,Helvetica,sans-serif; color:var(--ink); margin:0; line-height:1.55; font-size:14px; }
+  .page { max-width:900px; margin:0 auto; padding:28px 34px; }
+  h1 { color:var(--accent); font-size:30px; margin:0 0 4px; }
+  h2 { color:var(--accent); font-size:21px; margin:34px 0 6px; border-bottom:2px solid var(--accent); padding-bottom:5px; page-break-after:avoid; }
+  h3 { color:#0f1f4d; font-size:16px; margin:18px 0 4px; page-break-after:avoid; }
+  p { margin:6px 0; }
+  ol, ul { margin:6px 0 10px; padding-left:22px; }
+  li { margin:4px 0; }
+  .cover { text-align:center; padding:70px 20px 40px; border-bottom:3px solid var(--accent); margin-bottom:10px; }
+  .cover .logo { font-size:40px; font-weight:800; color:var(--accent); letter-spacing:1px; }
+  .cover .sub { color:var(--muted); font-size:15px; margin-top:6px; }
+  .cover .big { font-size:26px; font-weight:700; margin-top:30px; }
+  .meta { color:var(--muted); font-size:13px; margin-top:8px; }
+  .toc { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:16px 0; }
+  .toc a { color:var(--accent); text-decoration:none; }
+  .toc ol { columns:2; }
+  .tip { background:#eff6ff; border-left:4px solid var(--accent2); border-radius:0 8px 8px 0; padding:9px 14px; margin:10px 0; font-size:13.5px; }
+  .warn { background:#fffbeb; border-left:4px solid #d97706; border-radius:0 8px 8px 0; padding:9px 14px; margin:10px 0; font-size:13.5px; }
+  .faq { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:4px 16px; margin:10px 0; }
+  .faq b { color:var(--accent); }
+  .btn { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:1px 7px; font-size:12.5px; font-weight:600; color:var(--accent); white-space:nowrap; }
+  .steps { counter-reset:s; list-style:none; padding-left:0; }
+  .steps > li { counter-increment:s; position:relative; padding:4px 0 4px 34px; margin:6px 0; }
+  .steps > li::before { content:counter(s); position:absolute; left:0; top:3px; width:23px; height:23px; background:var(--accent); color:#fff; border-radius:50%; text-align:center; line-height:23px; font-size:12.5px; font-weight:700; }
+  .app-card { border:1px solid var(--line); border-radius:12px; padding:2px 20px 14px; margin:14px 0; page-break-inside:avoid; }
+  .pill { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#fff; background:var(--accent2); border-radius:20px; padding:2px 10px; vertical-align:middle; }
+  footer { margin-top:30px; border-top:1px solid var(--line); padding-top:10px; color:var(--muted); font-size:12px; }
+  @media print { h2 { page-break-before:always; } h2#intro, .cover+* h2:first-of-type { page-break-before:avoid; } .no-print { display:none; } body { font-size:12.5px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="logo">FIXOTECH</div>
+    <div class="sub">Engineering Systems Pvt. Ltd. · ISO 9001:2015 Certified</div>
+    <div class="big">Office &amp; Factory App — User Manual</div>
+    <div class="meta">Engineering workspace · Smart Calculator, Proforma, Indent, Data Sheet, ChatIQ, Dispatch, Trading &amp; Factory</div>
+    <div class="meta no-print">Tip: open this file in Chrome and press <b>Ctrl + P → Save as PDF</b> to get the PDF manual.</div>
+  </div>
+
+  <h2 id="intro" style="page-break-before:avoid">Getting started</h2>
+  <p>The Fixotech app runs in your browser, as a Windows app (EXE), and on phones as an installable app (PWA). Everything you do is saved automatically and stays even if you close or refresh — you only lose work if you press <span class="btn">🗑 Clear</span>.</p>
+  <ol class="steps">
+    <li><b>Log in.</b> Enter the shared User ID and password on the sign-in screen. You stay signed in until you log out.</li>
+    <li><b>Pick your company.</b> At the top, choose <b>FIXOTECH Engineering</b> (this manual) or FIXOTECH Inno Structures. The apps shown change with the company.</li>
+    <li><b>Choose Office or Factory.</b> Office is for quoting, invoicing and documents; Factory is for the floor, dispatch and stock.</li>
+    <li><b>Open an app</b> by clicking its tile. Use <span class="btn">← Home</span> (top-left) to come back.</li>
+  </ol>
+  <div class="tip"><b>Your data is safe:</b> drafts auto-save every few seconds. Closing the tab, refreshing, or a power cut will not lose an in-progress quote, invoice or data sheet.</div>
+
+  <div class="toc">
+    <b>What's inside</b>
+    <ol>
+      <li><a href="#calc">Smart Calculator</a></li>
+      <li><a href="#proforma">Proforma Invoice</a></li>
+      <li><a href="#indent">Indent Prep</a></li>
+      <li><a href="#datasheet">Data Sheet Prep</a></li>
+      <li><a href="#chatiq">ChatIQ</a></li>
+      <li><a href="#dispatch">Dispatch Records</a></li>
+      <li><a href="#trading">Trading</a></li>
+      <li><a href="#factory">Factory side</a></li>
+      <li><a href="#admin">Admin &amp; settings</a></li>
+      <li><a href="#faq">FAQ &amp; troubleshooting</a></li>
+    </ol>
+  </div>
+
+  <h2 id="calc">1 · Smart Calculator <span class="pill">Quoting engine</span></h2>
+  <p>The Smart Calculator works out weight, rate and cost for cable trays and other products, and builds a client quotation you can print, save and send.</p>
+  <h3>Make a quotation</h3>
+  <ol class="steps">
+    <li>At the top, set <b>Step 1 – Material</b> (e.g. GI, 80 GSM). This drives the rates.</li>
+    <li>Fill <b>Customer Details</b> on the left. Start typing the <b>Company / Business name</b> — matching saved customers appear; click one to auto-fill. New customer? Type it and click <span class="btn">Save Client</span>.</li>
+    <li>Use <b>Select a component to calculate…</b> to add a product (e.g. Perforated Cable Tray), or pick from the product list.</li>
+    <li>In the product card, enter the <b>Design Parameters</b> — Thickness, Width, Height, Side Lip, Raw Material Rate, MFG Charges, JP, etc. The <b>Calculation Details</b> (weight, rate) update live.</li>
+    <li>Enter <b>Meters</b> (or Quantity). <b>Decimals are allowed</b> — e.g. 0.5, 82.5 — and the cost recalculates instantly.</li>
+    <li>Click <span class="btn">+ Add to Quote</span>. The line appears under <b>Current Quote</b> on the right with its amount.</li>
+    <li>Repeat for more products. You can change any line's <b>Qty</b> or <b>Rate</b> right in the quote list.</li>
+  </ol>
+  <h3>Several quotes at once</h3>
+  <p>Use the order tabs at the top-left (<b>Order 1, Order 2…</b> / <span class="btn">+ New Order</span>) to keep separate quotes for different customers open side by side. Each is saved on its own.</p>
+  <h3>Print, save &amp; send</h3>
+  <ol class="steps">
+    <li><span class="btn">Approval Copy (DRAFT)</span> — a watermarked draft for internal / management approval.</li>
+    <li><span class="btn">Verify &amp; Edit PDF</span> — opens the quotation as an editable PDF. <b>Click any cell to change it, then press 💾 Save changes.</b> Edits flow everywhere (quote, Proforma, Indent).</li>
+    <li><span class="btn">Print / Save PDF</span> — the final client-ready quotation. <span class="btn">Print / Save CSV</span> for the spreadsheet version.</li>
+    <li><span class="btn">Save Order</span> stores the whole quote (with edits) so you can reopen it later from <span class="btn">Saved Orders</span> (your Order History).</li>
+    <li><span class="btn">→ Forward to Proforma Invoice</span> carries the quote into the Proforma app.</li>
+  </ol>
+  <div class="tip"><b>Decimals:</b> any quantity or metre value accepts a decimal point (0.5, 1.25, 82.5). The calculation and the saved order both keep the exact decimal.</div>
+  <div class="warn"><b>Clear vs Save:</b> <span class="btn">🗑 Clear</span> empties the current quote only — saved orders are untouched. Always <b>Save Order</b> before clearing if you may need it again.</div>
+
+  <h2 id="proforma">2 · Proforma Invoice</h2>
+  <p>Turns an approved quotation into a proforma invoice (PI) for advance payment.</p>
+  <ol class="steps">
+    <li>From the Smart Calculator press <span class="btn">→ Forward to Proforma Invoice</span>, or open the Proforma app directly.</li>
+    <li>Check the client details, items and amounts (they come from the quote). Edit anything that changed.</li>
+    <li>Add bank / payment and GST details if prompted.</li>
+    <li>Preview, then <b>Print / Save PDF</b>. Save it so it can be reopened.</li>
+  </ol>
+  <div class="tip">Edits you made in the Smart Calculator's <b>Verify &amp; Edit PDF</b> carry across to the Proforma automatically.</div>
+
+  <h2 id="indent">3 · Indent Prep</h2>
+  <p>Creates the production/dispatch indent that the factory floor works from.</p>
+  <ol class="steps">
+    <li>Open <b>Indent Prep</b> (or forward from a quote/order).</li>
+    <li>Enter the <b>Indent No</b>, customer and the item list (description, size, quantity).</li>
+    <li>Mark priority if urgent.</li>
+    <li>Save the indent — it becomes visible on the <b>Factory Floor</b> and in <b>Dispatch</b> for printing and fulfilment.</li>
+  </ol>
+
+  <h2 id="datasheet">4 · Data Sheet Prep <span class="pill">New</span></h2>
+  <p>Builds the official <b>Technical Data Sheet</b> for a product (Perforated / Ladder cable tray, Raceway, Junction Box or custom) — ready to print with logo, watermark, stamp and date.</p>
+  <ol class="steps">
+    <li>Open <b>Data Sheet Prep</b> from the Office home.</li>
+    <li><b>Step 1 – Client &amp; Project:</b> type the <b>Customer name</b> (existing customers auto-suggest as you type), the <b>Project name</b> and <b>Location</b>. The <b>Date</b> defaults to today.</li>
+    <li><b>Step 2 – Product:</b> click the product — <b>Perforated Cable Tray, Ladder Cable Tray, Raceway, Junction Box</b> or <b>Other / Custom</b>. The spec fields change to match. You can also edit the printed <b>Product</b> description.</li>
+    <li><b>Step 3 – Specifications:</b> fill each field. Every field gives you <b>dropdown options and free typing</b> — pick a standard value (e.g. Thickness 1.6mm) or type your own (e.g. Width "300, 200mm"). Values can be Nil, 0, or a decimal.</li>
+    <li>Press <span class="btn">🖨 Verify &amp; Print — Technical Data Sheet</span>. Click any value in the preview to fine-tune it, press <b>💾 Save changes</b>, then <b>Print / Save PDF</b>.</li>
+    <li>Use <span class="btn">💾 Save</span> to store the data sheet, <span class="btn">📋 Data sheet records</span> to reopen a previous one, <span class="btn">＋</span> for a new one alongside, and <span class="btn">🗑 Clear</span> to start over.</li>
+  </ol>
+  <div class="tip"><b>No office address</b> is printed on the data sheet by design — just the logo, certification, specs, stamp and date. Customers you added in the Smart Calculator show up here automatically.</div>
+
+  <h2 id="chatiq">5 · ChatIQ</h2>
+  <p>An assistant for quick questions and lookups across your Fixotech data. Open <b>ChatIQ</b>, type your question, and read the answer. Use it for "what's the rate for…", product info and quick help.</p>
+
+  <h2 id="dispatch">6 · Dispatch Records</h2>
+  <p>Shows what has been dispatched and lets you track and print dispatch documents.</p>
+  <ol class="steps">
+    <li>Open <b>Dispatch Records</b>. New items flagged for dispatch show a badge.</li>
+    <li>Open a record to see the customer, indent and items.</li>
+    <li>Mark it dispatched / print the dispatch sheet as needed.</li>
+  </ol>
+
+  <h2 id="trading">7 · Trading</h2>
+  <p>For bought-out / traded items: maintain the trading item list and raise/track trading requests. Add items, record requests, and keep the trading log up to date.</p>
+
+  <h2 id="factory">8 · Factory side</h2>
+  <p>Switch to <b>Factory Side</b> from the workspace screen. The main tools:</p>
+  <ul>
+    <li><b>Factory Floor</b> — the live indents to produce, with details and status.</li>
+    <li><b>Dispatch</b> — prepare and approve dispatches against indents.</li>
+    <li><b>Inventory</b> — factory stock in/out and levels.</li>
+  </ul>
+  <div class="tip">Indents created in Office <b>Indent Prep</b> appear here automatically — the office and factory stay in sync.</div>
+
+  <h2 id="admin">9 · Admin &amp; settings</h2>
+  <p>Available to the administrator account (the 🛡️ Admin button). Admin can:</p>
+  <ul>
+    <li><b>Testing Mode</b> — restrict the platform to the core flow while testing.</li>
+    <li><b>Access Control</b> — who can use which app.</li>
+    <li><b>Monitoring</b> — an activity feed of what's happening.</li>
+    <li><b>FixTech Help</b> — error reports from users.</li>
+  </ul>
+
+  <h2 id="faq">10 · FAQ &amp; troubleshooting</h2>
+  <div class="faq"><p><b>Q. I refreshed and my quote is gone.</b><br>It shouldn't be — drafts auto-save. Check the order tabs at the top; you may be on a different tab. Only <b>🗑 Clear</b> removes a draft.</p></div>
+  <div class="faq"><p><b>Q. A decimal quantity (0.5) wasn't calculating.</b><br>Fixed — any field now accepts decimals and recalculates instantly. If you still see an old version, close and reopen the app (or clear the browser cache) so the latest version loads.</p></div>
+  <div class="faq"><p><b>Q. How do I edit the PDF before sending?</b><br>Use <b>Verify &amp; Edit PDF</b>, click the cell to change, then <b>💾 Save changes</b>. Edits flow to the Proforma and Indent too.</p></div>
+  <div class="faq"><p><b>Q. A customer I saved isn't showing.</b><br>Start typing the name — the list filters as you type. If it's brand new, type it fully and <b>Save Client</b>.</p></div>
+  <div class="faq"><p><b>Q. The app looks out of date after an update.</b><br>Close it fully and reopen. On the web, do a hard refresh (Ctrl + F5). The app updates itself when online.</p></div>
+
+  <footer>
+    Fixotech Engineering Systems Pvt. Ltd. — Internal user manual. For help, use ChatIQ or the Admin → FixTech Help panel.
+  </footer>
+</div>
+</body>
+</html>
