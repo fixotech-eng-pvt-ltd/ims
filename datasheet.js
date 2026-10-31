@@ -16,7 +16,8 @@
   const HEADER = (typeof window !== 'undefined' && window.ENGG_HEADER_DATA) ? window.ENGG_HEADER_DATA : 'assets/brand/engg-header.png';
   // The normal engineering logo for the APP's own top bar (not the printed sheet).
   const ENGG_LOGO = 'https://fplogoimages.withfloats.com/actual/4787f692897d42598da86c9d05413fc6jpeg';
-  const WM = 'assets/watermark-f.png';
+  // Same watermark the quotation / proforma use (embedded, from images.js).
+  const WM = (function () { try { return (typeof WATERMARK_IMG !== 'undefined' && WATERMARK_IMG) ? WATERMARK_IMG : 'assets/watermark-f.png'; } catch (e) { return 'assets/watermark-f.png'; } })();
   // The real company stamp used on the quotation / proforma (from images.js).
   function stampData() { try { return (typeof SEAL_IMG !== 'undefined' && SEAL_IMG) ? SEAL_IMG : null; } catch (e) { return null; } }
 
@@ -177,7 +178,7 @@
   function applyMaterial(m) { const s = materialSpec(m.material, m.finSel, m.gsm); if ('moc' in m.values) m.values.moc = s.moc; if ('finish' in m.values) m.values.finish = s.finish; }
   function fresh(sel) {
     sel = sel || 'Perforated Cable Tray'; const info = DS_BY_NAME[sel] || { tmpl: 'generic', printed: sel };
-    const m = { id: uid('ds-'), sel, tmpl: info.tmpl, productName: info.printed, customer: '', projectName: '', location: '', date: today(), material: 'GI', finSel: 'GI', gsm: '—', values: freshValues(info.tmpl) };
+    const m = { id: uid('ds-'), sel, tmpl: info.tmpl, productName: info.printed, customer: '', projectName: '', location: '', date: today(), material: 'GI', finSel: 'GI', gsm: '—', color: '', values: freshValues(info.tmpl) };
     applyMaterial(m); return m;
   }
 
@@ -211,6 +212,7 @@
     const matOpts = Object.keys(MATERIALS).map(x => `<option ${x === model.material ? 'selected' : ''}>${x}</option>`).join('');
     const finOpts = (MATERIALS[model.material] || MATERIALS.GI).finishes.map(x => `<option ${x === model.finSel ? 'selected' : ''}>${x}</option>`).join('');
     const gsmSel = MATERIALS[model.material] && MATERIALS[model.material].gsm;
+    const isPowder = /powder/i.test(model.finSel || '');
     const dl = (f) => `<datalist id="ds-dl-${f.key}">${f.opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
     const fieldRows = tmpl.fields.map(f => `<label class="ds-field"><span class="ds-flab">${esc(f.label)}</span><input class="inv-in ds-fin" list="ds-dl-${f.key}" data-fk="${f.key}" value="${esc(model.values[f.key] == null ? '' : model.values[f.key])}" placeholder="${esc(f.def || 'type or pick')}" autocomplete="off">${dl(f)}</label>`).join('');
 
@@ -246,6 +248,7 @@
             <label class="ds-field"><span class="ds-flab">Finish</span><select id="ds-finish" class="inv-in">${finOpts}</select></label>
             <label class="ds-field" ${gsmSel ? '' : 'style="display:none"'}><span class="ds-flab">GSM</span><select id="ds-gsm" class="inv-in">${GSM_OPTS.map(x => `<option ${x === model.gsm ? 'selected' : ''}>${x === '—' ? '— GSM' : x + ' GSM'}</option>`).join('')}</select></label>
           </div>
+          ${isPowder ? `<label class="ds-field ds-color"><span class="ds-flab">Color (powder coat)</span><input class="inv-in" id="ds-color" list="ds-color-dl" value="${esc(model.color || '')}" placeholder="e.g. RAL 7035, Siemens Grey — type or pick" autocomplete="off"><datalist id="ds-color-dl">${['RAL 7035 (Light Grey)', 'RAL 9002 (Grey White)', 'RAL 5015 (Sky Blue)', 'RAL 9005 (Jet Black)', 'RAL 1018 (Zinc Yellow)', 'Siemens Grey', 'As per sample', 'Nil'].map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>` : ''}
           <label class="ds-field ds-pname"><span class="ds-flab">Product (as printed)</span><input class="inv-in" id="ds-pname" value="${esc(model.productName)}" placeholder="Product description"></label>
         </div>
 
@@ -264,6 +267,7 @@
     document.getElementById('ds-material').onchange = (e) => { model.material = e.target.value; const fins = MATERIALS[model.material].finishes; if (!fins.includes(model.finSel)) model.finSel = fins[0]; applyMaterial(model); render(); };
     document.getElementById('ds-finish').onchange = (e) => { model.finSel = e.target.value; applyMaterial(model); render(); };
     const gs = document.getElementById('ds-gsm'); if (gs) gs.onchange = (e) => { model.gsm = e.target.value.replace(' GSM', '').replace('— ', '—'); applyMaterial(model); render(); };
+    const cl = document.getElementById('ds-color'); if (cl) cl.oninput = (e) => { model.color = e.target.value; };
     host.querySelectorAll('.ds-fin').forEach(inp => inp.oninput = () => { model.values[inp.dataset.fk] = inp.value; });
     document.getElementById('ds-sess-add').onclick = () => newSession();
     document.getElementById('ds-sess-tabs').querySelectorAll('.inv-sess-tab').forEach(t => { t.onclick = (e) => { if (e.target.dataset.close != null) { closeSession(+e.target.dataset.close); return; } switchSession(+t.dataset.si); }; });
@@ -326,33 +330,43 @@
   }
   function dataSheetHtml(m, editable) {
     const tmpl = tmplOf(m);
-    const rows = tmpl.fields.map(f => `<tr class="ds-irow"><td class="ds-k">${esc(f.label)}</td><td class="ds-c">:</td><td class="ds-v">${esc(m.values[f.key] == null ? '' : m.values[f.key])}</td></tr>`).join('');
+    const showColor = /powder/i.test(m.finSel || '') || (m.color || '').trim();
+    const rows = tmpl.fields.map(f => {
+      let r = `<tr class="ds-irow"><td class="ds-k">${esc(f.label)}</td><td class="ds-c">:</td><td class="ds-v" data-k="${f.key}">${esc(m.values[f.key] == null ? '' : m.values[f.key])}</td></tr>`;
+      if (f.key === 'finish' && showColor) r += `<tr class="ds-irow"><td class="ds-k">Color</td><td class="ds-c">:</td><td class="ds-v" data-k="__color">${esc(m.color || '')}</td></tr>`;
+      return r;
+    }).join('');
     const ed = editable ? ' contenteditable="true" spellcheck="false"' : '';
-    const clientLine = (m.customer || m.projectName || m.location)
-      ? `<div class="ds-client-line">${m.customer ? '<b>Customer:</b> ' + esc(m.customer) : ''}${m.projectName ? ' &nbsp; <b>Project:</b> ' + esc(m.projectName) : ''}${m.location ? ' &nbsp; <b>Location:</b> ' + esc(m.location) : ''}</div>` : '';
+    const clientLine = `<div class="ds-client">
+      <div class="cust"><span class="clbl">CUSTOMER</span><div class="cname">${esc(m.customer || '—')}</div></div>
+      <div class="cmeta"><div><span class="clbl">Project</span><b>${esc(m.projectName || '—')}</b></div><div><span class="clbl">Location</span><b>${esc(m.location || '—')}</b></div><div><span class="clbl">Date</span><b>${esc(m.date || '')}</b></div></div>
+    </div>`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Technical Data Sheet — ${esc(tmpl.label)}</title><style>
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:9mm}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1a2233;font-size:12.5px;margin:0;padding:7mm}
-.doc{border:1.5px solid #15316b;border-radius:6px;padding:16px 22px 18px;position:relative;box-shadow:0 1px 0 #15316b inset}
+.doc{border:1.5px solid #15316b;border-radius:6px;padding:16px 22px 18px;position:relative;background:#fff}
 .doc::before{content:"";position:absolute;left:-1.5px;right:-1.5px;top:-1.5px;height:5px;background:linear-gradient(90deg,#15316b,#2a66c4 55%,#1f9d57);border-radius:6px 6px 0 0}
-.wm{position:absolute;top:54%;left:50%;width:54%;transform:translate(-50%,-50%);opacity:.045;pointer-events:none;z-index:0;filter:grayscale(1)}
+.wm{position:absolute;top:56%;left:50%;width:46%;max-width:340px;transform:translate(-50%,-50%);opacity:.16;pointer-events:none;z-index:0}
 .layer{position:relative;z-index:1}
 .hdr{width:100%;display:block;padding:4px 0 10px;border-bottom:2px solid #15316b}
 .hdr img{width:100%;max-height:84px;object-fit:contain;display:block}
 .hdrfallback{font-size:22px;font-weight:800;text-align:center;color:#15316b}.hdrfallback small{display:block;font-size:11px;font-weight:bold;color:#444}
 .titlewrap{text-align:center;margin:12px 0 10px}
-.pcat{display:inline-block;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#15316b;background:#eef3fb;border:1px solid #d4e0f4;border-radius:14px;padding:3px 14px;margin:0 0 8px}
+.pcat{display:inline-block;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#1f2a3d;background:rgba(30,40,60,.06);border:1px solid rgba(120,130,150,.3);border-radius:14px;padding:3px 14px;margin:0 0 8px}
 h1{text-align:center;font-size:21px;font-weight:800;color:#15316b;margin:0;letter-spacing:.6px}
 .titleline{width:120px;height:3px;background:linear-gradient(90deg,#2a66c4,#1f9d57);margin:6px auto 0;border-radius:2px}
-.ds-client-line{font-size:11px;margin:0 0 12px;color:#2a3550;background:#f6f8fc;border:1px solid #e6ecf6;border-radius:6px;padding:8px 12px;line-height:1.7}
-.ds-client-line b{color:#15316b}
-table.spec{width:100%;border-collapse:collapse;border:1px solid #e3e9f3;border-radius:6px;overflow:hidden}
-table.spec td{padding:7px 10px;vertical-align:top;font-size:12.5px;border-bottom:1px solid #eef2f8}
+.ds-client{margin:0 0 14px;background:rgba(30,40,60,.04);border:1px solid rgba(120,130,150,.25);border-left:5px solid #15316b;border-radius:6px;padding:10px 16px}
+.ds-client .clbl{display:block;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#7a88a3;font-weight:700}
+.ds-client .cname{font-size:19px;font-weight:800;color:#15316b;line-height:1.2;margin-top:1px}
+.ds-client .cmeta{display:flex;gap:28px;flex-wrap:wrap;margin-top:8px}
+.ds-client .cmeta div{font-size:12px}.ds-client .cmeta b{display:block;color:#17233c;font-size:13px;font-weight:700;margin-top:1px}
+table.spec{width:100%;border-collapse:collapse;border:1px solid #dfe3ea;border-radius:6px;overflow:hidden;background:transparent}
+table.spec td{padding:7px 10px;vertical-align:top;font-size:12.5px;border-bottom:1px solid rgba(120,130,150,.18)}
 table.spec tr:last-child td{border-bottom:none}
-tr.ds-irow:nth-child(even){background:#f8fafd}
-.ds-k{width:33%;color:#5b6b86;font-weight:600}.ds-c{width:3%;text-align:center;color:#9aa8c0}.ds-v{width:64%;font-weight:600;color:#17233c}
-tr.ds-irow:first-child{background:#eef3fb}
-tr.ds-irow:first-child .ds-k{color:#15316b;font-weight:700}.ds-irow:first-child .ds-v{font-weight:800;color:#15316b}
+tr.ds-irow:nth-child(even){background:rgba(30,40,60,.045)}
+.ds-k{width:33%;color:#404a5e;font-weight:600}.ds-c{width:3%;text-align:center;color:#9aa8c0}.ds-v{width:64%;font-weight:600;color:#17233c}
+tr.ds-irow:first-child{background:rgba(30,40,60,.075)}
+tr.ds-irow:first-child .ds-k{color:#1f2a3d;font-weight:700}.ds-irow:first-child .ds-v{font-weight:800;color:#15316b}
 .signblock{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px}
 .foot{font-size:12px}.foot .lbl{color:#5b6b86}.foot .b{font-weight:700;color:#17233c}
 .sign{text-align:center;min-width:200px}
@@ -368,7 +382,7 @@ ${editable ? '.layer[contenteditable] td:hover{background:rgba(42,102,196,.08)}'
   <div class="titlewrap"><h1>Technical Data Sheet</h1><div class="titleline"></div></div>
   ${clientLine}
   <div class="pcat">${esc(tmpl.label)}</div>
-  <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v">${esc(m.productName)}</td></tr>${rows}</table>
+  <table class="spec"><tr class="ds-irow"><td class="ds-k">Product</td><td class="ds-c">:</td><td class="ds-v" data-k="__product">${esc(m.productName)}</td></tr>${rows}</table>
   <div class="signblock">
     <div class="foot"><div><span class="lbl">Place:</span> <b>Bangalore</b></div><div><span class="lbl">Date:</span> <b>${esc(m.date)}</b></div></div>
     <div class="sign"><div class="for">For FIXOTECH ENGINEERING SYSTEMS PVT. LTD.</div><div class="stampwrap">${stampBlock()}</div><div class="role">Authorised Signatory</div></div>
@@ -388,8 +402,7 @@ ${editable ? '.layer[contenteditable] td:hover{background:rgba(42,102,196,.08)}'
       try {
         const d = fr.contentDocument || fr.contentWindow.document;
         const grab = (el) => (el ? (el.innerText != null ? el.innerText : el.textContent) : '').replace(/ /g, ' ').trim();
-        const irows = [...d.querySelectorAll('table.spec tr.ds-irow')];
-        if (irows.length) { model.productName = grab(irows[0].querySelector('.ds-v')) || model.productName; tmplOf(model).fields.forEach((f, i) => { const tr = irows[i + 1]; if (tr) model.values[f.key] = grab(tr.querySelector('.ds-v')); }); }
+        [...d.querySelectorAll('table.spec .ds-v[data-k]')].forEach(c => { const k = c.getAttribute('data-k'); const v = grab(c); if (k === '__product') model.productName = v || model.productName; else if (k === '__color') model.color = v; else model.values[k] = v; });
         persistSessions(); if (loadSaved().some(r => r.id === model.id)) saveSheet(true); render();
       } catch (e) {}
     };

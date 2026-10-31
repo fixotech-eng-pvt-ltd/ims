@@ -7,6 +7,7 @@
 .ds-pmrow { display: grid; grid-template-columns: 2.2fr 1fr 1.3fr 0.9fr; gap: 12px 16px; }
 .ds-pmrow .ds-wide { grid-column: auto; }
 .ds-pmrow select, .ds-pmrow .inv-in { font-size: 13.5px; }
+.ds-pmrow .ds-color { grid-column: 1 / -1; }
 .ds-pname { margin-top: 12px; display: block; }
 @media (max-width: 860px) { .ds-pmrow { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .ds-pmrow { grid-template-columns: 1fr; } }

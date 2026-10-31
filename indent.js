@@ -92,6 +92,7 @@
         <button class="idp-src-btn ${model.source === 'blank' ? 'active' : ''}" data-src="blank">✎ Blank</button>
         <button class="idp-src-btn ${model.source === 'proforma' ? 'active' : ''}" data-src="proforma">🧾 A saved Proforma</button>
         <button class="idp-src-btn ${model.source === 'order' ? 'active' : ''}" data-src="order">📦 A past order / quotation</button>
+        <button class="idp-src-btn idp-src-scan ${model.source === 'scan' ? 'active' : ''}" data-src="scan">📷 Scan an order (bypass)</button>
         <span class="idp-src-note" id="idp-src-note">${model.source !== 'blank' && model.customer ? 'Loaded from ' + esc(model.source) + ' · ' + esc(model.customer) : ''}</span>
       </div>
 
@@ -200,6 +201,98 @@
     if (src === 'blank') { const keepNo = model.indentNo; model = freshModel(); model.indentNo = keepNo; renderPrepare(); return; }
     if (src === 'proforma') return pickProforma();
     if (src === 'order') return pickOrderCustomer();
+    if (src === 'scan') return openScanImport();
+  }
+
+  // ---------- SCAN / IMPORT (bypass) ----------
+  // Upload a photo/PDF of a quotation / proforma / invoice / hand-written order;
+  // read it (OCR) and pre-fill the indent, which the user then verifies before
+  // saving & sending to the factory. The scanned image is attached for reference.
+  const _scripts = {};
+  function loadScript(url, globalName) {
+    if (globalName && window[globalName]) return Promise.resolve();
+    if (_scripts[url]) return _scripts[url];
+    _scripts[url] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = url; s.onload = () => res(); s.onerror = () => rej(new Error('load failed')); document.head.appendChild(s); });
+    return _scripts[url];
+  }
+  async function pdfFirstPageToImage(dataUrl) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'pdfjsLib');
+    try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) {}
+    const b = atob(dataUrl.split(',')[1]); const arr = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) arr[i] = b.charCodeAt(i);
+    const pdf = await pdfjsLib.getDocument({ data: arr }).promise; const page = await pdf.getPage(1);
+    const vp = page.getViewport({ scale: 2 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    return c.toDataURL('image/png');
+  }
+  function parseOrderText(text) {
+    const lines = (text || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    let customer = '';
+    for (const l of lines.slice(0, 18)) {
+      if (/\b(PVT|PRIVATE|LIMITED|LTD|LLP|ENTERPRISE|ENTPR|INDUSTR|CONSTRUCTION|PROJECTS?|CORP|TECHNOLOG|SOLUTIONS?|M\/S)\b/i.test(l) && !/FIXOTECH|ENGINEERING SYSTEMS/i.test(l)) { customer = l.replace(/^(to|m\/s|customer|client|buyer)[:\.\s-]*/i, '').trim(); break; }
+    }
+    const items = [];
+    lines.forEach(l => {
+      if (/^(sl|s\.?no|sr|description|item|particular|qty|rate|amount|total|gst|cgst|sgst|igst|sub ?total|grand|hsn|tax|invoice|quotation|proforma|date|gstin|page)\b/i.test(l)) return;
+      const qm = l.match(/(\d+(?:\.\d+)?)\s*(nos|no\.?|pcs|mtrs?|meters?|mts|kgs?|sets?|lot|units?)?\b/i);
+      if (qm && /[a-zA-Z]{3,}/.test(l)) {
+        let desc = l.replace(/\s*[₹rs\.]*[\d.,]+\s*(nos|no\.?|pcs|mtrs?|meters?|mts|kgs?|sets?|lot|units?)?\s*$/i, '').trim();
+        if (!desc || desc.length < 3) desc = l;
+        const u = (qm[2] || '').toLowerCase();
+        const unit = /mtr|met|mts/.test(u) ? 'Mtrs' : /kg/.test(u) ? 'Kgs' : 'Nos';
+        items.push(desc + ' | ' + qm[1] + ' | ' + unit);
+      }
+    });
+    return { customer, lines: items };
+  }
+  function parseLinesToItems(text) {
+    return (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map((l, i) => { const p = l.split('|').map(s => s.trim()); return { sl: String(i + 1), desc: p[0] || l, qty: p[1] || '', unit: p[2] || 'Nos', dealtBy: '', deliveryDate: '' }; });
+  }
+  function openScanImport() {
+    const m = modal(`<div class="idp-editor-head"><b>📷 Scan / Import an order → Indent</b><button class="idp-btn" data-x>Close</button></div>
+      <p class="idp-scan-note">Upload a <b>photo or PDF</b> of a quotation / proforma / invoice / hand-written order — even one made outside the platform. We read it and pre-fill the indent; you then <b>verify every line</b> before saving &amp; sending to the factory. The scan is attached for reference.</p>
+      <div class="idp-scan-grid">
+        <div class="idp-scan-left">
+          <input type="file" id="scan-file" accept="image/*,application/pdf" class="idp-scan-file">
+          <div id="scan-preview" class="idp-scan-prev"><span>Choose a photo or PDF…</span></div>
+        </div>
+        <div class="idp-scan-right">
+          <button class="idp-btn idp-btn-go" id="scan-run" disabled>🔎 Scan &amp; extract</button>
+          <div id="scan-status" class="idp-scan-status"></div>
+          <label class="idp-scan-lab">Customer</label><input id="scan-cust" class="idp-scan-in" placeholder="Customer / site name">
+          <label class="idp-scan-lab">Lines — one per row: <b>description | qty | unit</b></label>
+          <textarea id="scan-lines" class="idp-scan-ta" rows="9" placeholder="e.g.\nPerforated Cable Tray 300mm GI 2.0mm | 150 | Mtrs\nJunction Box 100x100 | 20 | Nos"></textarea>
+        </div>
+      </div>
+      <div class="idp-modal-act"><button class="idp-btn" data-x>Cancel</button><button class="idp-btn idp-btn-go" id="scan-use">✓ Create indent from this</button></div>`, true);
+    let dataUrl = null, ftype = null;
+    m.querySelectorAll('[data-x]').forEach(b => b.onclick = () => m.remove());
+    m.querySelector('#scan-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; ftype = f.type || ''; const rd = new FileReader(); rd.onload = () => { dataUrl = rd.result; const p = m.querySelector('#scan-preview'); p.innerHTML = ftype.startsWith('image/') ? `<img src="${dataUrl}">` : `<div class="idp-scan-pdf">📄 PDF loaded — ${esc(f.name)}</div>`; m.querySelector('#scan-run').disabled = false; }; rd.readAsDataURL(f); };
+    m.querySelector('#scan-run').onclick = async () => {
+      const st = m.querySelector('#scan-status'); if (!dataUrl) return;
+      try {
+        st.textContent = 'Loading reader…';
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js', 'Tesseract');
+        let img = dataUrl;
+        if (ftype === 'application/pdf') { st.textContent = 'Rendering PDF…'; img = await pdfFirstPageToImage(dataUrl); }
+        st.textContent = 'Reading the document…';
+        const res = await Tesseract.recognize(img, 'eng', { logger: x => { if (x.status === 'recognizing text') st.textContent = 'Reading… ' + Math.round((x.progress || 0) * 100) + '%'; } });
+        const parsed = parseOrderText((res && res.data && res.data.text) || '');
+        if (parsed.customer) m.querySelector('#scan-cust').value = parsed.customer;
+        if (parsed.lines.length) m.querySelector('#scan-lines').value = parsed.lines.join('\n');
+        st.innerHTML = '<span style="color:#15803d">✓ Extracted — review &amp; fix every line, then “Create indent”.</span>';
+      } catch (e) {
+        st.innerHTML = '<span style="color:#b45309">Couldn’t auto-read (needs internet). You can still type the lines below from the preview, then “Create indent”.</span>';
+      }
+    };
+    m.querySelector('#scan-use').onclick = () => {
+      const cust = m.querySelector('#scan-cust').value.trim();
+      const items = parseLinesToItems(m.querySelector('#scan-lines').value);
+      if (!items.length && !cust) { toast('Scan or type at least one line first'); return; }
+      m.remove();
+      loadFrom('scan', cust, items.length ? items : [blankItem()]);
+      if (dataUrl) { try { model.images = Object.assign(model.images || {}, { scan: dataUrl }); } catch (e) {} }
+      toast('Indent created from the scan — verify every line before sending.');
+    };
   }
   function pickProforma() {
     let list = []; try { list = JSON.parse(localStorage.getItem('fixo_saved_proformas') || '[]'); } catch (e) {}

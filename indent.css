@@ -137,3 +137,18 @@
 .idp-btn-save:hover { background: #047857; color: #fff; }
 
 .idp-doc-tabs { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+
+/* ---------- Scan / Import (bypass) ---------- */
+.idp-src-scan.active, .idp-src-scan { }
+.idp-scan-note { font-size: 13px; color: #475569; background: #f1f5f9; border-radius: 10px; padding: 10px 14px; margin: 6px 0 12px; line-height: 1.55; }
+.idp-scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.idp-scan-file { width: 100%; font-size: 13px; margin-bottom: 10px; }
+.idp-scan-prev { border: 1px dashed #cbd5e1; border-radius: 10px; min-height: 240px; max-height: 420px; overflow: auto; display: flex; align-items: center; justify-content: center; background: #f8fafc; color: #94a3b8; font-size: 13px; }
+.idp-scan-prev img { max-width: 100%; display: block; }
+.idp-scan-pdf { padding: 30px; font-size: 15px; color: #475569; }
+.idp-scan-right { display: flex; flex-direction: column; }
+.idp-scan-status { font-size: 12.5px; color: #475569; min-height: 18px; margin: 8px 0; }
+.idp-scan-lab { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: #64748b; margin-top: 8px; }
+.idp-scan-in, .idp-scan-ta { width: 100%; border: 1px solid #dfe4ee; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; margin-top: 4px; font-family: inherit; }
+.idp-scan-ta { resize: vertical; line-height: 1.5; }
+@media (max-width: 760px) { .idp-scan-grid { grid-template-columns: 1fr; } }
