@@ -152,3 +152,23 @@
 .idp-scan-in, .idp-scan-ta { width: 100%; border: 1px solid #dfe4ee; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; margin-top: 4px; font-family: inherit; }
 .idp-scan-ta { resize: vertical; line-height: 1.5; }
 @media (max-width: 760px) { .idp-scan-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Big Scan/Upload hero (can't-miss call to action) ---------- */
+.idp-scan-hero { display: flex; align-items: center; gap: 18px; width: 100%; text-align: left; cursor: pointer;
+  background: linear-gradient(120deg, #15316b 0%, #1e4fa0 55%, #1f9d57 140%); color: #fff;
+  border: none; border-radius: 16px; padding: 22px 26px; margin: 4px 0 16px;
+  box-shadow: 0 6px 18px rgba(21,49,107,.28); transition: transform .12s, box-shadow .12s; }
+.idp-scan-hero:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(21,49,107,.36); }
+.idp-scan-hero:active { transform: translateY(0); }
+.idp-scan-hero-ic { font-size: 46px; line-height: 1; flex: 0 0 auto; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.idp-scan-hero-txt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.idp-scan-hero-txt b { font-size: 21px; font-weight: 800; letter-spacing: .2px; }
+.idp-scan-hero-txt small { font-size: 13.5px; opacity: .94; line-height: 1.5; max-width: 640px; }
+.idp-scan-hero-cta { flex: 0 0 auto; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.5);
+  border-radius: 30px; padding: 10px 20px; font-size: 15px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 680px) {
+  .idp-scan-hero { flex-direction: column; text-align: center; gap: 10px; padding: 20px; }
+  .idp-scan-hero-txt { align-items: center; }
+  .idp-scan-hero-ic { font-size: 40px; }
+  .idp-scan-hero-txt b { font-size: 19px; }
+}

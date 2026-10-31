@@ -87,12 +87,17 @@
     const body = document.getElementById('idp-body'); if (!body) return;
     const rows = model.items.map((it, i) => itemRow(it, i)).join('');
     body.innerHTML = `
+      <button class="idp-scan-hero" data-src="scan">
+        <span class="idp-scan-hero-ic">📷</span>
+        <span class="idp-scan-hero-txt"><b>Scan / Upload an order → make an Indent</b><small>Take a photo or upload a quotation, invoice, or hand-written paper order. The app reads it and fills the indent for you — you just check it and send it to the factory. No typing needed.</small></span>
+        <span class="idp-scan-hero-cta">Tap to start ➜</span>
+      </button>
+
       <div class="idp-source">
-        <span class="idp-src-lab">Start from:</span>
+        <span class="idp-src-lab">…or start from:</span>
         <button class="idp-src-btn ${model.source === 'blank' ? 'active' : ''}" data-src="blank">✎ Blank</button>
         <button class="idp-src-btn ${model.source === 'proforma' ? 'active' : ''}" data-src="proforma">🧾 A saved Proforma</button>
         <button class="idp-src-btn ${model.source === 'order' ? 'active' : ''}" data-src="order">📦 A past order / quotation</button>
-        <button class="idp-src-btn idp-src-scan ${model.source === 'scan' ? 'active' : ''}" data-src="scan">📷 Scan an order (bypass)</button>
         <span class="idp-src-note" id="idp-src-note">${model.source !== 'blank' && model.customer ? 'Loaded from ' + esc(model.source) + ' · ' + esc(model.customer) : ''}</span>
       </div>
 
