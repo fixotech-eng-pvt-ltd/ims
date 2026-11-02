@@ -52,6 +52,7 @@
       F('finish', 'Finish', ['Pre-Galvanized (GI)', 'MS Hot Dip Galvanized', 'MS Powder Coated', 'Stainless Steel', 'Aluminium'], 'Pre-Galvanized (GI)'),
       F('width', 'Width', WID.concat(['200, 150, 100mm']), '200, 150, 100mm'),
       F('height', 'Height', ['25mm', '40mm', '50mm', '60mm', '75mm', '100mm'], '60mm'),
+      F('collar', 'Collar', ['Nil', '0', '10 mm', '12 mm'], 'Nil'),
       F('length', 'Length of Tray', ['2500mm', '3000mm'], '2500mm'),
       F('jointPlate', 'Joint Plate', ['50 x 175mm', '40 x 175mm'], '50 x 175mm'),
       F('boltSize', 'Bolt Size', ['M08 x 15 mm', 'M8 x 20 mm', 'M10 x 25 mm'], 'M08 x 15 mm'),
@@ -120,6 +121,7 @@
       F('thickness', 'Thickness', THK, '1.6mm'),
       F('width', 'Width', WID, '200mm'),
       F('height', 'Height', ['50mm', '60mm', '75mm', '100mm'], '50mm'),
+      F('collar', 'Collar', ['Nil', '0', '10 mm', '12 mm'], 'Nil'),
       F('length', 'Length', ['2500mm', '3000mm'], ''),
       F('jointPlate', 'Joint Plate', ['40 x 175mm', '50 x 175mm'], ''),
       F('boltSize', 'Bolt Size', ['M08 x 15 mm', 'M8 x 20 mm', 'M10 x 25 mm'], '')
