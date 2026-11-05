@@ -19,3 +19,8 @@
 .ds-client .inv-cust-box { position: relative; }
 @media (max-width: 860px) { .ds-client { grid-template-columns: 1fr 1fr; } .ds-fields { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .ds-client, .ds-fields { grid-template-columns: 1fr; } }
+
+/* optional field with checkbox (e.g. Collar) */
+.ds-optchk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; letter-spacing: 0; color: #15316b; font-weight: 700; }
+.ds-optchk input { margin: 0; width: 15px; height: 15px; }
+.ds-optfield .inv-in[disabled] { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }

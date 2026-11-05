@@ -41,7 +41,7 @@
 
   // ---------- product field templates (dropdown options + free typing) ----------
   // Matched exactly to the reference Technical Data Sheets.
-  const F = (key, label, opts, def) => ({ key, label, opts: opts || [], def: def == null ? '' : def });
+  const F = (key, label, opts, def, opt) => ({ key, label, opts: opts || [], def: def == null ? '' : def, opt: !!opt });
   const THK = ['1.0mm', '1.2mm', '1.5mm', '1.6mm', '2.0mm', '2.5mm', '3.0mm'];
   const WID = ['50mm', '75mm', '100mm', '150mm', '200mm', '300mm', '450mm', '600mm'];
   const TEMPLATES = {
@@ -52,7 +52,7 @@
       F('finish', 'Finish', ['Pre-Galvanized (GI)', 'MS Hot Dip Galvanized', 'MS Powder Coated', 'Stainless Steel', 'Aluminium'], 'Pre-Galvanized (GI)'),
       F('width', 'Width', WID.concat(['200, 150, 100mm']), '200, 150, 100mm'),
       F('height', 'Height', ['25mm', '40mm', '50mm', '60mm', '75mm', '100mm'], '60mm'),
-      F('collar', 'Collar', ['Nil', '0', '10 mm', '12 mm'], 'Nil'),
+      F('collar', 'Collar', ['Nil', '0', '0.5', '10 mm', '12 mm'], '', true),
       F('length', 'Length of Tray', ['2500mm', '3000mm'], '2500mm'),
       F('jointPlate', 'Joint Plate', ['50 x 175mm', '40 x 175mm'], '50 x 175mm'),
       F('boltSize', 'Bolt Size', ['M08 x 15 mm', 'M8 x 20 mm', 'M10 x 25 mm'], 'M08 x 15 mm'),
@@ -121,7 +121,7 @@
       F('thickness', 'Thickness', THK, '1.6mm'),
       F('width', 'Width', WID, '200mm'),
       F('height', 'Height', ['50mm', '60mm', '75mm', '100mm'], '50mm'),
-      F('collar', 'Collar', ['Nil', '0', '10 mm', '12 mm'], 'Nil'),
+      F('collar', 'Collar', ['Nil', '0', '0.5', '10 mm', '12 mm'], '', true),
       F('length', 'Length', ['2500mm', '3000mm'], ''),
       F('jointPlate', 'Joint Plate', ['40 x 175mm', '50 x 175mm'], ''),
       F('boltSize', 'Bolt Size', ['M08 x 15 mm', 'M8 x 20 mm', 'M10 x 25 mm'], '')
@@ -180,7 +180,7 @@
   function applyMaterial(m) { const s = materialSpec(m.material, m.finSel, m.gsm); if ('moc' in m.values) m.values.moc = s.moc; if ('finish' in m.values) m.values.finish = s.finish; }
   function fresh(sel) {
     sel = sel || 'Perforated Cable Tray'; const info = DS_BY_NAME[sel] || { tmpl: 'generic', printed: sel };
-    const m = { id: uid('ds-'), sel, tmpl: info.tmpl, productName: info.printed, customer: '', projectName: '', location: '', date: today(), material: 'GI', finSel: 'GI', gsm: '—', color: '', values: freshValues(info.tmpl) };
+    const m = { id: uid('ds-'), sel, tmpl: info.tmpl, productName: info.printed, customer: '', projectName: '', location: '', date: today(), material: 'GI', finSel: 'GI', gsm: '—', color: '', optShow: {}, values: freshValues(info.tmpl) };
     applyMaterial(m); return m;
   }
 
@@ -216,7 +216,14 @@
     const gsmSel = MATERIALS[model.material] && MATERIALS[model.material].gsm;
     const isPowder = /powder/i.test(model.finSel || '');
     const dl = (f) => `<datalist id="ds-dl-${f.key}">${f.opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
-    const fieldRows = tmpl.fields.map(f => `<label class="ds-field"><span class="ds-flab">${esc(f.label)}</span><input class="inv-in ds-fin" list="ds-dl-${f.key}" data-fk="${f.key}" value="${esc(model.values[f.key] == null ? '' : model.values[f.key])}" placeholder="${esc(f.def || 'type or pick')}" autocomplete="off">${dl(f)}</label>`).join('');
+    if (!model.optShow) model.optShow = {};
+    const fieldRows = tmpl.fields.map(f => {
+      if (f.opt) {
+        const on = !!model.optShow[f.key];
+        return `<label class="ds-field ds-optfield"><span class="ds-flab"><label class="ds-optchk"><input type="checkbox" data-optk="${f.key}" ${on ? 'checked' : ''}> ${esc(f.label)}</label></span><input class="inv-in ds-fin" list="ds-dl-${f.key}" data-fk="${f.key}" value="${esc(model.values[f.key] == null ? '' : model.values[f.key])}" placeholder="tick to add — nil / 0 / 0.5 / value" ${on ? '' : 'disabled'} autocomplete="off">${dl(f)}</label>`;
+      }
+      return `<label class="ds-field"><span class="ds-flab">${esc(f.label)}</span><input class="inv-in ds-fin" list="ds-dl-${f.key}" data-fk="${f.key}" value="${esc(model.values[f.key] == null ? '' : model.values[f.key])}" placeholder="${esc(f.def || 'type or pick')}" autocomplete="off">${dl(f)}</label>`;
+    }).join('');
 
     host.innerHTML = `
       <div class="inv-wrap ds-wrap">
@@ -271,6 +278,7 @@
     const gs = document.getElementById('ds-gsm'); if (gs) gs.onchange = (e) => { model.gsm = e.target.value.replace(' GSM', '').replace('— ', '—'); applyMaterial(model); render(); };
     const cl = document.getElementById('ds-color'); if (cl) cl.oninput = (e) => { model.color = e.target.value; };
     host.querySelectorAll('.ds-fin').forEach(inp => inp.oninput = () => { model.values[inp.dataset.fk] = inp.value; });
+    host.querySelectorAll('[data-optk]').forEach(cb => cb.onchange = () => { model.optShow[cb.dataset.optk] = cb.checked; render(); });
     document.getElementById('ds-sess-add').onclick = () => newSession();
     document.getElementById('ds-sess-tabs').querySelectorAll('.inv-sess-tab').forEach(t => { t.onclick = (e) => { if (e.target.dataset.close != null) { closeSession(+e.target.dataset.close); return; } switchSession(+t.dataset.si); }; });
     document.getElementById('ds-save').onclick = () => saveSheet();
@@ -333,7 +341,9 @@
   function dataSheetHtml(m, editable) {
     const tmpl = tmplOf(m);
     const showColor = /powder/i.test(m.finSel || '') || (m.color || '').trim();
+    const optShow = m.optShow || {};
     const rows = tmpl.fields.map(f => {
+      if (f.opt && !optShow[f.key]) return '';   // optional field not ticked → leave it off the sheet (no "Nil")
       let r = `<tr class="ds-irow"><td class="ds-k">${esc(f.label)}</td><td class="ds-c">:</td><td class="ds-v" data-k="${f.key}">${esc(m.values[f.key] == null ? '' : m.values[f.key])}</td></tr>`;
       if (f.key === 'finish' && showColor) r += `<tr class="ds-irow"><td class="ds-k">Color</td><td class="ds-c">:</td><td class="ds-v" data-k="__color">${esc(m.color || '')}</td></tr>`;
       return r;

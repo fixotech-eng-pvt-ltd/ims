@@ -115,6 +115,14 @@
     <div class="factory-body" id="inno-inv-app"></div>
   </div>
 
+  <div id="screen-inno-payments" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Payments &amp; Bills</span>
+    </div>
+    <div class="factory-body" id="inno-pay-app"></div>
+  </div>
+
   <!-- ============ HOME: APP LAUNCHER ============ -->
   <div id="screen-home" class="screen">
     <div class="home-wm" aria-hidden="true"></div>
@@ -176,6 +184,10 @@
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-inno-inventory" title="Inno Inventory Management System">
           <img src="assets/app-icons/Inno%20Inventory%20Managment%20System.png" alt="Inno Inventory Management System" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📦'}))">
+        </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-inno-payments" title="Inno Payments & Bills">
+          <span class="fh-app-ic">💵</span>
+          <span class="fh-app-name">Payments &amp; Bills</span>
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-reports" title="Inno Reports">
           <img src="assets/app-icons/Inno%20Reports.png" alt="Inno Reports" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📊'}))">
@@ -593,6 +605,7 @@
   <script src="sales-order.js"></script>
   <script src="reports.js"></script>
   <script src="inno-inventory.js"></script>
+  <script src="inno-payments.js"></script>
   <script src="sync.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).
