@@ -92,7 +92,7 @@
 
   // ---------- PURCHASE BILLS ----------
   function editBill(bill, after) {
-    const b = bill || { id: uid('bill-'), billNo: '', vendor: '', billDate: today(), dueDate: today(), amount: '', notes: '' };
+    const b = bill || { id: uid('bill-'), billNo: '', vendor: '', billDate: today(), dueDate: today(), amount: '', bank: '', notes: '' };
     const m = modal(`<h3>${bill ? 'Edit' : 'New'} purchase bill</h3>
       <div class="inv-fields" style="grid-template-columns:1fr 1fr">
         <label>Supplier / Vendor<input id="b-vendor" value="${esc(b.vendor)}" placeholder="Vendor name"></label>
@@ -100,13 +100,14 @@
         <label>Bill Date<input id="b-date" value="${esc(b.billDate)}" placeholder="dd/mm/yyyy"></label>
         <label>Due Date<input id="b-due" value="${esc(b.dueDate)}" placeholder="dd/mm/yyyy"></label>
         <label>Amount ₹ (total incl. GST)<input id="b-amt" type="number" value="${esc(b.amount)}" placeholder="0.00"></label>
+        <label class="inv-wide2">Bank / payment details<input id="b-bank" value="${esc(b.bank || '')}" placeholder="A/c no · IFSC · UPI — how to pay this supplier"></label>
         <label class="inv-wide2">Notes<input id="b-notes" value="${esc(b.notes || '')}"></label>
       </div>
       <div class="inv-modal-act"><button class="cp-btn cp-btn-go" data-save>💾 Save bill</button><button class="cp-btn" data-x>Cancel</button></div>`);
     m.querySelector('[data-x]').onclick = () => m.remove();
     m.querySelector('[data-save]').onclick = () => {
       const vendor = m.querySelector('#b-vendor').value.trim(); if (!vendor) { toast('Supplier name required'); return; }
-      const saved = { id: b.id, billNo: m.querySelector('#b-no').value.trim(), vendor, billDate: m.querySelector('#b-date').value.trim() || today(), dueDate: m.querySelector('#b-due').value.trim(), amount: num(m.querySelector('#b-amt').value), notes: m.querySelector('#b-notes').value.trim() };
+      const saved = { id: b.id, billNo: m.querySelector('#b-no').value.trim(), vendor, billDate: m.querySelector('#b-date').value.trim() || today(), dueDate: m.querySelector('#b-due').value.trim(), amount: num(m.querySelector('#b-amt').value), bank: m.querySelector('#b-bank').value.trim(), notes: m.querySelector('#b-notes').value.trim() };
       const list = loadBills().filter(x => x.id !== b.id); list.unshift(saved); storeBills(list); m.remove(); toast('Bill saved'); if (after) after();
     };
   }
@@ -135,12 +136,12 @@
     let target = dir === 'in' ? 'INV' : 'BILL';
     const pick = () => {
       if (dir === 'in') { const r = invoices().find(x => x.id === targetId); return r ? { no: r.docNo || r.invNo, party: r.customer, total: num(r.total), paid: paidFor('INV', r.id) } : null; }
-      const b = loadBills().find(x => x.id === targetId); return b ? { no: b.billNo, party: b.vendor, total: num(b.amount), paid: paidFor('BILL', b.id) } : null;
+      const b = loadBills().find(x => x.id === targetId); return b ? { no: b.billNo, party: b.vendor, total: num(b.amount), paid: paidFor('BILL', b.id), bank: b.bank } : null;
     };
     const openForm = () => {
       const info = pick(); const out = info ? Math.round((info.total - info.paid) * 100) / 100 : 0;
       const m = modal(`<h3>${dir === 'in' ? '💰 Receipt from customer' : '💸 Payment to supplier'}</h3>
-        ${info ? `<div class="pm-target">${dir === 'in' ? 'Invoice' : 'Bill'} <b>${esc(info.no || '')}</b> · ${esc(info.party || '')}<br>Total ₹${money(info.total)} · Already ${dir === 'in' ? 'received' : 'paid'} ₹${money(info.paid)} · <b>Pending ₹${money(out)}</b></div>` : '<div class="pm-target">Select what this payment is against.</div>'}
+        ${info ? `<div class="pm-target">${dir === 'in' ? 'Invoice' : 'Bill'} <b>${esc(info.no || '')}</b> · ${esc(info.party || '')}<br>Total ₹${money(info.total)} · Already ${dir === 'in' ? 'received' : 'paid'} ₹${money(info.paid)} · <b>Pending ₹${money(out)}</b>${info.bank ? '<br>🏦 ' + esc(info.bank) : ''}</div>` : '<div class="pm-target">Select what this payment is against.</div>'}
         <div class="inv-fields" style="grid-template-columns:1fr 1fr">
           <label>Amount ₹<input id="p-amt" type="number" value="${out > 0 ? out : ''}" placeholder="0.00"></label>
           <label>Date<input id="p-date" value="${today()}"></label>
