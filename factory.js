@@ -332,6 +332,7 @@
     layout.querySelectorAll('[data-wt]').forEach(inp => inp.onchange = () => updateItem(inp.dataset.wt, { weight: inp.value }));
     layout.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => togglePriority(b.dataset.prio));
     layout.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => openProductionPlan(b.dataset.plan));
+    layout.querySelectorAll('[data-slips]').forEach(b => b.onclick = () => openOperatorSlips(b.dataset.slips));
     layout.querySelectorAll('[data-inspect]').forEach(b => b.onclick = () => openInspectionReport(b.dataset.inspect));
   }
   function togglePriority(indId) {
@@ -415,6 +416,57 @@
     m.querySelector('#fx-doc-photo').onclick = () => capturePhoto('Photograph the ' + label + ' sheet', (dataUrl) => { ind.docPhotos[kind] = dataUrl; commit(); draw(ind.docs[kind], dataUrl); toast('Photo attached & saved'); });
   }
   function openProductionPlan(indId) { openFactoryDoc(indId, 'plan'); }
+
+  // ---- Operator slips: ONE A4 slip per operation (cutting, punching, bending…)
+  // so each operator gets just their job for this order — instead of the whole
+  // production plan going round. The engineer keeps the plan, collects the signed
+  // slips, and attaches them to the order. ----
+  const SLIP_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:10mm}
+    html,body{background:#fff}body{font-family:Arial,sans-serif;color:#000;font-size:12px;margin:0}
+    .slip{border:2px solid #000;padding:10px;page-break-after:always;min-height:272mm}
+    .slip:last-child{page-break-after:auto}
+    .hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:6px}
+    .hd img{height:40px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:18px;letter-spacing:1px}.hd .co div{font-size:8px;font-weight:bold}
+    .op{text-align:center;font-weight:bold;font-size:22px;letter-spacing:1px;margin:8px 0;background:#000;color:#fff;padding:7px}
+    .meta{display:flex;flex-wrap:wrap;gap:4px 24px;font-weight:bold;font-size:13px;margin:8px 2px}
+    table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #000;padding:6px 6px;font-size:12px}
+    th{background:#e8e8e8;text-align:center;font-size:11px}td.c,th.c{text-align:center}tbody td{height:13mm}
+    .chk{margin-top:12px;border:1px solid #000;padding:8px;font-size:12px}.chk b{display:block;margin-bottom:6px}
+    .chkrow{display:flex;gap:10px;flex-wrap:wrap}.chkbox{border:1px solid #000;padding:5px 10px;min-width:120px}
+    .sign{display:flex;justify-content:space-between;margin-top:26px;font-weight:bold;font-size:12px}
+    .sign div{border-top:1px solid #000;padding-top:4px;min-width:45%;text-align:center}`;
+  function operatorSlipsHtml(ind) {
+    const opStages = ALL_STAGES.filter(s => s !== 'ready');
+    const slips = opStages.map(stage => {
+      const items = ind.items.filter(it => stagesFor(it.desc).indexOf(stage) >= 0);
+      if (!items.length) return '';
+      const rows = items.map((it, i) => {
+        let spec = ''; try { if (typeof specDims === 'function') spec = specDims(it.desc) || ''; } catch (e) {}
+        return `<tr><td class="c">${i + 1}</td><td>${esc(it.desc)}${spec ? '<br><small>' + esc(spec) + '</small>' : ''}</td><td class="c">${esc(it.qty || '')} ${esc(it.unit || '')}</td><td class="c"></td><td class="c"></td><td></td></tr>`;
+      }).join('');
+      const extra = Math.max(0, 3 - items.length);
+      const blanks = Array(extra).fill(`<tr>${'<td></td>'.repeat(6)}</tr>`).join('');
+      return `<div class="slip">${docHeader().replace(' id="dr"', '')}
+        <div class="op">${esc(STAGES[stage]).toUpperCase()} SLIP</div>
+        <div class="meta"><span>Customer : ${esc(ind.customer || '')}</span><span>Indent No. : ${esc(ind.indentNo || '')}</span><span>Date : ${esc(ind.indentDate || '')}</span>${ind.priority ? '<span style="color:#b00">🚩 URGENT</span>' : ''}</div>
+        <table><thead><tr><th class="c">Sl</th><th>Product / Description</th><th class="c">Planned Qty</th><th class="c">Qty Done</th><th class="c">Rejected</th><th>Remarks</th></tr></thead>
+        <tbody>${rows}${blanks}</tbody></table>
+        <div class="chk"><b>Final checks (operator to tick):</b><div class="chkrow">
+          <span class="chkbox">☐ Dimensions OK</span><span class="chkbox">☐ Quantity matches</span><span class="chkbox">☐ Finish / burr OK</span><span class="chkbox">☐ Count verified</span></div></div>
+        <div class="sign"><div>Operator Name &amp; Sign</div><div>Checked / Supervisor Sign</div></div>
+      </div>`;
+    }).filter(Boolean).join('');
+    const body = slips || `<div class="slip">${docHeader().replace(' id="dr"', '')}<div class="op">NO OPERATIONS</div><p style="padding:10px">No machine operations mapped for this order's products.</p></div>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Operator Slips — ${esc(ind.customer || '')}</title><style>${SLIP_CSS}</style></head><body>${body}</body></html>`;
+  }
+  function openOperatorSlips(indId) {
+    const ind = indents.find(i => i.id === indId); if (!ind) { toast('Indent not found'); return; }
+    const html = operatorSlipsHtml(ind);
+    const w = window.open('', '_blank'); if (!w) { toast('Allow pop-ups to print the slips'); return; }
+    w.document.write(html); w.document.close();
+    try { if (window.FIXO_LOG) FIXO_LOG.activity('factory', 'operator_slips', { no: ind.indentNo, customer: ind.customer }); } catch (e) {}
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+  }
   function openInspectionReport(indId) { openFactoryDoc(indId, 'inspection'); }
   function indentCard(g) {
     const appr = g.ind.factoryApproved, pr = g.ind.priority;
@@ -427,6 +479,7 @@
           <button class="fx-btn fx-print" data-print="${g.ind.id}" data-copy="yellow">🖨 Yellow copy</button>
           <button class="fx-btn" data-print="${g.ind.id}" data-copy="white">🖨 White copy</button>
           <button class="fx-btn" data-plan="${g.ind.id}">🗒 Production plan</button>
+          <button class="fx-btn" data-slips="${g.ind.id}">🧾 Operator slips</button>
           <button class="fx-btn" data-inspect="${g.ind.id}">📋 Inspection report</button>
         </div>
       </div>

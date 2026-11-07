@@ -19,6 +19,9 @@
   <link rel="stylesheet" href="automate.css">
   <link rel="stylesheet" href="indent.css">
   <link rel="stylesheet" href="sheet-store.css">
+  <link rel="stylesheet" href="jobwork.css">
+  <link rel="stylesheet" href="records.css">
+  <link rel="stylesheet" href="customer-centric.css">
   <link rel="stylesheet" href="progress.css">
   <link rel="stylesheet" href="trading.css">
   <link rel="stylesheet" href="invoice.css">
@@ -180,6 +183,18 @@
         <button class="hm-app" data-company="engg" data-open-app="screen-sheet-store" title="Factory Store — Sheets">
           <span class="fh-app-ic">🗂️</span>
           <span class="fh-app-name">Sheet Store</span>
+        </button>
+        <button class="hm-app" data-company="engg" data-open-app="screen-jobwork" title="Job Work — Outsourcing">
+          <span class="fh-app-ic">🔄</span>
+          <span class="fh-app-name">Job Work</span>
+        </button>
+        <button class="hm-app" data-company="engg" data-open-app="screen-records" title="Fixotech Records">
+          <span class="fh-app-ic">🗃️</span>
+          <span class="fh-app-name">Records</span>
+        </button>
+        <button class="hm-app" data-company="engg" data-open-app="screen-custcentric" title="Customer Centric">
+          <span class="fh-app-ic">🧭</span>
+          <span class="fh-app-name">Customer Centric</span>
         </button>
         <button class="hm-app" data-company="engg" data-open-app="screen-datasheet" title="Fixotech Data Sheet Prep">
           <img src="assets/app-icons/Fixotech%20Data%20Sheet%20Prep.png" alt="Fixotech Data Sheet Prep" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📄'}))">
@@ -496,6 +511,30 @@
     <div class="factory-body" id="sheet-store-app"></div>
   </div>
 
+  <div id="screen-jobwork" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Job Work — Outsourcing</span>
+    </div>
+    <div class="factory-body" id="jobwork-app"></div>
+  </div>
+
+  <div id="screen-records" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Fixotech Records</span>
+    </div>
+    <div class="factory-body" id="records-app"></div>
+  </div>
+
+  <div id="screen-custcentric" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Customer Centric</span>
+    </div>
+    <div class="factory-body" id="custcentric-app"></div>
+  </div>
+
   <div id="screen-dispatch" class="screen">
     <div class="app-topbar">
       <button class="app-back" data-goto="screen-factory-home">← Apps</button>
@@ -631,6 +670,9 @@
   <script src="automate.js"></script>
   <script src="indent.js"></script>
   <script src="sheet-store.js"></script>
+  <script src="jobwork.js"></script>
+  <script src="records.js"></script>
+  <script src="customer-centric.js"></script>
   <script src="progress.js"></script>
   <script src="trading.js"></script>
   <script src="inno-logo-data.js"></script>

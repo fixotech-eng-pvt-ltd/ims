@@ -176,6 +176,8 @@
     const today = meta.date || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' });
     const noNo = meta.no != null ? meta.no : todayNo();
     const title = meta.title || "TODAY'S DISPATCH";
+    const tallyRef = meta.tally || ('FIX/DN/' + noNo + '/' + new Date().toLocaleDateString('en-GB').replace(/\//g, ''));
+    const vehicle = meta.vehicle || '';
     const logo = F().LOGO ? F().LOGO() : '';
     const blocks = gs.map((g, i) => {
       let totalPlates = 0, totalBolts = 0;
@@ -201,7 +203,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
 @media print{body{padding:0}}</style></head><body>
 <div class="wrap"><div class="layer" contenteditable="true" spellcheck="false">
   <div class="hd">${logo ? `<img src="${logo}">` : '<b style="font-size:20px">FIXOTECH</b>'}</div>
-  <div class="top"><span>No. ${esc(noNo)}</span><span>Date : ${esc(today)}</span></div>
+  <div class="top"><span>No. ${esc(noNo)}</span><span>Tally Code : ${esc(tallyRef)}</span><span>Date : ${esc(today)}</span></div>
+  <div class="top" style="font-weight:normal"><span>Vehicle No. : <b>${esc(vehicle) || '______________'}</b></span><span>Driver / Contact : ______________</span></div>
   <div class="title">${esc(title)}</div>${blocks}
   <div class="sign"><span>Prepared by</span><span>Received by</span></div>
 </div></div></body></html>`;
@@ -222,17 +225,24 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
 
   function doDispatch(g, all) {
     const m = modal(`<h3>Confirm dispatch — ${esc(g.customer)}</h3>
-      <div class="fx-modal-body"><p class="fx-note">Mark ${g.items.length} item(s) as <b>DISPATCHED</b>. This updates the Factory Floor, saves to the office dispatch log, and notifies the office.</p></div>
+      <div class="fx-modal-body"><p class="fx-note">Mark ${g.items.length} item(s) as <b>DISPATCHED</b>. This updates the Factory Floor, saves to the office dispatch log, and notifies the office.</p>
+        <label class="fx-lab">Vehicle number</label><input class="fx-in" id="dp-veh" placeholder="e.g. KA01AB1234">
+        <label class="fx-lab">Driver / contact (optional)</label><input class="fx-in" id="dp-drv" placeholder="name · phone"></div>
       <div class="fx-modal-actions"><button class="fx-btn" id="dp-x">Cancel</button><button class="fx-btn fx-btn-go" id="dp-ok">✓ Confirm dispatched</button></div>`);
     m.querySelector('#dp-x').onclick = () => closeModal(m);
     m.querySelector('#dp-ok').onclick = () => {
       if (F().markDispatched) F().markDispatched(g.items.map(it => it.id));
-      // Save a dispatch record to the office log.
+      // Save a dispatch record to the office log — with vehicle + a Tally code
+      // the office can quote when posting the delivery note in Tally.
+      const vehicle = (m.querySelector('#dp-veh').value || '').trim();
+      const driver = (m.querySelector('#dp-drv').value || '').trim();
       try {
         const log = JSON.parse(localStorage.getItem('fixo_dispatch_log') || '[]');
-        log.unshift({ id: 'dp-' + Date.now(), customer: g.customer, indentNo: g.indentNo || '', at: new Date().toISOString(), count: g.items.length, items: g.items.map(it => ({ desc: it.desc, qty: it.qty, unit: it.unit, weight: it.weight, finish: it.finish })) });
-        localStorage.setItem('fixo_dispatch_log', JSON.stringify(log.slice(0, 200)));
         const seq = (JSON.parse(localStorage.getItem('fixo_dispatch_seq') || '0')) + 1; localStorage.setItem('fixo_dispatch_seq', JSON.stringify(seq));
+        const tally = 'FIX/DN/' + seq + '/' + new Date().toLocaleDateString('en-GB').replace(/\//g, '');
+        log.unshift({ id: 'dp-' + Date.now(), customer: g.customer, indentNo: g.indentNo || '', at: new Date().toISOString(), count: g.items.length, vehicle, driver, tally, items: g.items.map(it => ({ desc: it.desc, qty: it.qty, unit: it.unit, weight: it.weight, finish: it.finish })) });
+        localStorage.setItem('fixo_dispatch_log', JSON.stringify(log.slice(0, 200)));
+        try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore('fixo_dispatch_log'); } catch (e) {}
       } catch (e) {}
       try { if (window.FIXO_LOG) FIXO_LOG.activity('dispatch', 'dispatched', { customer: g.customer, indent_no: g.indentNo || '', count: g.items.length }); } catch (e) {}
       closeModal(m); toast('✓ Dispatched — office notified & saved'); render();

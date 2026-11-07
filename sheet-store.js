@@ -24,6 +24,7 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(SHEETS) || '[]') || []; } catch (e) { return []; } };
   const store = (a) => { try { localStorage.setItem(SHEETS, JSON.stringify(a.slice(0, 2000))); } catch (e) {} try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(SHEETS); } catch (e) {} };
   const find = (id) => load().find(s => s.id === id);
+  const logAct = (a, d) => { try { if (window.FIXO_LOG) FIXO_LOG.activity('sheetstore', a, d || {}); } catch (e) {} };
 
   function balance(s) {
     let b = num(s.opening);
@@ -111,7 +112,7 @@
       s.material = m.querySelector('#ss-mat').value; s.thickness = m.querySelector('#ss-th').value.trim(); s.size = m.querySelector('#ss-sz').value.trim();
       s.minQty = num(m.querySelector('#ss-min').value);
       if (isNew) s.opening = num(m.querySelector('#ss-op').value);
-      const list = load().filter(x => x.id !== s.id); list.unshift(s); store(list); m.remove(); toast('Saved'); render();
+      const list = load().filter(x => x.id !== s.id); list.unshift(s); store(list); m.remove(); logAct(isNew ? 'add_type' : 'edit_type', { sheet: label(s).replace(/<[^>]+>/g, '') }); toast('Saved'); render();
     };
   }
 
@@ -171,6 +172,7 @@
       else { t.order = m.querySelector('#ss-ord').value.trim(); t.note = m.querySelector('#ss-note').value.trim(); }
       s.txns = s.txns || []; s.txns.unshift(t);
       const list = load().filter(x => x.id !== s.id); list.unshift(s); store(list); m.remove();
+      logAct(isIn ? 'receive' : 'use', { sheet: label(s).replace(/<[^>]+>/g, ''), qty: q, scan: scanCount, supplier: t.supplier, order: t.order });
       toast(isIn ? `Received ${nf(q)} sheets` + (scanCount != null && Math.abs(q - scanCount) > 1 ? ' — ⚠ scan differed' : '') : `Used ${nf(q)} sheets`); render();
     };
   }

@@ -23,36 +23,32 @@ Tracking every item raised in the meeting. Status: ✅ done · 🔶 in progress 
 - ✅ Converted cramped top tabs into a **left section rail** (Zoho-style): Indents · Products · Customers · Inventory · Documents & copies · Upload floor sheet → clean 3-column rail · filters · content.
 - ✅ **Removed** the photo-in-to-do (per-stage verification photo); the floor now taps to advance.
 
-### Production plan → operator slips ⬜
-- Production **plan book stays with engineers** (not circulated to everyone).
-- Generate **per-operation A4 slips** (cutting, punching, bending, … per product requirement) per **customer + requirement**: qty to do / done, final checks, signature box.
-- Engineer consolidates signed slips → punches/seals → attaches to the final production plan with the order.
+### Production plan → operator slips ✅
+- ✅ Production plan stays with engineers; new **🧾 Operator slips** button on each indent generates **one A4 slip per operation** (cutting/slotting/perforation/punching/bending) listing only the items needing it, with Planned/Done/Rejected columns, final-check ticks and operator + supervisor signature boxes. (`factory.js operatorSlipsHtml`)
 
 ### Packing list ⬜  (PDF provided: `0932_Trinity Heat Treatment..pdf`)
-- Factory side creates packing list (vehicle number, etc.); **office sees which vehicle is going**; keep full records.
+- Factory side creates packing list (vehicle number, etc.); **office sees which vehicle is going**; keep full records. (Dispatch note now carries vehicle + Tally code — see below; a dedicated packing-list layout still to add from the PDF.)
 
-### Fixotech Records (office) ⬜
-- One place storing **every** order, quotation, proforma, indent, production plan, slip, dispatch note.
-- Filter by date / year / customer; **search**.
-- **Interlinked with Smart IQ** — ask IQ for a document → it returns it.
+### Fixotech Records (office) ✅
+- ✅ New **Records** app (`records.js`): one register of every quotation, proforma, indent, production plan, inspection report, dispatch note, sales order, invoice, purchase bill and job work (402 live records). Filter by **type / year / customer** + free **search**, CSV export, view/open.
+- ✅ **Smart IQ linked** — `FIXO_RECORDS.query()` wired into ChatIQ; asking IQ for a document returns matching records.
 
-### Job Work / Outsourcing (factory) ⬜
-- Track outsourced work: **laser cutting, rolling, powder coating** — goes out, gets done, comes back.
-- ⏳ Powder-coating full spec coming from team.
+### Job Work / Outsourcing (factory) ✅
+- ✅ New **Job Work** app (`jobwork.js`): send material out (laser cutting / rolling / powder coating / …), track vendor, qty out, expected return, cost; **Receive back** (partial supported), overdue flag, by-vendor view. Powder-coating colour field included; full spec extensible later.
 
-### Dispatch note ⬜
-- Add a **Tally code** to the dispatch note.
+### Dispatch note ✅
+- ✅ **Tally code** (FIX/DN/…) + **vehicle number** added to the dispatch note and saved on the dispatch record (office + Customer-Centric read them).
 
-### Customer Centric (office) ⬜
-- All orders for a customer for the day/week/month gathered in one place → final stage recorded in **ledger / Tally**.
-- Dispatch note + **Tally code** + vehicle number + full details land here.
-- ⬜ **Payment last stage** — hold; keep ready to slot in.
+### Customer Centric (office) ✅
+- ✅ New **Customer Centric** app (`customer-centric.js`): pick a customer + day/week/month → all their quotations, orders, invoices, dispatches (with vehicle + Tally code) and job work in one place, with totals. **Tally voucher** export for their invoices (reuses inno-core openTally). **Payments** = placeholder kept for the last stage.
 
-### Admin panel ⬜
-- **Activity log of every day-to-day action** (who did what, when) visible in admin.
-- Move the Inno **Data Manager into the admin panel** — simple (activate / save), admin-access; developers see save/sync status at a glance.
+### Admin panel ✅ (partial)
+- ✅ **Activity log** already in Admin → Monitoring; the new apps (Sheet Store, Job Work, operator slips, dispatch) now log to `FIXO_LOG` so day-to-day actions show there.
+- ✅ **Data Manager in Admin** — simple panel in Admin → Inno Data: Save & sync now, Download full backup, save-status line, Open full Data Manager.
 - ⬜ Users / roles — later phase.
 
 ---
-Delivered this pass (app `fixo-v45`): Inno bills load, indent editability, indent drawings.
-Next up (suggested order): Factory Store (sheets) → Records app + Smart IQ link → Production slips → Job Work → Dispatch Tally code + Customer Centric → Admin activity panel + Data Manager move.
+Delivered `fixo-v45`: Inno bills load, indent editability, indent drawings.
+Delivered `fixo-v46`: Sheet Store (+AI count), factory left-rail redesign, removed photo-in-todo.
+Delivered `fixo-v47`: operator slips, Job Work, dispatch Tally code + vehicle, Records (+Smart IQ), Customer Centric, admin activity logging + Data Manager in admin.
+Remaining: dedicated packing-list layout (from PDF); sheet auto-deduct on order + sheet bills → payables; users/roles; powder-coat detailed spec (awaiting team); new app logos (awaiting team).

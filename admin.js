@@ -51,6 +51,15 @@
           <input type="file" id="adm-inno-file" accept="application/json,.json" hidden>
         </div>
       </div>
+      <div class="fx-card adm-dm" style="padding:16px;margin-top:12px">
+        <h3 style="margin:0 0 4px">🗄️ Data Manager <span class="adm-dm-live" id="adm-dm-live"></span></h3>
+        <p class="fx-meta" id="adm-dm-status">Checking save status…</p>
+        <div class="adm-inno-act">
+          <button class="cp-btn cp-btn-go" id="adm-dm-save">💾 Save &amp; sync now</button>
+          <button class="cp-btn" id="adm-dm-backup">⬇ Download full backup</button>
+          <button class="cp-btn" id="adm-dm-open">Open full Data Manager →</button>
+        </div>
+      </div>
       <div class="fx-card" id="adm-inno-view" style="padding:14px;margin-top:12px"><p class="fx-meta">Pick a tile above to list its records.</p></div>`;
 
     body.querySelector('#adm-inno-export').onclick = () => {
@@ -62,6 +71,15 @@
     body.querySelector('#adm-inno-import').onclick = () => openImport(body);
     fileInp.onchange = () => { const f = fileInp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { try { doImport(JSON.parse(rd.result), body); } catch (e) { alert('Could not read file: ' + e.message); } }; rd.readAsText(f); };
     body.querySelectorAll('[data-view]').forEach(b => b.onclick = () => showRecords(b.dataset.view, body));
+
+    // Simple Data Manager controls (full app lives on the Inno home).
+    const backend = (window.FixoDB && FixoDB.mode && FixoDB.mode() === 'supabase') ? 'Cloud (Supabase) + this device' : 'This device only';
+    const last = localStorage.getItem('fixo_inno_last_backup');
+    const liveEl = body.querySelector('#adm-dm-live'); if (liveEl) liveEl.innerHTML = '<span class="adm-dm-dot"></span> Auto-save ON';
+    const st = body.querySelector('#adm-dm-status'); if (st) st.innerHTML = 'Every change saves automatically to: <b>' + esc(backend) + '</b>.' + (last ? ' Last manual backup: ' + new Date(last).toLocaleString('en-GB') + '.' : ' No manual backup taken yet.');
+    const sv = body.querySelector('#adm-dm-save'); if (sv) sv.onclick = () => { try { if (window.FIXO_SYNC && FIXO_SYNC.flush) FIXO_SYNC.flush(); } catch (e) {} L().activity('admin', 'data_save', {}); alert('Saved & sync flushed ✓'); };
+    const bk = body.querySelector('#adm-dm-backup'); if (bk) bk.onclick = () => { if (window.FIXO_INNO_DATA && FIXO_INNO_DATA.doBackup) { FIXO_INNO_DATA.doBackup('admin'); L().activity('admin', 'data_backup', {}); renderInno(body); } else alert('Data Manager not loaded'); };
+    const op = body.querySelector('#adm-dm-open'); if (op) op.onclick = () => { try { if (window.showScreen) showScreen('screen-inno-data'); else { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const el = document.getElementById('screen-inno-data'); if (el) el.classList.add('active'); if (window.FIXO_INNO_DATA) FIXO_INNO_DATA.render(); } } catch (e) {} };
   }
   function openImport(body) {
     const D = window.FIXO_DOC;

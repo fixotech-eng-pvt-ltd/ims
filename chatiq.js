@@ -255,6 +255,18 @@
 
   function answer(q) {
     const n = norm(q);
+    // ---- Document / record lookup (links to Fixotech Records) ----
+    if (window.FIXO_RECORDS && FIXO_RECORDS.query && /(document|record|quotation|proforma|invoice|indent|dispatch|production plan|inspection|purchase bill|job work|slip|order).*(for|of|number|no\.?|show|get|find|pull|give|fetch|where)|(show|get|find|pull|give|fetch|where).*(document|record|quotation|proforma|invoice|indent|dispatch|bill)/.test(n)) {
+      let term = q.replace(/.*(?:for|of|about)\s+/i, '').replace(/[?.!]+$/, '').trim();
+      if (term.length < 2 || /^(me|it|the document|that)$/i.test(term)) term = q;
+      const hits = FIXO_RECORDS.query(term, 8);
+      if (hits.length) {
+        return `I found <b>${hits.length}</b> matching record(s) in Fixotech Records:<ul class="ciq-ul">` +
+          hits.map(r => `<li><b>${esc(r.type)}</b> ${esc(r.no)} — ${esc(r.customer)}${r.dateStr ? ' · ' + esc(r.dateStr) : ''}${r.amount ? ' · ' + money(r.amount) : ''}</li>`).join('') +
+          `</ul><span class="ciq-dim">Open the <b>Records</b> app to view or print any of these.</span>`;
+      }
+      return `I couldn't find a matching document for “${esc(q)}”. Try a customer name or a document number — everything is in the <b>Records</b> app.`;
+    }
     // If a product photo is attached and the user names it, treat that product.
     if (attached && attached.kind === 'image') {
       const told = q.match(/(?:this is|it is|it's|that is)\s+(?:an?\s+)?(.+)/i);

@@ -810,5 +810,5 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
 
   window.FIXO_DOC = { make, finYear, peekDocNo, nextDocNo, invList, allDocs, docsForItem, openInventory, totals, SAVED_KEYS, loadStore, CO, money: money, esc: esc,
     fullChain, downstreamFor, innoSummary, exportAll, importAll, loadCusts, applyStockForDoc, isLow,
-    mountInventory, openInventory, editInvItem, seqNext, setSeq, openNumbering };
+    mountInventory, openInventory, editInvItem, seqNext, setSeq, openNumbering, openTally };
 })();
