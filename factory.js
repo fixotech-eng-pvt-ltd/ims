@@ -95,7 +95,37 @@
   }
 
   // ---- Receive from office ----
-  function receiveIndent(rec) {
+  function receiveIndent(rec, opts) {
+    // UPDATE path: an already-sent indent was edited mid-order (customer/engineer
+    // change). Merge the edit onto the live record, keeping production progress.
+    if (opts && opts.update) {
+      const ix = indents.findIndex(x => x.id === rec.id);
+      if (ix >= 0) {
+        const ind = indents[ix];
+        ind.indentNo = rec.indentNo || ind.indentNo;
+        ind.indentDate = rec.indentDate || ind.indentDate;
+        ind.customer = rec.indentCustomer || rec.customer || ind.customer;
+        ind.indentCustomer = rec.indentCustomer || rec.customer || ind.indentCustomer;
+        ind.indentNotes = rec.indentNotes != null ? rec.indentNotes : ind.indentNotes;
+        ind.preparedBy = rec.preparedBy || ind.preparedBy;
+        ind.deliveryAddr = rec.deliveryAddr || ind.deliveryAddr;
+        ind.priority = !!rec.priority;
+        if (rec.drawings) ind.drawings = rec.drawings;
+        ind.editedAt = new Date().toISOString();
+        const oldById = {}; ind.items.forEach(it => { if (it.id) oldById[it.id] = it; });
+        ind.items = (rec.items || []).map((it, i) => {
+          const prev = it.id && oldById[it.id];
+          if (prev) { prev.sl = it.sl; prev.desc = it.desc || prev.desc; prev.qty = it.qty; prev.unit = it.unit || prev.unit; prev.dealtBy = it.dealtBy || prev.dealtBy; prev.deliveryDate = it.deliveryDate || prev.deliveryDate; prev.qtyTotal = num(it.qty); prev.category = categoryOf(it.desc); prev.finish = finishOf(it.desc); return prev; }
+          return { id: it.id || 'it-' + Date.now() + '-' + i, sl: it.sl, desc: it.desc || '', qty: it.qty, unit: it.unit || '', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '', category: categoryOf(it.desc), finish: finishOf(it.desc), status: 'cutting', qtyTotal: num(it.qty), qtyDone: 0, photos: {}, weight: '', readyToDispatch: false, seen: false, ts: Date.now() };
+        });
+        save();
+        toast('✏ Indent ' + (ind.indentNo || '') + ' updated — change is on the floor');
+        if (document.body.dataset.screen === 'screen-factory') render();
+        bumpLauncherBadge();
+        return;
+      }
+      // not found → fall through and create it new
+    }
     const month = (rec.sentAt || new Date().toISOString()).slice(0, 7);
     indents.unshift({
       id: rec.id || 'ind-' + Date.now(),
@@ -103,7 +133,7 @@
       indentDate: rec.indentDate || '', sentAt: rec.sentAt || new Date().toISOString(), month,
       customer: rec.indentCustomer || rec.customer || 'Unnamed',
       indentCustomer: rec.indentCustomer || rec.customer || '', indentNotes: rec.indentNotes || '', preparedBy: rec.preparedBy || '', deliveryAddr: rec.deliveryAddr || '', deliveryTo: rec.deliveryTo || '',
-      priority: !!rec.priority,
+      priority: !!rec.priority, drawings: rec.drawings || [],
       customerAddr: rec.customerAddr || '', factoryApproved: false,
       items: (rec.items || []).map((it, i) => ({
         id: it.id || 'it-' + Date.now() + '-' + i,

@@ -279,6 +279,10 @@
     if (data.quotes) putStore(SAVED_KEYS.QT, mergeArr(SAVED_KEYS.QT, docs(data.quotes, 'QT'), x => x.id));
     if (data.sorders) putStore(SAVED_KEYS.SO, mergeArr(SAVED_KEYS.SO, docs(data.sorders, 'SO'), x => x.id));
     if (data.invoices) putStore(SAVED_KEYS.INV, mergeArr(SAVED_KEYS.INV, docs(data.invoices, 'INV'), x => x.id));
+    // Purchase bills (payables) + payments/receipts — merged by id, used by the
+    // Payments & Bills app. Carried here so backups/imports round-trip everything.
+    if (data.bills) { try { localStorage.setItem('fixo_inno_purchase_bills', JSON.stringify(mergeArr('fixo_inno_purchase_bills', data.bills, x => x.id))); } catch (e) {} }
+    if (data.payments) { try { localStorage.setItem('fixo_inno_payments', JSON.stringify(mergeArr('fixo_inno_payments', data.payments, x => x.id))); } catch (e) {} }
     if (replace && data.seq) { try { localStorage.setItem(SEQFY, JSON.stringify(data.seq)); } catch (e) {} }
     reseqFromData();
     return innoSummary();
@@ -790,6 +794,19 @@ ${editable ? '.layer[contenteditable] td:hover,.layer[contenteditable] [contente
     } catch (e) { console.error('Inno seed import failed', e); }
   }
   seedFromBundle();
+
+  // One-time seed of the real purchase bills (from the Zoho Bills export). Its own
+  // flag so it loads even on devices that were already seeded with invoices.
+  function seedBillsFromBundle() {
+    try {
+      if (!window.INNO_BILLS_SEED) return;
+      if (localStorage.getItem('fixo_inno_bills_v1') === '1') return;
+      importAll(window.INNO_BILLS_SEED, false);
+      localStorage.setItem('fixo_inno_bills_v1', '1');
+      try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) { FIXO_SYNC.pushStore('fixo_inno_purchase_bills'); FIXO_SYNC.pushStore('fixo_inno_payments'); } } catch (e) {}
+    } catch (e) { console.error('Inno bills seed import failed', e); }
+  }
+  seedBillsFromBundle();
 
   window.FIXO_DOC = { make, finYear, peekDocNo, nextDocNo, invList, allDocs, docsForItem, openInventory, totals, SAVED_KEYS, loadStore, CO, money: money, esc: esc,
     fullChain, downstreamFor, innoSummary, exportAll, importAll, loadCusts, applyStockForDoc, isLow,

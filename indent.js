@@ -28,7 +28,7 @@
   let trackFilter = 'all';      // all | draft | sent | approved
 
   function freshModel() {
-    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', preparedBy: currentUserName(), deliveryAddr: '', customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, status: 'draft' };
+    return { id: uid('ind-'), indentNo: nextIndentNo(), indentDate: today(), indentCustomer: '', indentNotes: '', preparedBy: currentUserName(), deliveryAddr: '', customer: '', priority: false, source: 'blank', items: [blankItem()], images: {}, drawings: [], status: 'draft' };
   }
   function blankItem() { return { sl: '', desc: '', qty: '', unit: 'Nos', dealtBy: '', deliveryDate: '' }; }
 
@@ -87,7 +87,8 @@
     const body = document.getElementById('idp-body'); if (!body) return;
     const rows = model.items.map((it, i) => itemRow(it, i)).join('');
     body.innerHTML = `
-      <button class="idp-scan-hero" data-src="scan">
+      ${model.editingSent ? `<div class="idp-editbanner">✏ <b>Editing live indent ${esc(model.indentNo)}</b> — ${esc(model.indentCustomer || model.customer || '')}. Change lines, quantities or drawings as the customer/engineer asked, then press <b>✓ Update factory</b>. Production progress already done is kept.</div>` : ''}
+      <button class="idp-scan-hero" data-src="scan"${model.editingSent ? ' style="display:none"' : ''}>
         <span class="idp-scan-hero-ic">📷</span>
         <span class="idp-scan-hero-txt"><b>Scan / Upload an order → make an Indent</b><small>Take a photo or upload a quotation, invoice, or hand-written paper order. The app reads it and fills the indent for you — you just check it and send it to the factory. No typing needed.</small></span>
         <span class="idp-scan-hero-cta">Tap to start ➜</span>
@@ -119,12 +120,20 @@
         </div>
         <button class="idp-add" id="idp-add">＋ Add line</button>
 
+        <div class="idp-draw-card">
+          <div class="idp-draw-h">📐 Drawings / product photos <span class="idp-draw-sub">Attach the customer's drawing, a product photo, or a newly developed design. The office can tick <b>Approved</b> before it goes to the floor. Very dynamic — add as many as needed.</span></div>
+          <div class="idp-draw-grid" id="idp-draw-grid"></div>
+          <label class="idp-draw-add" id="idp-draw-add">＋ Add drawing / photo<input type="file" id="idp-draw-file" accept="image/*" multiple hidden></label>
+        </div>
+
         <label class="idp-urgent"><input type="checkbox" id="idp-urgent" ${model.priority ? 'checked' : ''}> 🚩 Send as <b>URGENT</b> (alerts the factory floor)</label>
 
         <div class="idp-actions">
           <button class="idp-btn" id="idp-preview">🖨 Preview &amp; Print</button>
           <button class="idp-btn" id="idp-save">💾 Save draft</button>
-          <button class="idp-btn idp-btn-go" id="idp-send">➤ Send to Factory</button>
+          ${model.editingSent
+            ? `<button class="idp-btn idp-btn-go" id="idp-update">✓ Update factory</button>`
+            : `<button class="idp-btn idp-btn-go" id="idp-send">➤ Send to Factory</button>`}
         </div>
         <div id="idp-msg"></div>
       </div>`;
@@ -142,7 +151,75 @@
     body.querySelectorAll('[data-src]').forEach(b => b.onclick = () => chooseSource(b.dataset.src));
     body.querySelector('#idp-preview').onclick = previewPrint;
     body.querySelector('#idp-save').onclick = saveDraft;
-    body.querySelector('#idp-send').onclick = sendToFactory;
+    const sendBtn = body.querySelector('#idp-send'); if (sendBtn) sendBtn.onclick = sendToFactory;
+    const updBtn = body.querySelector('#idp-update'); if (updBtn) updBtn.onclick = updateFactory;
+    bindDrawings(body);
+  }
+
+  // ---------- Drawings (customer drawing / product photo / new design) ----------
+  function drawDrawingsGrid(body) {
+    const grid = body.querySelector('#idp-draw-grid'); if (!grid) return;
+    model.drawings = model.drawings || [];
+    grid.innerHTML = model.drawings.length ? model.drawings.map((d, i) => `
+      <div class="idp-draw-item ${d.approved ? 'ok' : ''}">
+        <img src="${d.img}" alt="drawing">
+        <input class="idp-draw-cap" data-cap="${i}" value="${esc(d.caption || '')}" placeholder="Caption (optional)">
+        <label class="idp-draw-ok"><input type="checkbox" data-ok="${i}" ${d.approved ? 'checked' : ''}> ✅ Office approved</label>
+        <button class="idp-draw-del" data-ddel="${i}" title="Remove">🗑</button>
+      </div>`).join('') : '<div class="idp-draw-empty">No drawings yet. Add the customer drawing or a product photo.</div>';
+    grid.querySelectorAll('[data-cap]').forEach(el => el.oninput = () => { model.drawings[+el.dataset.cap].caption = el.value; });
+    grid.querySelectorAll('[data-ok]').forEach(el => el.onchange = () => { model.drawings[+el.dataset.ok].approved = el.checked; drawDrawingsGrid(body); });
+    grid.querySelectorAll('[data-ddel]').forEach(el => el.onclick = () => { model.drawings.splice(+el.dataset.ddel, 1); drawDrawingsGrid(body); });
+  }
+  function bindDrawings(body) {
+    drawDrawingsGrid(body);
+    const fi = body.querySelector('#idp-draw-file'); if (!fi) return;
+    fi.onchange = () => {
+      const files = [...(fi.files || [])]; if (!files.length) return;
+      let pending = files.length;
+      files.forEach(f => {
+        if (!/^image\//.test(f.type)) { pending--; return; }
+        const rd = new FileReader();
+        rd.onload = () => downscale(rd.result, 1200, (img) => { model.drawings = model.drawings || []; model.drawings.push({ id: uid('dw-'), img, caption: '', approved: false }); if (--pending <= 0) drawDrawingsGrid(body); });
+        rd.readAsDataURL(f);
+      });
+      fi.value = '';
+    };
+  }
+  // Downscale an image dataURL so attachments stay small (localStorage/cloud safe).
+  function downscale(dataUrl, max, cb) {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > max || h > max) { const s = max / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.82)); } catch (e) { cb(dataUrl); }
+      };
+      img.onerror = () => cb(dataUrl);
+      img.src = dataUrl;
+    } catch (e) { cb(dataUrl); }
+  }
+  // Update a live (already-sent) factory indent with the edited model, keeping
+  // the production progress the floor has already done.
+  function updateFactory() {
+    const real = validate(); if (!real) return;
+    const rec = {
+      id: model.id, indentNo: model.indentNo, indentDate: model.indentDate,
+      indentCustomer: model.indentCustomer || model.customer || '', customer: model.indentCustomer || model.customer || '',
+      indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '', deliveryAddr: model.deliveryAddr || '',
+      priority: !!model.priority, drawings: model.drawings || [],
+      items: real.map((it, i) => ({ id: it.id || uid('it-'), sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' }))
+    };
+    if (window.FIXO_FACTORY && FIXO_FACTORY.receiveIndent) FIXO_FACTORY.receiveIndent(rec, { update: true });
+    else { toast('Factory module not ready'); return; }
+    logAct('edited_live', { no: rec.indentNo, customer: rec.customer, lines: rec.items.length });
+    const msg = document.getElementById('idp-msg');
+    if (msg) msg.innerHTML = `<div class="idp-ok">✓ Indent <b>${esc(rec.indentNo)}</b> updated — the change is now on the factory floor, dispatch and office. Progress already done was kept.</div>`;
+    toast('Factory indent updated ✓');
+    model = freshModel();
+    setTimeout(() => { view = 'tracker'; render(); }, 900);
   }
   function itemRow(it, i) {
     const uoms = ['Nos', 'Mtrs', 'Kgs']; const cur = uoms.find(o => o.toLowerCase().slice(0, 3) === String(it.unit || 'Nos').toLowerCase().slice(0, 3)) || (it.unit || 'Nos');
@@ -341,10 +418,23 @@
 
   // ---------- preview / print (shared PROD/R/05 builder) ----------
   function previewPrint() {
-    const html = (window.FIXO_PF && FIXO_PF.buildIndentHtml)
+    let html = (window.FIXO_PF && FIXO_PF.buildIndentHtml)
       ? FIXO_PF.buildIndentHtml(model, { editable: true, size: model.items.length > 10 ? 'full' : 'auto' })
       : fallbackHtml();
+    html = injectDrawings(html);
     openEditor(html);
+  }
+  // Append an approved-drawings sheet to the printed indent.
+  function injectDrawings(html) {
+    const dr = (model.drawings || []);
+    if (!dr.length) return html;
+    const blocks = dr.map(d => `<div style="break-inside:avoid;border:1px solid #cbd5e1;border-radius:8px;padding:8px;margin:8px 0;text-align:center">
+      <img src="${d.img}" style="max-width:100%;max-height:420px;object-fit:contain">
+      <div style="font-size:12px;color:#334155;margin-top:6px">${esc(d.caption || '')} ${d.approved ? '<b style="color:#16a34a">✔ Office approved</b>' : '<span style="color:#b45309">(not yet approved)</span>'}</div></div>`).join('');
+    const section = `<div style="page-break-before:always;font-family:Arial,sans-serif;padding:14px">
+      <h3 style="margin:0 0 4px">Drawings / Product Photos — ${esc(model.indentCustomer || '')}</h3>
+      <div style="font-size:12px;color:#64748b;margin-bottom:8px">Indent No. ${esc(model.indentNo || '')} · ${esc(model.indentDate || '')}</div>${blocks}</div>`;
+    return html.indexOf('</body>') >= 0 ? html.replace('</body>', section + '</body>') : html + section;
   }
   function openEditor(html) {
     const m = modal(`<div class="idp-editor-head"><b>Verify &amp; Print — Production Work Order</b><span class="idp-ed-hint">✎ Edit any cell, then Save.</span><button class="idp-btn" data-x>Close</button></div>
@@ -431,7 +521,8 @@
       indentDate: model.indentDate || today(), sentAt: new Date().toISOString(), priority: !!urgent,
       customer: model.indentCustomer || model.customer || '', customerAddr: '',
       indentCustomer: model.indentCustomer || model.customer || '', indentNotes: model.indentNotes || '', preparedBy: model.preparedBy || '', deliveryAddr: model.deliveryAddr || '',
-      items: real.map((it, i) => ({ id: uid('it-'), sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' }))
+      drawings: model.drawings || [],
+      items: real.map((it, i) => ({ id: it.id || uid('it-'), sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' }))
     };
     if (window.FIXO_FACTORY && FIXO_FACTORY.receiveIndent) FIXO_FACTORY.receiveIndent(rec);
     else { toast('Factory module not ready'); return; }
@@ -464,7 +555,7 @@
       const when = d.savedAt || (d.sentAt ? new Date(d.sentAt).toLocaleString('en-IN') : '');
       const actions = kind === 'draft'
         ? `<button class="idp-mini" data-open="${d.id}">✎ Open</button><button class="idp-mini" data-send="${d.id}">➤ Send</button><button class="idp-mini idp-mini-x" data-del="${d.id}">🗑</button>`
-        : `<button class="idp-mini" data-reprint="${d.id}">🖨 Reprint</button>${(d.docs && (d.docs.plan || d.docs.inspection)) ? `<button class="idp-mini" data-docs="${d.id}">📁 Factory docs</button>` : ''}`;
+        : `<button class="idp-mini" data-editsent="${d.id}">✎ Edit</button><button class="idp-mini" data-reprint="${d.id}">🖨 Reprint</button>${(d.docs && (d.docs.plan || d.docs.inspection)) ? `<button class="idp-mini" data-docs="${d.id}">📁 Factory docs</button>` : ''}`;
       return `<div class="idp-track-row ${kind}">
         <div class="idp-track-main"><b>${esc(d.indentCustomer || d.customer || 'Indent')}</b>
           <span class="idp-track-sub">No. ${esc(d.indentNo || '—')} · ${lines} line(s)${when ? ' · ' + esc(when) : ''}${d.priority ? ' · 🚩 URGENT' : ''}</span></div>
@@ -484,6 +575,7 @@
     body.querySelectorAll('[data-send]').forEach(b => b.onclick = () => { const d = loadDrafts().find(x => x.id === b.dataset.send); if (d) { model = JSON.parse(JSON.stringify(d)); sendToFactory(); } });
     body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (!confirm('Delete this draft?')) return; saveDrafts(loadDrafts().filter(x => x.id !== b.dataset.del)); renderTracker(); });
     body.querySelectorAll('[data-reprint]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.reprint); if (s) { model = normalizeSent(s); previewPrint(); } });
+    body.querySelectorAll('[data-editsent]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.editsent); if (s) { model = normalizeSent(s); model.editingSent = true; view = 'prepare'; render(); } });
     body.querySelectorAll('[data-docs]').forEach(b => b.onclick = () => { const s = loadSent().find(x => x.id === b.dataset.docs); if (s) viewFactoryDocs(s); });
   }
   // Read-only viewer so the office & management can review the Production Plan and
@@ -504,7 +596,7 @@
     m.querySelector('[data-print]').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
   }
   function normalizeSent(s) {
-    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', deliveryAddr: s.deliveryAddr || '', customer: s.customer, priority: !!s.priority, images: {}, items: (s.items || []).map(it => ({ sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
+    return { id: s.id, indentNo: s.indentNo, indentDate: s.indentDate, indentCustomer: s.indentCustomer || s.customer, indentNotes: s.indentNotes || '', preparedBy: s.preparedBy || '', deliveryAddr: s.deliveryAddr || '', customer: s.customer, priority: !!s.priority, images: {}, drawings: (s.drawings || []).map(d => Object.assign({}, d)), items: (s.items || []).map(it => ({ id: it.id, sl: it.sl || '', desc: it.desc || '', qty: it.qty, unit: it.unit || 'Nos', dealtBy: it.dealtBy || '', deliveryDate: it.deliveryDate || '' })) };
   }
 
   // ---------- modal helper ----------

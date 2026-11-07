@@ -46,3 +46,7 @@ Inno Database/
 
 # Real customer/financial seed — kept out of Git; it is bundled into public/ and the EXE instead
 inno-seed.js
+inno-bills-seed.js
+Bill.xls
+*.xls
+0932_Trinity Heat Treatment..pdf
