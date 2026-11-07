@@ -131,6 +131,14 @@
     <div class="factory-body" id="inno-chatiq-app"></div>
   </div>
 
+  <div id="screen-inno-data" class="screen">
+    <div class="app-topbar">
+      <button class="app-back" data-goto="screen-home">← Home</button>
+      <span class="app-topbar-name">Inno Data Manager</span>
+    </div>
+    <div class="factory-body" id="inno-data-app"></div>
+  </div>
+
   <!-- ============ HOME: APP LAUNCHER ============ -->
   <div id="screen-home" class="screen">
     <div class="home-wm" aria-hidden="true"></div>
@@ -199,6 +207,10 @@
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-inno-chatiq" title="Inno Smart IQ">
           <img src="assets/app-icons/smart-iq.png" alt="Inno Smart IQ" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'💡'}))">
+        </button>
+        <button class="hm-app" data-company="inno" data-open-app="screen-inno-data" title="Inno Data Manager — backup, tracking, fresh start">
+          <span class="fh-app-ic">🗄️</span>
+          <span class="fh-app-name">Data Manager</span>
         </button>
         <button class="hm-app" data-company="inno" data-open-app="screen-reports" title="Inno Reports">
           <img src="assets/app-icons/Inno%20Reports.png" alt="Inno Reports" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fh-app-ic',textContent:'📊'}))">
@@ -619,6 +631,7 @@
   <script src="inno-payments.js"></script>
   <script src="inno-chatiq.js"></script>
   <script src="sync.js"></script>
+  <script src="inno-data.js"></script>
   <script>
     // Register the PWA service worker (makes the app installable + offline).
     // Only over http/https — under file:// (the packaged desktop app) service
