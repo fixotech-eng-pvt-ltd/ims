@@ -348,17 +348,20 @@
   // editable, and SAVED against the indent (with an optional photo of the paper
   // copy). They match the paper forms, incl. rejection & reason fields, and one
   // sheet can hold several customers (add rows freely — it's click-to-edit).
-  const DOC_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact}@page{size:A4 landscape;margin:8mm}html,body{background:#fff}
-    body{font-family:Arial,sans-serif;color:#000;font-size:11px;padding:5mm}
-    .wrap{border:2px solid #000;padding:8px}
+  // Portrait A4 (vertical) — table-layout:fixed + word-wrap so every column stays
+  // inside its border (no column gets cut off), content wraps instead.
+  const DOC_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:7mm}html,body{background:#fff}
+    body{font-family:Arial,sans-serif;color:#000;font-size:10px;padding:3mm;margin:0}
+    .wrap{border:2px solid #000;padding:7px}
     .hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}
-    .hd img{height:38px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:17px;letter-spacing:1px}.hd .co div{font-size:8px;font-weight:bold}
-    .hd .rc{font-size:9px;text-align:right;border:1px solid #000;padding:3px 6px}
-    .title{text-align:center;font-weight:bold;font-size:14px;margin:4px 0}
-    .meta{display:flex;flex-wrap:wrap;gap:4px 18px;font-weight:bold;font-size:11px;margin:4px 0}
-    table{width:100%;border-collapse:collapse;margin-top:4px}th,td{border:1px solid #000;padding:4px 5px;font-size:10px;vertical-align:top}
-    .c{text-align:center}th{background:#e8e8e8;font-size:9.5px;text-align:center}
-    tbody td{height:9mm}.sign{display:flex;justify-content:space-between;margin-top:16px;font-weight:bold}
+    .hd img{height:34px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:16px;letter-spacing:1px}.hd .co div{font-size:7.5px;font-weight:bold}
+    .hd .rc{font-size:8px;text-align:right;border:1px solid #000;padding:3px 6px}
+    .title{text-align:center;font-weight:bold;font-size:13px;margin:4px 0}
+    .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-weight:bold;font-size:10px;margin:4px 0}
+    table{width:100%;border-collapse:collapse;margin-top:4px;table-layout:fixed}
+    th,td{border:1px solid #000;padding:3px 3px;font-size:8px;vertical-align:top;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word}
+    .c{text-align:center}th{background:#e8e8e8;font-size:7.5px;text-align:center;line-height:1.1}
+    tbody td{height:8mm}.sign{display:flex;justify-content:space-between;margin-top:16px;font-weight:bold;font-size:10px}
     .rej{border:1px solid #000;padding:5px;margin-top:6px;min-height:12mm}.docphoto{margin-top:8px}.docphoto img{max-width:100%;border:1px solid #999}`;
   const docHeader = () => { const logo = (typeof LOGO_IMG !== 'undefined' && LOGO_IMG) ? LOGO_IMG : ''; return `<div class="hd">${logo ? `<img src="${logo}">` : ''}<div class="co"><b>FIXOTECH</b><div>ENGINEERING SYSTEMS PRIVATE LIMITED</div><div>ISO 9001:2015 CERTIFIED COMPANY</div></div><div class="rc" id="dr"></div></div>`; };
 
@@ -444,51 +447,59 @@
   // so each operator gets just their job for this order — instead of the whole
   // production plan going round. The engineer keeps the plan, collects the signed
   // slips, and attaches them to the order. ----
-  const SLIP_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:10mm}
-    html,body{background:#fff}body{font-family:Arial,sans-serif;color:#000;font-size:12px;margin:0}
-    .slip{border:2px solid #000;padding:10px;page-break-after:always;min-height:272mm}
-    .slip:last-child{page-break-after:auto}
-    .hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:6px}
-    .hd img{height:40px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:18px;letter-spacing:1px}.hd .co div{font-size:8px;font-weight:bold}
-    .op{text-align:center;font-weight:bold;font-size:22px;letter-spacing:1px;margin:8px 0;background:#000;color:#fff;padding:7px}
-    .meta{display:flex;flex-wrap:wrap;gap:4px 24px;font-weight:bold;font-size:13px;margin:8px 2px}
-    table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #000;padding:6px 6px;font-size:12px}
-    th{background:#e8e8e8;text-align:center;font-size:11px}td.c,th.c{text-align:center}tbody td{height:13mm}
-    .chk{margin-top:12px;border:1px solid #000;padding:8px;font-size:12px}.chk b{display:block;margin-bottom:6px}
-    .chkrow{display:flex;gap:10px;flex-wrap:wrap}.chkbox{border:1px solid #000;padding:5px 10px;min-width:120px}
-    .sign{display:flex;justify-content:space-between;margin-top:26px;font-weight:bold;font-size:12px}
-    .sign div{border-top:1px solid #000;padding-top:4px;min-width:45%;text-align:center}`;
+  // Compact slips — SEVERAL fit on one A4 with a ✂ cut-line between them, so the
+  // engineer prints one sheet and cuts it into a slip per operation to hand out.
+  const SLIP_CSS = `*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:8mm}
+    html,body{background:#fff}body{font-family:Arial,sans-serif;color:#000;font-size:11px;margin:0;padding:4mm}
+    .slip{border:1.5px solid #000;padding:8px 10px;margin-bottom:2px;break-inside:avoid;page-break-inside:avoid}
+    .shead{display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #000;padding-bottom:4px;margin-bottom:5px}
+    .op{font-weight:bold;font-size:17px;letter-spacing:1px;background:#000;color:#fff;padding:3px 12px;border-radius:3px}
+    .sid{text-align:right;font-size:10px;font-weight:bold;line-height:1.35}
+    .stag{font-size:9px;color:#333;font-weight:normal}
+    table{width:100%;border-collapse:collapse;margin-top:3px;table-layout:fixed}
+    th,td{border:1px solid #000;padding:4px 4px;font-size:10px;vertical-align:top;word-wrap:break-word;overflow-wrap:break-word}
+    th{background:#e8e8e8;text-align:center;font-size:9px}td.c,th.c{text-align:center}tbody td{height:9mm}
+    .chkrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:9.5px}
+    .chkbox{border:1px solid #000;padding:3px 7px}
+    .sign{display:flex;justify-content:space-between;margin-top:14px;font-weight:bold;font-size:10px}
+    .sign div{border-top:1px solid #000;padding-top:3px;min-width:46%;text-align:center}
+    .cut{text-align:center;font-size:9px;color:#555;letter-spacing:2px;margin:1px 0 6px}
+    @media print{body{padding:0}}`;
   function operatorSlipsHtml(ind) {
     const opStages = ALL_STAGES.filter(s => s !== 'ready');
-    const slips = opStages.map(stage => {
+    const used = opStages.filter(stage => ind.items.some(it => stagesFor(it.desc).indexOf(stage) >= 0));
+    const total = used.length;
+    const slips = used.map((stage, idx) => {
       const items = ind.items.filter(it => stagesFor(it.desc).indexOf(stage) >= 0);
-      if (!items.length) return '';
       const rows = items.map((it, i) => {
         let spec = ''; try { if (typeof specDims === 'function') spec = specDims(it.desc) || ''; } catch (e) {}
-        return `<tr><td class="c">${i + 1}</td><td>${esc(it.desc)}${spec ? '<br><small>' + esc(spec) + '</small>' : ''}</td><td class="c">${esc(it.qty || '')} ${esc(it.unit || '')}</td><td class="c"></td><td class="c"></td><td></td></tr>`;
+        return `<tr><td class="c">${i + 1}</td><td>${esc(it.desc)}${spec ? '<br><small>' + esc(spec) + '</small>' : ''}</td><td class="c">${esc(it.qty || '')} ${esc(it.unit || '')}</td><td class="c"></td><td class="c"></td></tr>`;
       }).join('');
-      const extra = Math.max(0, 3 - items.length);
-      const blanks = Array(extra).fill(`<tr>${'<td></td>'.repeat(6)}</tr>`).join('');
-      return `<div class="slip">${docHeader().replace(' id="dr"', '')}
-        <div class="op">${esc(STAGES[stage]).toUpperCase()} SLIP</div>
-        <div class="meta"><span>Customer : ${esc(ind.customer || '')}</span><span>Indent No. : ${esc(ind.indentNo || '')}</span><span>Date : ${esc(ind.indentDate || '')}</span>${ind.priority ? '<span style="color:#b00">🚩 URGENT</span>' : ''}</div>
-        <table><thead><tr><th class="c">Sl</th><th>Product / Description</th><th class="c">Planned Qty</th><th class="c">Qty Done</th><th class="c">Rejected</th><th>Remarks</th></tr></thead>
+      const blanks = Array(Math.max(0, 2 - items.length)).fill(`<tr>${'<td></td>'.repeat(5)}</tr>`).join('');
+      const slip = `<div class="slip">
+        <div class="shead"><span class="op">${esc(STAGES[stage]).toUpperCase()}</span>
+          <span class="sid">${esc(ind.customer || '')} · ${esc(ind.indentNo || '')}${ind.priority ? ' · <span style="color:#b00">🚩URGENT</span>' : ''}<br><span class="stag">${esc(ind.indentDate || '')} · Slip ${idx + 1} of ${total}</span></span></div>
+        <table><thead><tr><th class="c" style="width:8%">Sl</th><th>Product / Description</th><th class="c" style="width:16%">Planned</th><th class="c" style="width:16%">Done</th><th class="c" style="width:14%">Reject</th></tr></thead>
         <tbody>${rows}${blanks}</tbody></table>
-        <div class="chk"><b>Final checks (operator to tick):</b><div class="chkrow">
-          <span class="chkbox">☐ Dimensions OK</span><span class="chkbox">☐ Quantity matches</span><span class="chkbox">☐ Finish / burr OK</span><span class="chkbox">☐ Count verified</span></div></div>
+        <div class="chkrow"><span class="chkbox">☐ Dimensions OK</span><span class="chkbox">☐ Qty matches</span><span class="chkbox">☐ Finish OK</span><span class="chkbox">☐ Count verified</span></div>
         <div class="sign"><div>Operator Name &amp; Sign</div><div>Checked / Supervisor Sign</div></div>
       </div>`;
-    }).filter(Boolean).join('');
-    const body = slips || `<div class="slip">${docHeader().replace(' id="dr"', '')}<div class="op">NO OPERATIONS</div><p style="padding:10px">No machine operations mapped for this order's products.</p></div>`;
+      const cut = idx < total - 1 ? '<div class="cut">✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>' : '';
+      return slip + cut;
+    }).join('');
+    const body = slips || `<div class="slip"><div class="shead"><span class="op">NO OPERATIONS</span></div><p style="padding:8px">No machine operations are mapped for this order's products.</p></div>`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Operator Slips — ${esc(ind.customer || '')}</title><style>${SLIP_CSS}</style></head><body>${body}</body></html>`;
   }
   function openOperatorSlips(indId) {
     const ind = indents.find(i => i.id === indId); if (!ind) { toast('Indent not found'); return; }
     const html = operatorSlipsHtml(ind);
-    const w = window.open('', '_blank'); if (!w) { toast('Allow pop-ups to print the slips'); return; }
-    w.document.write(html); w.document.close();
+    const m = modal(`<div class="fx-ed-head"><h3>Operator slips — ${esc(ind.customer)}</h3><span class="fx-ed-hint">One sheet, one slip per operation — print &amp; cut along ✂ to hand out.</span></div>
+      <div class="fx-ed-body"><iframe id="fx-slip-frame"></iframe></div>
+      <div class="fx-modal-actions"><button class="fx-btn" id="fx-slip-x">Close</button><button class="fx-btn fx-btn-go" id="fx-slip-print">🖨 Print slips</button></div>`, 'fx-ed-modal');
+    const fr = m.querySelector('#fx-slip-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(html); d.close();
     try { if (window.FIXO_LOG) FIXO_LOG.activity('factory', 'operator_slips', { no: ind.indentNo, customer: ind.customer }); } catch (e) {}
-    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+    m.querySelector('#fx-slip-x').onclick = () => closeModal(m);
+    m.querySelector('#fx-slip-print').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('Allow pop-ups to print'); } };
   }
   function openInspectionReport(indId) { openFactoryDoc(indId, 'inspection'); }
   function indentCard(g) {

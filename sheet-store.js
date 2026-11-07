@@ -51,10 +51,12 @@
           <button class="ss-tab ${view === 'stock' ? 'active' : ''}" data-v="stock">📦 Stock</button>
           <button class="ss-tab ${view === 'day' ? 'active' : ''}" data-v="day">📅 Day close</button>
           <button class="ss-tab ${view === 'moves' ? 'active' : ''}" data-v="moves">🧾 Movements</button>
+          <button class="ss-tab ss-savebtn" id="ss-save" title="Save & sync all changes">💾 Save</button>
         </div>
         <div id="ss-body"></div>
       </div>`;
     host.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
+    host.querySelector('#ss-save').onclick = () => saveAll();
     if (view === 'day') renderDay(); else if (view === 'moves') renderMoves(); else renderStock();
   }
 
@@ -278,6 +280,7 @@
   }
   function types() { return load().map(s => ({ id: s.id, label: label(s).replace(/<[^>]+>/g, ''), balance: balance(s) })); }
 
+  function saveAll() { store(load()); try { if (window.FIXO_SYNC && FIXO_SYNC.flush) FIXO_SYNC.flush(); } catch (e) {} logAct('save', {}); toast('Sheet Store saved & synced ✓'); }
   function toast(m) { return (window.FIXO && FIXO.toast ? FIXO.toast(m) : console.log(m)); }
   function modal(inner, cls) { const el = document.createElement('div'); el.className = 'ss-overlay'; el.innerHTML = `<div class="ss-modal ${cls || ''}">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
 

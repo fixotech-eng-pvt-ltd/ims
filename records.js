@@ -65,6 +65,7 @@
           <select id="rc-year"><option value="all">All years</option>${years.map(y => `<option ${String(y) === String(fYear) ? 'selected' : ''}>${y}</option>`).join('')}</select>
           <select id="rc-cust"><option value="all">All customers</option>${custs.map(c => `<option ${c === fCust ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
           <button class="rc-btn" id="rc-csv">⬇ Export CSV</button>
+          <button class="rc-btn go" id="rc-save" title="Save & sync">💾 Save</button>
         </div>
         <div id="rc-body"></div>
       </div>`;
@@ -74,6 +75,7 @@
       host.querySelector('#rc-year').onchange = (e) => { fYear = e.target.value; draw(); };
       host.querySelector('#rc-cust').onchange = (e) => { fCust = e.target.value; draw(); };
       host.querySelector('#rc-csv').onclick = exportCsv;
+      host.querySelector('#rc-save').onclick = () => { try { if (window.FIXO_SYNC && FIXO_SYNC.flush) FIXO_SYNC.flush(); } catch (e) {} try { if (window.FIXO_LOG) FIXO_LOG.activity('records', 'save', {}); } catch (e) {} if (window.FIXO && FIXO.toast) FIXO.toast('Records saved & synced ✓'); };
     };
     function filtered() {
       const q = fQ.toLowerCase();
@@ -102,8 +104,18 @@
   function draw() { if (render._draw) render._draw(); }
 
   function openRecord(r) {
-    if (r.extra && r.extra.html) { const w = window.open('', '_blank'); if (w) { w.document.write(r.extra.html); w.document.close(); } return; }
     const ex = r.extra || {};
+    // Documents with saved HTML (production plan / inspection report / dispatch
+    // note) open in an in-app preview — reliable, no pop-up blocking.
+    if (ex.html) {
+      const m = modal(`<h3>${esc(r.type)} — ${esc(r.no)} · ${esc(r.customer)}</h3>
+        <iframe class="rc-doc-frame" id="rc-doc-frame"></iframe>
+        <div class="rc-modal-act"><button class="rc-btn go" data-print>🖨 Print</button><button class="rc-btn" data-x>Close</button></div>`, 'rc-doc-modal');
+      const fr = m.querySelector('#rc-doc-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(ex.html); d.close();
+      m.querySelector('[data-x]').onclick = () => m.remove();
+      m.querySelector('[data-print]').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
+      return;
+    }
     const extraHtml = ex.vehicle || ex.tally ? `<p class="rc-note">${ex.tally ? 'Tally code: <b>' + esc(ex.tally) + '</b><br>' : ''}${ex.vehicle ? 'Vehicle: <b>' + esc(ex.vehicle) + '</b>' : ''}</p>` : '';
     const items = ex.items ? `<div class="rc-items">${ex.items.map(it => `<div>• ${esc(it.desc)} — ${esc(it.qty)} ${esc(it.unit || '')}</div>`).join('')}</div>` : '';
     const m = modal(`<h3>${esc(r.type)} — ${esc(r.no)}</h3>
@@ -119,7 +131,7 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'fixotech-records.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
-  function modal(inner) { const el = document.createElement('div'); el.className = 'rc-overlay'; el.innerHTML = `<div class="rc-modal">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
+  function modal(inner, cls) { const el = document.createElement('div'); el.className = 'rc-overlay'; el.innerHTML = `<div class="rc-modal ${cls || ''}">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-open-app="screen-records"]').forEach(b => b.addEventListener('click', () => setTimeout(render, 0)));

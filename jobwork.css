@@ -34,6 +34,8 @@
 .jw-empty { padding: 26px; text-align: center; color: #94a3b8; }
 .jw-btn { border: 1px solid #cbd5e1; background: #fff; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: #334155; }
 .jw-btn.go { background: #9a3412; color: #fff; border-color: #9a3412; }
+.jw-save { margin-left: auto; background: #0f766e; color: #fff; border-color: #0f766e; }
+.jw-save:hover { background: #0b5f58; }
 .jw-btn.go:hover { background: #7c2d12; }
 .jw-mini { border: 1px solid #cbd5e1; background: #fff; border-radius: 7px; padding: 5px 10px; font-size: 12px; cursor: pointer; color: #334155; }
 .jw-mini.go { color: #9a3412; border-color: #fdba74; font-weight: 600; }

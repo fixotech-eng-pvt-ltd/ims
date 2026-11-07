@@ -32,6 +32,7 @@
     host.querySelectorAll('[data-view-dr]').forEach(b => b.onclick = () => viewRec(log.find(r => r.id === b.dataset.viewDr)));
     host.querySelectorAll('[data-print-dr]').forEach(b => b.onclick = () => printRec(log.find(r => r.id === b.dataset.printDr)));
     host.querySelectorAll('[data-del-dr]').forEach(b => b.onclick = () => { save(load().filter(r => r.id !== b.dataset.delDr)); render(); });
+    host.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.copy); } catch (e) {} if (window.FIXO && FIXO.toast) FIXO.toast('Tally code copied'); });
     markSeen();
   }
   // Card mirrors the factory note: shows finish + auto connector/joint plates & bolt sets.
@@ -43,11 +44,14 @@
       return `<tr><td>${esc(String(it.desc).replace(/\n/g, ' '))}${it.finish ? ` <i>(${esc(it.finish)})</i>` : ''}${extra}</td><td class="c">${esc(it.qty)}</td><td class="c">${esc(it.unit)}</td><td class="c">${esc(it.weight || '—')}</td></tr>`;
     }).join('');
     const accRows = (tp || tb) ? `<tr class="dr-acc-row"><td><b>Connector / Joint plate</b></td><td class="c"><b>${tp}</b></td><td class="c">Nos</td><td></td></tr><tr class="dr-acc-row"><td><b>Bolt, Nut &amp; Washer</b></td><td class="c"><b>${tb}</b></td><td class="c">Sets</td><td></td></tr>` : '';
+    const meta = [r.indentNo ? 'Indent ' + esc(r.indentNo) : '', new Date(r.at).toLocaleString('en-IN'), (r.items || []).length + ' item(s)'].filter(Boolean).join(' · ');
+    const tallyBar = (r.tally || r.vehicle) ? `<div class="dr-tallybar">${r.tally ? `<span class="dr-tally">🧾 Tally code: <b>${esc(r.tally)}</b></span><button class="dr-copy" data-copy="${esc(r.tally)}" title="Copy">⧉ Copy</button>` : ''}${r.vehicle ? `<span class="dr-veh">🚚 ${esc(r.vehicle)}${r.driver ? ' · ' + esc(r.driver) : ''}</span>` : ''}</div>` : '';
     return `<div class="fx-card">
       <div class="fx-card-top">
-        <div><b class="fx-cust">${esc(r.customer)}</b><span class="fx-meta">${r.indentNo ? 'Indent ' + esc(r.indentNo) + ' · ' : ''}${new Date(r.at).toLocaleString('en-IN')} · ${(r.items || []).length} item(s)</span></div>
+        <div><b class="fx-cust">${esc(r.customer)}</b><span class="fx-meta">${meta}</span></div>
         <div class="fx-card-btns"><button class="fx-btn" data-view-dr="${r.id}">👁 View note</button><button class="fx-btn fx-print" data-print-dr="${r.id}">🖨 Print note</button><button class="so-del" data-del-dr="${r.id}" title="Remove">&times;</button></div>
       </div>
+      ${tallyBar}
       <table class="fx-tbl"><thead><tr><th>Description</th><th>Qty</th><th>UOM</th><th>Weight</th></tr></thead>
         <tbody>${rows}${accRows}</tbody></table>
     </div>`;

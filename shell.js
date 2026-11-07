@@ -92,6 +92,8 @@
     document.querySelectorAll('[data-open-factory]').forEach(b => b.addEventListener('click', () => {
       if (b.dataset.openFactory === 'dispatch') { showScreen('screen-dispatch'); if (window.FIXO_DISPATCH && FIXO_DISPATCH.render) FIXO_DISPATCH.render(); }
       else if (b.dataset.openFactory === 'inventory') { showScreen('screen-inventory'); if (window.FIXO_INVENTORY && FIXO_INVENTORY.render) FIXO_INVENTORY.render(); }
+      else if (b.dataset.openFactory === 'sheetstore') { showScreen('screen-sheet-store'); if (window.FIXO_SHEET_STORE && FIXO_SHEET_STORE.render) FIXO_SHEET_STORE.render(); }
+      else if (b.dataset.openFactory === 'jobwork') { showScreen('screen-jobwork'); if (window.FIXO_JOBWORK && FIXO_JOBWORK.render) FIXO_JOBWORK.render(); }
       else if (b.dataset.openFactory === 'trading') { showScreen('screen-trading'); if (window.FIXO_TRADING && FIXO_TRADING.render) FIXO_TRADING.render(); }
       else { showScreen('screen-factory'); if (window.FIXO_FACTORY && FIXO_FACTORY.render) FIXO_FACTORY.render(); }
     }));

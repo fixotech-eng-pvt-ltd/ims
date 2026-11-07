@@ -35,10 +35,12 @@
           <div class="cc-period">
             ${['day', 'week', 'month', 'all'].map(p => `<button class="cc-pbtn ${period === p ? 'active' : ''}" data-p="${p}">${p === 'day' ? 'Today' : p === 'week' ? 'This week' : p === 'month' ? 'This month' : 'All'}</button>`).join('')}
           </div>
+          <button class="cc-btn go cc-save" id="cc-save" title="Save &amp; sync">💾 Save</button>
         </div>
         <div id="cc-body"></div>
       </div>`;
     host.querySelector('#cc-cust').onchange = (e) => { selCust = e.target.value; draw(); };
+    host.querySelector('#cc-save').onclick = () => { try { if (window.FIXO_SYNC && FIXO_SYNC.flush) FIXO_SYNC.flush(); } catch (e) {} try { if (window.FIXO_LOG) FIXO_LOG.activity('custcentric', 'save', { customer: selCust }); } catch (e) {} toast('Saved & synced ✓'); };
     host.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { period = b.dataset.p; render(); });
     draw();
   }

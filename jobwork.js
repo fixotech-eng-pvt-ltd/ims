@@ -35,14 +35,16 @@
         </div>
         <div class="jw-tabs">
           <button class="jw-tab ${view === 'open' ? 'active' : ''}" data-v="open">📤 Out at vendor</button>
+          <button class="jw-tab ${view === 'approvals' ? 'active' : ''}" data-v="approvals">⏳ Approvals</button>
           <button class="jw-tab ${view === 'all' ? 'active' : ''}" data-v="all">📋 All jobs</button>
           <button class="jw-tab ${view === 'vendor' ? 'active' : ''}" data-v="vendor">🏭 By vendor</button>
         </div>
-        <div class="jw-bar"><button class="jw-btn go" id="jw-new">＋ New job work</button><input class="jw-in" id="jw-s" placeholder="Search vendor / customer / item…"></div>
+        <div class="jw-bar"><button class="jw-btn go" id="jw-new">＋ New job work</button><input class="jw-in" id="jw-s" placeholder="Search vendor / customer / item…"><button class="jw-btn jw-save" id="jw-save" title="Save & sync">💾 Save</button></div>
         <div id="jw-body"></div>
       </div>`;
     host.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
     host.querySelector('#jw-new').onclick = () => editJob(null);
+    host.querySelector('#jw-save').onclick = () => { store(load()); try { if (window.FIXO_SYNC && FIXO_SYNC.flush) FIXO_SYNC.flush(); } catch (e) {} logAct('save', {}); toast('Job Work saved & synced ✓'); };
     const s = host.querySelector('#jw-s'); s.oninput = () => draw(s.value);
     draw('');
   }
@@ -52,6 +54,7 @@
     q = (q || '').toLowerCase();
     let list = load().filter(j => !q || ((j.vendor || '') + ' ' + (j.customer || '') + ' ' + (j.item || '') + ' ' + (j.type || '') + ' ' + (j.jobNo || '')).toLowerCase().includes(q));
     if (view === 'open') list = list.filter(j => statusOf(j) !== 'received');
+    else if (view === 'approvals') list = list.filter(j => j.approval === 'pending');
     list.sort((a, b) => (b.dateSent && a.dateSent) ? (parseDate(b.dateSent) || 0) - (parseDate(a.dateSent) || 0) : 0);
     const outCount = load().filter(j => statusOf(j) !== 'received').length;
     const outVal = load().filter(j => statusOf(j) !== 'received').reduce((s, j) => s + num(j.amount), 0);
@@ -65,13 +68,16 @@
       const st = statusOf(j), b = back(j), rem = num(j.qtySent) - b;
       const chip = st === 'received' ? '<span class="jw-chip ok">✓ Received</span>' : st === 'partial' ? '<span class="jw-chip warn">Part received</span>' : '<span class="jw-chip out">At vendor</span>';
       const overdue = st !== 'received' && (() => { const d = parseDate(j.expReturn); return d && d < new Date(); })();
+      const appChip = j.approval === 'pending' ? '<span class="jw-chip warn">⏳ Awaiting office approval</span>' : j.approval === 'approved' ? '<span class="jw-chip ok">✓ Office approved</span>' : '';
       return `<div class="jw-row ${st}">
         <div class="jw-row-main">
-          <b>${esc(j.type)} — ${esc(j.vendor || '—')}</b> ${chip}${overdue ? '<span class="jw-chip late">overdue</span>' : ''}
+          <b>${esc(j.type)} — ${esc(j.vendor || '—')}</b> ${chip}${overdue ? '<span class="jw-chip late">overdue</span>' : ''}${appChip}
           <div class="jw-sub">${esc(j.jobNo || '')}${j.customer ? ' · ' + esc(j.customer) : ''}${j.indentNo ? ' · Indent ' + esc(j.indentNo) : ''} · ${esc(j.item || '')}</div>
           <div class="jw-sub">Sent ${esc(j.dateSent || '')}${j.expReturn ? ' · due ' + esc(j.expReturn) : ''} · ${nf(j.qtySent)} ${esc(j.unit || '')} out · ${nf(b)} back${rem > 0.001 ? ' · <b>' + nf(rem) + ' pending</b>' : ''}${j.amount ? ' · ₹' + money(j.amount) : ''}</div>
         </div>
         <div class="jw-row-act">
+          ${(!j.approval) ? `<button class="jw-mini" data-approvereq="${j.id}">📤 For approval</button>` : ''}
+          ${j.approval === 'pending' ? `<button class="jw-mini go" data-approve="${j.id}">✓ Approve</button>` : ''}
           ${st !== 'received' ? `<button class="jw-mini go" data-recv="${j.id}">↩ Receive</button>` : ''}
           <button class="jw-mini" data-edit="${j.id}">✎</button>
           <button class="jw-mini x" data-del="${j.id}">🗑</button>
@@ -88,7 +94,24 @@
       return `<div class="jw-card"><div class="jw-vhead"><b>${esc(v)}</b><span>${jobs.length} job(s) · ${out} open · ₹${money(val)}</span></div>${rows}</div>`;
     }).join('') || '<div class="jw-empty">No vendors yet.</div>';
   }
+  function notifyOffice(j, kind) {
+    try {
+      const K = 'fixo_office_notifications';
+      const arr = JSON.parse(localStorage.getItem(K) || '[]') || [];
+      arr.unshift({ id: uid('ntf-'), type: 'jobwork_' + kind, customer: j.customer || j.vendor || '', indentNo: j.indentNo || '', text: (kind === 'approval' ? 'Job work sent for approval' : 'Job work approved') + ': ' + j.type + ' — ' + j.vendor, at: new Date().toISOString(), seen: false });
+      localStorage.setItem(K, JSON.stringify(arr.slice(0, 200)));
+      if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(K);
+    } catch (e) {}
+  }
+  function setApproval(id, val, kind) {
+    const j = find(id); if (!j) return;
+    j.approval = val; const list = load().filter(x => x.id !== j.id); list.unshift(j); store(list);
+    notifyOffice(j, kind); logAct('job_' + kind, { type: j.type, vendor: j.vendor });
+    toast(kind === 'approval' ? 'Sent to office for approval 📤' : 'Approved ✓'); render();
+  }
   function wire(body) {
+    body.querySelectorAll('[data-approvereq]').forEach(b => b.onclick = () => setApproval(b.dataset.approvereq, 'pending', 'approval'));
+    body.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => setApproval(b.dataset.approve, 'approved', 'approved'));
     body.querySelectorAll('[data-recv]').forEach(b => b.onclick = () => receiveJob(b.dataset.recv));
     body.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editJob(find(b.dataset.edit)));
     body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this job?')) { store(load().filter(x => x.id !== b.dataset.del)); render(); } });

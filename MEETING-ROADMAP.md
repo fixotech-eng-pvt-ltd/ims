@@ -53,4 +53,14 @@ Delivered `fixo-v45`: Inno bills load, indent editability, indent drawings.
 Delivered `fixo-v46`: Sheet Store (+AI count), factory left-rail redesign, removed photo-in-todo.
 Delivered `fixo-v47`: operator slips, Job Work, dispatch Tally code + vehicle, Records (+Smart IQ), Customer Centric, admin activity logging + Data Manager in admin.
 Delivered `fixo-v48`: Trinity-style packing list; sheet auto-deduct on order (Sheets used) + sheet bills → payables.
+Delivered `fixo-v49` (2nd review pass):
+ • Sheet Store + Job Work added to the FACTORY side; factory floor "Inventory" tile renamed **Accessories** (fasteners/rods/strut channel) — inventory now clearly split from the Sheet Store (sheets).
+ • **Records "Open" fixed** — production plan / inspection report / dispatch docs open in an in-app preview (was a blocked pop-up).
+ • **Production Plan + Inspection Report → portrait (vertical)**, table-layout:fixed + word-wrap so borders no longer cut columns.
+ • **Operator slips fixed** — open in a preview modal (not a blocked pop-up); several slips per A4 with ✂ cut-lines + per-slip identification (customer · indent · operation · "Slip n of m").
+ • **Dispatch Tally code moved to the OFFICE** Dispatch Records (code + vehicle shown, with Copy); still generated on the note.
+ • **Job Work office approval flow** — factory initiates → "📤 For approval" → office "✓ Approve"; Approvals tab + office notification.
+ • **Save button on every new app** (Sheet Store, Job Work, Records, Customer Centric) — flush sync + activity log + toast.
+ • **Tile order** — daily apps (Calculator, Proforma, Indent, Dispatch, Sheet Store, Job Work, Trading Biz) up front; Records, Customer Centric, Smart IQ moved to the end. Factory Trading tile now uses the Trading Biz icon.
+ • **Mobile** — app grids render as clean 2-column square tiles on phones; no horizontal overflow.
 Remaining: users/roles (later phase); powder-coat detailed spec (awaiting team); new app logos (awaiting team).

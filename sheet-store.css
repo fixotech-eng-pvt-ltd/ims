@@ -9,6 +9,8 @@
 .ss-tabs { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
 .ss-tab { border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer; color: #334155; }
 .ss-tab.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+.ss-savebtn { margin-left: auto; background: #0f766e; color: #fff; border-color: #0f766e; }
+.ss-savebtn:hover { background: #0b5f58; }
 .ss-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
 .ss-tile { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
 .ss-tile-v { font-size: 26px; font-weight: 800; color: #0f766e; }

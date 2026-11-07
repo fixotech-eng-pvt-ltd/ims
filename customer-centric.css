@@ -10,6 +10,8 @@
 .cc-period { display: flex; gap: 6px; }
 .cc-pbtn { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: #334155; }
 .cc-pbtn.active { background: #0369a1; color: #fff; border-color: #0369a1; }
+.cc-save { margin-left: auto; background: #0f766e; color: #fff; border-color: #0f766e; }
+.cc-save:hover { background: #0b5f58; }
 .cc-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
 .cc-tile { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
 .cc-tv { font-size: 24px; font-weight: 800; color: #0369a1; }
