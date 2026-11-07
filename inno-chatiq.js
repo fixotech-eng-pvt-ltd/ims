@@ -30,7 +30,7 @@
   const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(0, 0, 0, 0); return d; };
   const money0 = (n) => '₹' + money(n);
   const m0 = (n) => Number(n || 0) >= 1e7 ? '₹' + (n / 1e7).toFixed(2) + ' Cr' : Number(n || 0) >= 1e5 ? '₹' + (n / 1e5).toFixed(2) + ' L' : '₹' + money(n);
-  const paidFor = (t, id) => pays().filter(p => p.target === t && p.targetId === id).reduce((s, p) => s + num(p.amount), 0);
+  const paidFor = (t, id) => pays().reduce((s, p) => { let x = 0; if (p.target === t && p.targetId === id) x += num(p.amount); if (Array.isArray(p.allocations)) x += p.allocations.filter(a => a.target === t && a.targetId === id).reduce((y, a) => y + num(a.amount), 0); return s + x; }, 0);
   const agingTxt = (dueStr) => { const d = parseDate(dueStr); if (!d) return ''; const diff = Math.round((new Date().setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0)) / 86400000); return diff > 0 ? diff + 'd overdue' : diff === 0 ? 'due today' : 'due in ' + (-diff) + 'd'; };
 
   function receivables() { return invoices().map(r => { const total = num(r.total); const out = Math.round((total - paidFor('INV', r.id)) * 100) / 100; return { no: dn(r), party: r.customer, due: (r.model && r.model.dueDate) || r.savedAt, total, out }; }).filter(x => x.out > 0.5); }
