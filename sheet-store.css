@@ -1,0 +1,68 @@
+/* Factory Store — Sheets */
+.ss-wrap { max-width: 1100px; margin: 0 auto; padding: 14px; }
+.ss-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: linear-gradient(135deg, #0f766e, #155e75); color: #fff; border-radius: 16px; padding: 16px 20px; }
+.ss-hero-l { display: flex; align-items: center; gap: 14px; }
+.ss-hero-ic { font-size: 34px; }
+.ss-hero h2 { margin: 0; font-size: 20px; }
+.ss-hero p { margin: 2px 0 0; font-size: 12.5px; opacity: .9; }
+.ss-logo img { height: 40px; background: #fff; border-radius: 8px; padding: 4px 8px; }
+.ss-tabs { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+.ss-tab { border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer; color: #334155; }
+.ss-tab.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+.ss-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.ss-tile { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+.ss-tile-v { font-size: 26px; font-weight: 800; color: #0f766e; }
+.ss-tile-l { font-size: 12px; color: #64748b; margin-top: 2px; }
+.ss-tile.warn .ss-tile-v { color: #dc2626; }
+.ss-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ss-hint { font-size: 12.5px; color: #64748b; }
+.ss-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.ss-tblwrap { overflow-x: auto; }
+.ss-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ss-tbl th { background: #f1f5f9; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; color: #64748b; }
+.ss-tbl td { padding: 10px 12px; border-top: 1px solid #eef2f7; }
+.ss-tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
+.ss-tbl .c { text-align: center; }
+.ss-tbl .b { font-weight: 700; }
+.ss-tbl tr.ss-low td { background: #fef2f2; }
+.ss-muted { color: #94a3b8; }
+.ss-g { color: #16a34a; }
+.ss-r { color: #dc2626; }
+.ss-chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; background: #e2e8f0; color: #475569; }
+.ss-chip.in { background: #dcfce7; color: #16a34a; }
+.ss-chip.out { background: #fee2e2; color: #dc2626; }
+.ss-chip.no { background: #dc2626; color: #fff; }
+.ss-btn { border: 1px solid #cbd5e1; background: #fff; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: #334155; }
+.ss-btn.go { background: #0f766e; color: #fff; border-color: #0f766e; }
+.ss-btn.go:hover { background: #0b5f58; }
+.ss-mini { border: 1px solid #cbd5e1; background: #fff; border-radius: 7px; padding: 4px 9px; font-size: 12px; cursor: pointer; margin: 0 2px; color: #334155; }
+.ss-mini.in { color: #16a34a; border-color: #86efac; }
+.ss-mini.out { color: #b45309; border-color: #fcd34d; }
+.ss-mini.x { color: #dc2626; }
+/* modal */
+.ss-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: flex-start; justify-content: center; padding: 24px 14px; z-index: 9999; overflow-y: auto; }
+.ss-modal { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.ss-modal.big { max-width: 560px; }
+.ss-modal h3 { margin: 0 0 14px; font-size: 17px; }
+.ss-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ss-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #334155; font-weight: 600; }
+.ss-fields .ss-wide { grid-column: 1 / -1; }
+.ss-fields input, .ss-fields select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: 400; }
+.ss-target { background: #f0fdfa; border: 1px solid #99f6e4; color: #115e59; border-radius: 9px; padding: 9px 12px; font-size: 13px; margin-bottom: 12px; }
+.ss-note { font-size: 12px; color: #64748b; margin: 10px 0 0; }
+.ss-modal-act { display: flex; gap: 10px; margin-top: 16px; }
+/* scan box */
+.ss-scanbox { border: 1px dashed #94a3b8; border-radius: 12px; padding: 12px; margin-top: 14px; background: #f8fafc; }
+.ss-scan-h { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.ss-scan-row { display: flex; align-items: center; gap: 12px; }
+.ss-photo-btn { background: #1e40af; color: #fff; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ss-photo-btn:hover { background: #1e3a8a; }
+.ss-scan-imgwrap { margin-top: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+.ss-scan-img { width: 180px; max-width: 46%; border-radius: 8px; border: 1px solid #cbd5e1; object-fit: contain; }
+.ss-scan-ctl { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: #334155; min-width: 180px; }
+.ss-scan-ctl label { display: flex; flex-direction: column; gap: 3px; }
+.ss-scan-ctl select, .ss-scan-ctl input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px; }
+.ss-flag { margin-top: 10px; border-radius: 8px; padding: 9px 12px; font-size: 13px; }
+.ss-flag.ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.ss-flag.no { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+@media (max-width: 640px) { .ss-tiles { grid-template-columns: 1fr; } .ss-fields { grid-template-columns: 1fr; } }

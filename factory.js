@@ -216,16 +216,20 @@
         const note = (todayN && older) ? ` <span class="fx-ub-older">+ ${older} older pending</span>` : '';
         return `<div class="fx-urgent-banner" id="fx-urgent-banner">${main}${note} <button class="fx-ub-x" id="fx-ub-x" title="Dismiss">✕</button></div>`;
       })()}
-      <div class="fx-tabs">
-        <button class="fx-tab ${activeTab === 'indent' ? 'active' : ''}" data-tab="indent">📋 Indents</button>
-        ${testingScope ? '' : `<button class="fx-tab ${activeTab === 'product' ? 'active' : ''}" data-tab="product">📦 Product-wise ${dot}</button>
-        <button class="fx-tab ${activeTab === 'customer' ? 'active' : ''}" data-tab="customer">👤 Customer-wise ${dot}</button>
-        <button class="fx-tab ${activeTab === 'inventory' ? 'active' : ''}" data-tab="inventory">📦 Inventory</button>`}
-        <button class="fx-tab ${activeTab === 'documents' ? 'active' : ''}" data-tab="documents">📁 Documents</button>
-        ${testingScope ? '' : `<button class="fx-sheet-btn" id="fx-upload-sheet" title="Can't use the app? Photograph the floor work-sheet">📄 Upload floor sheet</button>`}
-      </div>
-      <div class="fx-layout" id="fx-layout"></div>`;
-    host.querySelectorAll('.fx-tab').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
+      <div class="fx-shell">
+        <nav class="fx-rail">
+          <button class="fx-rail-btn ${activeTab === 'indent' ? 'active' : ''}" data-tab="indent"><span class="fx-rail-ic">📋</span><span class="fx-rail-lab">Indents</span></button>
+          ${testingScope ? '' : `
+          <button class="fx-rail-btn ${activeTab === 'product' ? 'active' : ''}" data-tab="product"><span class="fx-rail-ic">📦</span><span class="fx-rail-lab">Products</span>${dot}</button>
+          <button class="fx-rail-btn ${activeTab === 'customer' ? 'active' : ''}" data-tab="customer"><span class="fx-rail-ic">👤</span><span class="fx-rail-lab">Customers</span>${dot}</button>
+          <button class="fx-rail-btn ${activeTab === 'inventory' ? 'active' : ''}" data-tab="inventory"><span class="fx-rail-ic">🧰</span><span class="fx-rail-lab">Inventory</span></button>`}
+          <button class="fx-rail-btn ${activeTab === 'documents' ? 'active' : ''}" data-tab="documents"><span class="fx-rail-ic">📁</span><span class="fx-rail-lab">Documents &amp; copies</span></button>
+          ${testingScope ? '' : `<div class="fx-rail-sep"></div>
+          <button class="fx-rail-btn ghost" id="fx-upload-sheet" title="Can't use the app? Photograph the floor work-sheet"><span class="fx-rail-ic">📄</span><span class="fx-rail-lab">Upload floor sheet</span></button>`}
+        </nav>
+        <div class="fx-layout" id="fx-layout"></div>
+      </div>`;
+    host.querySelectorAll('.fx-rail-btn[data-tab]').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
     const sheetBtn = host.querySelector('#fx-upload-sheet');
     if (sheetBtn) sheetBtn.onclick = uploadFloorSheet;
     const ubx = host.querySelector('#fx-ub-x'); if (ubx) ubx.onclick = () => { const b = document.getElementById('fx-urgent-banner'); if (b) b.remove(); };
@@ -919,6 +923,9 @@
   // ---- Advance (photo-gated) ----
   // Move a card to a target column — only after a verification photo. Moving
   // backward is blocked here (use ↩ Undo, which asks for a reason).
+  // Move a card forward one stage. No photo required any more — the floor just
+  // taps to advance (photo-as-record on the to-do was removed as it slowed them
+  // down). Moving backward still uses ↩ Undo with a reason.
   function moveToStage(id, target) {
     const f = findItem(id); if (!f) return; const it = f.it;
     if (it.status === target) return;
@@ -926,17 +933,12 @@
     const ci = seq.indexOf(it.status), ti = seq.indexOf(target);
     if (ti < 0) { toast('That stage does not apply to this product'); return; }
     if (ti < ci) { toast('To move a card back, use ↩ Undo'); return; }
-    capturePhoto('Move to “' + STAGES[target] + '” — take or upload a photo to verify', (d, meta) => {
-      const key = STAGES[it.status] + ' → ' + STAGES[target];
-      it.photos[key] = d;
-      if (meta) { it.photoMeta = it.photoMeta || {}; it.photoMeta[key] = meta; }
-      it.seen = true;
-      if (target === 'ready') {
-        askDispatchDetails(it, () => { it.status = 'ready'; updateItem(id, it); toast('Moved to Ready to Dispatch'); });
-      } else {
-        it.status = target; updateItem(id, it); toast('Moved to ' + STAGES[target]);
-      }
-    });
+    it.seen = true;
+    if (target === 'ready') {
+      askDispatchDetails(it, () => { it.status = 'ready'; updateItem(id, it); toast('Moved to Ready to Dispatch'); });
+    } else {
+      it.status = target; updateItem(id, it); toast('Moved to ' + STAGES[target]);
+    }
   }
   function advance(id) { const f = findItem(id); if (!f) return; const n = nextStage(f.it.status, f.it.desc); if (n) moveToStage(id, n); }
   function prevStage(s, desc) { const seq = stagesFor(desc); const i = seq.indexOf(s); return i > 0 ? seq[i - 1] : null; }

@@ -11,15 +11,17 @@ Tracking every item raised in the meeting. Status: ✅ done · 🔶 in progress 
 - ✅ **Editable indent mid-order** — sent/live indents now have an **✎ Edit** button; edits merge onto the live factory record and **preserve production progress** (qtyDone/status/photos). (`indent.js`, `factory.js receiveIndent({update:true})`)
 - ✅ **Drawing / product-photo section** — wide, dynamic card in Prepare: attach customer drawings / product photos / new designs, caption, **office "Approved" checkbox**, delete; auto-downscaled; printed as an approved-drawings sheet; carried to the factory record.
 
-### Factory Store — steel sheets inventory (CORE) ⬜
-- Separate "Factory Store" for **sheets** (distinct from accessories inventory like strut channel / threaded rod).
-- Sheet types: **MS, HR, HRPO, GI, Stainless Steel** × thicknesses (1.0, 1.5, …).
-- Opening stock entered by engineer on the factory floor.
-- Save **sheet purchase bills** here (office + factory side), from steel center / various suppliers.
-- On an order, the worker **selects the sheet used → auto-deducts → running balance → daily closing balance** auto-computed.
-- **Partial sheet use** (a sheet split, part used / part kept) must be supported.
-- Mid-day: extra usage OR new stock received → both accepted dynamically.
-- **Office view**: available / used / remaining per sheet type, so office decides when to reorder.
+### Factory Store — steel sheets inventory (CORE) ✅
+- ✅ New **Sheet Store** app (`sheet-store.js`), separate from accessories inventory.
+- ✅ Sheet types: MS / HR / HRPO / GI / Stainless Steel × thickness × size; opening stock by engineer; reorder level.
+- ✅ Receive (with supplier + bill no + amount) and Use; **partial sheets** (decimals) supported; running balance; **daily closing balance** (Day-close tab, printable); Movements log.
+- ✅ Office view: opening / received / used / balance per type + LOW flags.
+- ✅ **Photo + AI sheet-count** on receive: attach a stack photo → edge-based band counter estimates the count (sensitivity + direction), and **flags any mismatch vs the declared count** (e.g. declared 80, scan 75). Estimate the engineer confirms — not a trained model.
+- ⬜ Later: auto-deduct a sheet when an order consumes it (currently manual Use); link sheet bills into Payables.
+
+### Factory Floor UI redesign ✅
+- ✅ Converted cramped top tabs into a **left section rail** (Zoho-style): Indents · Products · Customers · Inventory · Documents & copies · Upload floor sheet → clean 3-column rail · filters · content.
+- ✅ **Removed** the photo-in-to-do (per-stage verification photo); the floor now taps to advance.
 
 ### Production plan → operator slips ⬜
 - Production **plan book stays with engineers** (not circulated to everyone).

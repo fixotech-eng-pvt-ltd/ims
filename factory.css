@@ -130,6 +130,26 @@
 .hm-notif span { display: block; font-size: 11px; color: #94a3b8; margin-top: 2px; }
 .hm-notif-empty { color: #94a3b8; text-align: center; padding: 20px; }
 
+/* ---- Left section rail (Zoho-style) ---- */
+.fx-shell { display: flex; gap: 16px; align-items: flex-start; }
+.fx-rail { flex: 0 0 186px; background: #fff; border: 1px solid var(--border,#e2e8f0); border-radius: 14px; padding: 10px; position: sticky; top: 12px; display: flex; flex-direction: column; gap: 4px; }
+.fx-rail-btn { position: relative; display: flex; align-items: center; gap: 11px; width: 100%; border: none; background: transparent; color: #334155; border-radius: 10px; padding: 11px 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; transition: .12s; }
+.fx-rail-btn:hover { background: #f1f5f9; }
+.fx-rail-btn.active { background: #1e3a8a; color: #fff; }
+.fx-rail-ic { font-size: 18px; width: 22px; text-align: center; flex: 0 0 auto; }
+.fx-rail-lab { flex: 1; line-height: 1.2; }
+.fx-rail-btn.ghost { color: #64748b; font-weight: 500; }
+.fx-rail-sep { height: 1px; background: #e2e8f0; margin: 6px 4px; }
+.fx-rail-btn .fx-dot { position: static; margin-left: auto; }
+.fx-shell .fx-layout { flex: 1; min-width: 0; }
+
+@media (max-width: 920px) {
+  .fx-shell { flex-direction: column; }
+  .fx-rail { flex: none; width: 100%; flex-direction: row; overflow-x: auto; position: static; gap: 6px; }
+  .fx-rail-btn { width: auto; white-space: nowrap; flex: 0 0 auto; }
+  .fx-rail-lab { flex: none; }
+  .fx-rail-sep { display: none; }
+}
 @media (max-width: 820px) {
   .fx-layout { flex-direction: column; } .fx-sidebar { flex: none; width: 100%; position: static; max-height: none; }
   .fx-kanban { grid-template-columns: 1fr 1fr; }
