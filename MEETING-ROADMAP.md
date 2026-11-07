@@ -17,7 +17,8 @@ Tracking every item raised in the meeting. Status: ✅ done · 🔶 in progress 
 - ✅ Receive (with supplier + bill no + amount) and Use; **partial sheets** (decimals) supported; running balance; **daily closing balance** (Day-close tab, printable); Movements log.
 - ✅ Office view: opening / received / used / balance per type + LOW flags.
 - ✅ **Photo + AI sheet-count** on receive: attach a stack photo → edge-based band counter estimates the count (sensitivity + direction), and **flags any mismatch vs the declared count** (e.g. declared 80, scan 75). Estimate the engineer confirms — not a trained model.
-- ⬜ Later: auto-deduct a sheet when an order consumes it (currently manual Use); link sheet bills into Payables.
+- ✅ **Auto-deduct on order**: Factory Floor indent card → 🗂️ **Sheets used** → pick sheet types + qty (part sheets ok) → deducts from the Store tagged to that order (`FIXO_SHEET_STORE.consume`).
+- ✅ **Sheet bills → Payables**: receiving sheets with a supplier + bill no + amount auto-creates a purchase bill in `fixo_inno_purchase_bills`, so it shows in Payments &amp; Bills.
 
 ### Factory Floor UI redesign ✅
 - ✅ Converted cramped top tabs into a **left section rail** (Zoho-style): Indents · Products · Customers · Inventory · Documents & copies · Upload floor sheet → clean 3-column rail · filters · content.
@@ -26,8 +27,8 @@ Tracking every item raised in the meeting. Status: ✅ done · 🔶 in progress 
 ### Production plan → operator slips ✅
 - ✅ Production plan stays with engineers; new **🧾 Operator slips** button on each indent generates **one A4 slip per operation** (cutting/slotting/perforation/punching/bending) listing only the items needing it, with Planned/Done/Rejected columns, final-check ticks and operator + supervisor signature boxes. (`factory.js operatorSlipsHtml`)
 
-### Packing list ⬜  (PDF provided: `0932_Trinity Heat Treatment..pdf`)
-- Factory side creates packing list (vehicle number, etc.); **office sees which vehicle is going**; keep full records. (Dispatch note now carries vehicle + Tally code — see below; a dedicated packing-list layout still to add from the PDF.)
+### Packing list ✅  (built from `0932_Trinity Heat Treatment..pdf`)
+- ✅ **📦 Packing list** button on each Ready group in Dispatch → full Trinity-style delivery challan: FIXOTECH header + address + GST, Packing List #, Consignee (Ship To) / Buyer (Bill To) boxes, item table (Sl / Description / Qty / Unit / Remarks, auto joint-plates & bolts for Mtr items), Vehicle No. / Driver / Ph box, and the "Received in good order" + Authorised Signatory footer. Editable then print. (`dispatch.js buildPackingListHtml`)
 
 ### Fixotech Records (office) ✅
 - ✅ New **Records** app (`records.js`): one register of every quotation, proforma, indent, production plan, inspection report, dispatch note, sales order, invoice, purchase bill and job work (402 live records). Filter by **type / year / customer** + free **search**, CSV export, view/open.
@@ -51,4 +52,5 @@ Tracking every item raised in the meeting. Status: ✅ done · 🔶 in progress 
 Delivered `fixo-v45`: Inno bills load, indent editability, indent drawings.
 Delivered `fixo-v46`: Sheet Store (+AI count), factory left-rail redesign, removed photo-in-todo.
 Delivered `fixo-v47`: operator slips, Job Work, dispatch Tally code + vehicle, Records (+Smart IQ), Customer Centric, admin activity logging + Data Manager in admin.
-Remaining: dedicated packing-list layout (from PDF); sheet auto-deduct on order + sheet bills → payables; users/roles; powder-coat detailed spec (awaiting team); new app logos (awaiting team).
+Delivered `fixo-v48`: Trinity-style packing list; sheet auto-deduct on order (Sheets used) + sheet bills → payables.
+Remaining: users/roles (later phase); powder-coat detailed spec (awaiting team); new app logos (awaiting team).

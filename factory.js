@@ -333,6 +333,7 @@
     layout.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => togglePriority(b.dataset.prio));
     layout.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => openProductionPlan(b.dataset.plan));
     layout.querySelectorAll('[data-slips]').forEach(b => b.onclick = () => openOperatorSlips(b.dataset.slips));
+    layout.querySelectorAll('[data-sheets]').forEach(b => b.onclick = () => openSheetUsage(b.dataset.sheets));
     layout.querySelectorAll('[data-inspect]').forEach(b => b.onclick = () => openInspectionReport(b.dataset.inspect));
   }
   function togglePriority(indId) {
@@ -415,6 +416,28 @@
     m.querySelector('#fx-doc-print').onclick = () => { commit(); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) {} };
     m.querySelector('#fx-doc-photo').onclick = () => capturePhoto('Photograph the ' + label + ' sheet', (dataUrl) => { ind.docPhotos[kind] = dataUrl; commit(); draw(ind.docs[kind], dataUrl); toast('Photo attached & saved'); });
   }
+  // Record which steel sheets this order consumed → deducts from the Sheet Store
+  // (Factory Store), so stock balances & daily closing update automatically.
+  function openSheetUsage(indId) {
+    const ind = indents.find(i => i.id === indId); if (!ind) return;
+    const SS = window.FIXO_SHEET_STORE;
+    if (!SS || !SS.types) { toast('Sheet Store not loaded'); return; }
+    const types = SS.types();
+    if (!types.length) { toast('Add sheet types in the Sheet Store first'); return; }
+    const rows = types.map(t => `<tr><td><b>${esc(t.label)}</b><div class="fx-meta">balance ${t.balance}</div></td><td class="c"><input class="fx-in fx-su-q" data-id="${t.id}" type="number" min="0" step="any" placeholder="0" style="max-width:110px"></td></tr>`).join('');
+    const m = modal(`<h3>🗂️ Sheets used — ${esc(ind.customer)} (${esc(ind.indentNo)})</h3>
+      <p class="fx-note">Enter how many sheets of each type this order used. Part sheets allowed (e.g. 0.5). It deducts from the Factory Store and tags the usage to this order.</p>
+      <div class="fx-modal-body" style="max-height:50vh;overflow:auto"><table class="fx-tbl"><thead><tr><th>Sheet (material · thickness · size)</th><th class="c">Sheets used</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="fx-modal-actions"><button class="fx-btn" id="su-x">Cancel</button><button class="fx-btn fx-btn-go" id="su-ok">✓ Deduct from store</button></div>`, 'fx-ed-modal');
+    m.querySelector('#su-x').onclick = () => closeModal(m);
+    m.querySelector('#su-ok').onclick = () => {
+      let n = 0; const order = (ind.customer || '') + ' · ' + (ind.indentNo || '');
+      m.querySelectorAll('.fx-su-q').forEach(inp => { const q = num(inp.value); if (q > 0) { if (SS.consume(inp.dataset.id, q, order)) n++; } });
+      if (!n) { toast('Enter at least one quantity'); return; }
+      try { if (window.FIXO_LOG) FIXO_LOG.activity('factory', 'sheets_used', { no: ind.indentNo, customer: ind.customer, lines: n }); } catch (e) {}
+      closeModal(m); toast('Deducted from Factory Store ✓');
+    };
+  }
   function openProductionPlan(indId) { openFactoryDoc(indId, 'plan'); }
 
   // ---- Operator slips: ONE A4 slip per operation (cutting, punching, bending…)
@@ -480,6 +503,7 @@
           <button class="fx-btn" data-print="${g.ind.id}" data-copy="white">🖨 White copy</button>
           <button class="fx-btn" data-plan="${g.ind.id}">🗒 Production plan</button>
           <button class="fx-btn" data-slips="${g.ind.id}">🧾 Operator slips</button>
+          <button class="fx-btn" data-sheets="${g.ind.id}">🗂️ Sheets used</button>
           <button class="fx-btn" data-inspect="${g.ind.id}">📋 Inspection report</button>
         </div>
       </div>

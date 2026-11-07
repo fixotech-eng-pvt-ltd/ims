@@ -125,6 +125,7 @@
         <button class="fx-btn fx-btn-go" id="dp-all-done">✓ Completely Dispatched (all)</button>
       </div>${gs.map(dpCard).join('')}`;
     body.querySelectorAll('[data-note]').forEach(b => b.onclick = () => printNote([gs[+b.dataset.note]]));
+    body.querySelectorAll('[data-pack]').forEach(b => b.onclick = () => openPackingList(gs[+b.dataset.pack]));
     body.querySelectorAll('[data-send]').forEach(b => b.onclick = () => sendNoteToOffice(gs[+b.dataset.send]));
     body.querySelectorAll('[data-dispatch]').forEach(b => b.onclick = () => doDispatch(gs[+b.dataset.dispatch]));
     const all = document.getElementById('dp-print-all'); if (all) all.onclick = () => printNote(gs);
@@ -136,6 +137,7 @@
         <div><b class="fx-cust">${esc(g.customer)}</b><span class="fx-meta">Indent No. ${esc(g.indentNo)} · ${g.items.length} item(s) ready</span></div>
         <div class="fx-card-btns">
           <button class="fx-btn fx-print" data-note="${i}">🖨 Dispatch note</button>
+          <button class="fx-btn" data-pack="${i}">📦 Packing list</button>
           <button class="fx-btn" data-send="${i}">📤 Send to Office</button>
           <button class="fx-btn fx-btn-go" data-dispatch="${i}">✓ Mark dispatched</button>
         </div>
@@ -208,6 +210,85 @@ body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;margin:0;p
   <div class="title">${esc(title)}</div>${blocks}
   <div class="sign"><span>Prepared by</span><span>Received by</span></div>
 </div></div></body></html>`;
+  }
+
+  // ---- PACKING LIST (Trinity-style delivery challan) ----
+  const CO_INFO = {
+    name: 'FIXOTECH ENGINEERING SYSTEMS PVT LTD',
+    addr: 'No. 4 &amp; 5 / 12 &amp; 15, J.P.R Building, Gurunanjudaiah Industrial Area, Abbigere, Chikkabanavara, Bangalore - 560090',
+    gst: '29AAXFT8814C1ZK',
+    ph: '99000 32644', mob: '+91 8792522803 / 8660030336',
+    email: 'sales@fixotech.in, fixotech@rediffmail.com, logisticsfixotech@gmail.com',
+    web: 'www.fixotechcabletrays.in'
+  };
+  function packNo() { try { const n = (JSON.parse(localStorage.getItem('fixo_packlist_seq') || '0')) + 1; return n; } catch (e) { return 1; } }
+  function indentFor(g) { try { const inds = (F().getIndents ? F().getIndents() : []) || []; return inds.find(i => i.indentNo === g.indentNo || (i.customer && g.customer && i.customer === g.customer)); } catch (e) { return null; } }
+  function buildPackingListHtml(g, meta) {
+    meta = meta || {};
+    const ind = indentFor(g) || {};
+    const addr = esc(ind.deliveryAddr || ind.deliveryTo || '');
+    const date = meta.date || new Date().toLocaleDateString('en-GB');
+    const no = meta.no != null ? meta.no : packNo();
+    const logo = F().LOGO ? F().LOGO() : '';
+    let sl = 0;
+    const rows = g.items.map(it => {
+      sl++;
+      let out = `<tr><td class="c">${sl}</td><td>${esc(it.desc).replace(/\n/g, '<br>')}${it.finish ? ' <i>(' + esc(it.finish) + ')</i>' : ''}</td><td class="c">${esc(it.qty)}</td><td class="c">${esc(it.unit || '')}</td><td></td></tr>`;
+      if (isMtr(it.unit)) { const a = accessories(num(it.qty)); out += `<tr><td></td><td>Connector / Joint Plate</td><td class="c">${a.plates}</td><td class="c">Nos</td><td></td></tr><tr><td></td><td>Bolt, Nut &amp; Washer</td><td class="c">${a.bolts}</td><td class="c">Set</td><td></td></tr>`; }
+      return out;
+    }).join('');
+    const blanks = Array(Math.max(0, 4 - sl)).fill('<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('');
+    const box = (title, name) => `<div class="pl-box"><div class="pl-box-t">${title}</div><div class="pl-ms"><b>M/s. ${esc(name || g.customer || '')}</b></div><div class="pl-ad" contenteditable="true">${addr || '&nbsp;'}</div><div class="pl-gst">GST No.: <span contenteditable="true">&nbsp;</span></div></div>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Packing List #${no}</title><style>
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:8mm}html,body{background:#fff}
+body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11.5px;margin:0;padding:5mm}
+.wrap{border:2px solid #000}
+.hd{display:flex;gap:10px;align-items:center;padding:8px 10px;border-bottom:2px solid #000}
+.hd img{height:52px}.hd .co{flex:1;text-align:center}.hd .co b{font-size:19px;letter-spacing:.5px}.hd .co div{font-size:9px;line-height:1.4}
+.tbar{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;border-bottom:1px solid #000;font-weight:bold}
+.tbar .title{font-size:16px;letter-spacing:1px}
+.parties{display:flex;border-bottom:1px solid #000}
+.pl-box{flex:1;padding:6px 10px}.pl-box+.pl-box{border-left:1px solid #000}
+.pl-box-t{font-weight:bold;font-size:10px;text-transform:uppercase;color:#333;margin-bottom:3px}
+.pl-ad{min-height:34px;font-size:11px;white-space:pre-wrap}.pl-gst{margin-top:4px;font-size:10.5px}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:5px 6px;font-size:11px}
+th{background:#eee;text-align:center;font-size:10px}.c{text-align:center}tbody td{height:8mm}
+.veh{display:flex;border-top:0;border-bottom:1px solid #000}
+.veh .vb{flex:1;padding:6px 10px;font-size:11px}.veh .vb+.vb{border-left:1px solid #000}
+.veh b{display:inline-block;min-width:92px}
+.ft{display:flex;justify-content:space-between;padding:20px 10px 8px;font-weight:bold;font-size:11px}
+.ft .r{text-align:right}
+@media print{body{padding:0}}</style></head><body>
+<div class="wrap"><div class="layer">
+  <div class="hd">${logo ? `<img src="${logo}">` : '<b style="font-size:20px">FIXOTECH</b>'}
+    <div class="co"><b>${CO_INFO.name}</b>
+      <div>${CO_INFO.addr}</div>
+      <div>Ph: ${CO_INFO.ph} · Mob: ${CO_INFO.mob} · GST No.: ${CO_INFO.gst}</div>
+      <div>${CO_INFO.email} · ${CO_INFO.web}</div></div></div>
+  <div class="tbar"><span class="title">PACKING LIST</span><span>Packing List #${esc(no)}</span><span>Date: ${esc(date)}</span></div>
+  <div class="parties">${box('Consignee (Ship To)')}${box('Buyer (Bill To)')}</div>
+  <table><thead><tr><th style="width:8%">SL. No.</th><th>Item Description</th><th style="width:13%">Qty</th><th style="width:12%">Unit</th><th style="width:22%">Remarks</th></tr></thead>
+    <tbody>${rows}${blanks}</tbody></table>
+  <div class="veh"><div class="vb"><b>Vehicle No.:</b> <span contenteditable="true">${esc(meta.vehicle || '')}</span></div><div class="vb"><b>Driver Name:</b> <span contenteditable="true">&nbsp;</span></div><div class="vb"><b>Ph:</b> <span contenteditable="true">+91 </span></div></div>
+  <div class="ft"><div>Received the above in good order and condition<br><br>Signature of the consignee with seal</div>
+    <div class="r">For ${CO_INFO.name}<br><br>Authorised Signatory</div></div>
+</div></div></body></html>`;
+  }
+  function openPackingList(g) {
+    if (!g || !g.items || !g.items.length) { toast('Nothing ready to pack'); return; }
+    const no = packNo();
+    const ind = indentFor(g) || {};
+    const meta = { no, vehicle: '' };
+    const m = modal(`<div class="fx-ed-head"><h3>Packing List — ${esc(g.customer)}</h3><span class="fx-ed-hint">✎ Fill consignee/buyer address, GST, vehicle &amp; remarks, then print.</span></div>
+      <div class="fx-ed-body"><iframe id="pl-frame"></iframe></div>
+      <div class="fx-modal-actions"><button class="fx-btn" id="pl-x">Close</button><button class="fx-btn fx-btn-go" id="pl-print">🖨 Save &amp; Print</button></div>`, 'fx-ed-modal');
+    const fr = m.querySelector('#pl-frame'); const d = fr.contentDocument || fr.contentWindow.document; d.open(); d.write(buildPackingListHtml(g, meta)); d.close();
+    m.querySelector('#pl-x').onclick = () => closeModal(m);
+    m.querySelector('#pl-print').onclick = () => {
+      try { localStorage.setItem('fixo_packlist_seq', JSON.stringify(no)); } catch (e) {}
+      try { if (window.FIXO_LOG) FIXO_LOG.activity('dispatch', 'packing_list', { customer: g.customer, indent_no: g.indentNo || '', no }); } catch (e) {}
+      try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('Allow pop-ups to print'); }
+    };
   }
 
   function printNote(gs) {

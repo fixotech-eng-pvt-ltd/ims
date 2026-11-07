@@ -172,6 +172,8 @@
       else { t.order = m.querySelector('#ss-ord').value.trim(); t.note = m.querySelector('#ss-note').value.trim(); }
       s.txns = s.txns || []; s.txns.unshift(t);
       const list = load().filter(x => x.id !== s.id); list.unshift(s); store(list); m.remove();
+      // Push the sheet purchase bill into Payables so it shows in Payments & Bills.
+      if (isIn && t.supplier && num(t.amount) > 0) pushBillToPayables(s, t);
       logAct(isIn ? 'receive' : 'use', { sheet: label(s).replace(/<[^>]+>/g, ''), qty: q, scan: scanCount, supplier: t.supplier, order: t.order });
       toast(isIn ? `Received ${nf(q)} sheets` + (scanCount != null && Math.abs(q - scanCount) > 1 ? ' — ⚠ scan differed' : '') : `Used ${nf(q)} sheets`); render();
     };
@@ -253,6 +255,29 @@
     img.src = dataUrl;
   }
 
+  // Create / update a payable (purchase bill) for a sheet receipt with a bill.
+  function pushBillToPayables(s, t) {
+    try {
+      const K = 'fixo_inno_purchase_bills';
+      const bills = (() => { try { return JSON.parse(localStorage.getItem(K) || '[]') || []; } catch (e) { return []; } })();
+      const id = 'shbill-' + t.id;
+      const bill = { id, billNo: t.billNo || '', vendor: t.supplier, billDate: t.date || today(), dueDate: t.date || today(), amount: num(t.amount), bank: '', notes: 'Sheet purchase: ' + label(s).replace(/<[^>]+>/g, '') + ' × ' + nf(t.qty) };
+      const out = bills.filter(b => b.id !== id); out.unshift(bill);
+      localStorage.setItem(K, JSON.stringify(out.slice(0, 2000)));
+      try { if (window.FIXO_SYNC && FIXO_SYNC.pushStore) FIXO_SYNC.pushStore(K); } catch (e) {}
+    } catch (e) {}
+  }
+  // Public API: deduct sheets consumed by an order (used by the Factory Floor).
+  function consume(sheetId, qty, order) {
+    const s = find(sheetId); if (!s || num(qty) <= 0) return false;
+    s.txns = s.txns || [];
+    s.txns.unshift({ id: uid('tx-'), type: 'out', qty: num(qty), date: today(), dateKey: todayKey(), at: new Date().toISOString(), order: order || '' });
+    const list = load().filter(x => x.id !== s.id); list.unshift(s); store(list);
+    logAct('use', { sheet: label(s).replace(/<[^>]+>/g, ''), qty: num(qty), order });
+    return true;
+  }
+  function types() { return load().map(s => ({ id: s.id, label: label(s).replace(/<[^>]+>/g, ''), balance: balance(s) })); }
+
   function toast(m) { return (window.FIXO && FIXO.toast ? FIXO.toast(m) : console.log(m)); }
   function modal(inner, cls) { const el = document.createElement('div'); el.className = 'ss-overlay'; el.innerHTML = `<div class="ss-modal ${cls || ''}">${inner}</div>`; document.body.appendChild(el); el.addEventListener('click', e => { if (e.target === el) el.remove(); }); return el; }
 
@@ -260,5 +285,5 @@
     document.querySelectorAll('[data-open-app="screen-sheet-store"]').forEach(b => b.addEventListener('click', () => setTimeout(render, 0)));
     if (localStorage.getItem('fixo_screen') === 'screen-sheet-store') render();
   });
-  window.FIXO_SHEET_STORE = { render, balance, load };
+  window.FIXO_SHEET_STORE = { render, balance, load, consume, types };
 })();
